@@ -786,6 +786,51 @@ class SpatialReference(object):
                                proj4=None)
         return result
 
+    def interpolate(self, a, xi, method='nearest'):
+        """
+        Use the griddata method to interpolate values from an array onto the
+        points defined in xi.  For any values outside of the grid, use
+        'nearest' to find a value for them.
+
+        Parameters
+        ----------
+        a : numpy.ndarray
+            array to interpolate from.  It must be of size nrow, ncol
+        xi : numpy.ndarray
+            array containing x and y point coordinates of size (npts, 2). xi
+            also works with broadcasting so that if a is a 2d array, then
+            xi can be passed in as (xgrid, ygrid).
+        method : {'linear', 'nearest', 'cubic'}
+            method to use for interpolation (default is 'nearest')
+
+        Returns
+        -------
+        b : numpy.ndarray
+            array of size (npts)
+
+        """
+        try:
+            from scipy.interpolate import griddata
+        except:
+            print('scipy not installed\ntry pip install scipy')
+            return None
+
+        # Create a 2d array of points for the grid centers
+        points = np.empty((self.ncol * self.nrow, 2))
+        points[:, 0] = self.xcentergrid.flatten()
+        points[:, 1] = self.ycentergrid.flatten()
+
+        # Use the griddata function to interpolate to the xi points
+        b = griddata(points, a.flatten(), xi, method=method, fill_value=np.nan)
+
+        # if method is linear or cubic, then replace nan's with a value
+        # interpolated using nearest
+        if method != 'nearest':
+            bn = griddata(points, a.flatten(), xi, method='nearest')
+            idx = np.isnan(b)
+            b[idx] = bn[idx]
+
+        return b
 
 class TemporalReference(object):
     """For now, just a container to hold start time and time units files
