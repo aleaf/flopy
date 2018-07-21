@@ -1078,6 +1078,25 @@ class SpatialReference(object):
         self.export_contours(filename, ctr, fieldname, epsg, prj, **kwargs)
         plt.close()
 
+    def write_gridSpec(self, filename):
+        """ write a PEST-style grid specification file
+        """
+        with open(filename, 'w') as f:
+            f.write(
+                "{0:10d} {1:10d}\n".format(self.delc.shape[0], self.delr.shape[0]))
+            f.write("{0:15.6E} {1:15.6E} {2:15.6E}\n".format(
+                self.xul * self.length_multiplier,
+                self.yul * self.length_multiplier,
+                self.rotation))
+
+            for r in self.delr:
+                f.write("{0:15.6E} ".format(r))
+            f.write('\n')
+            for c in self.delc:
+                f.write("{0:15.6E} ".format(c))
+            f.write('\n')
+        print('wrote {}'.format(filename))
+        return
 
 
 class TemporalReference(object):
