@@ -109,6 +109,14 @@ class SpatialReference(object):
         self.set_spatialreference(delc, xul, yul, xll, yll, rotation)
 
     @property
+    def nrow(self):
+        return self.modelgrid.nrow
+
+    @property
+    def ncol(self):
+        return self.modelgrid.ncol
+
+    @property
     def delc(self):
         return self.modelgrid.delc
 
@@ -749,6 +757,34 @@ class SpatialReference(object):
 
         # lc = LineCollection(self.get_grid_lines(), **kwargs)
         # return lc
+
+    def sample(self, raster, how='points'):
+        """Sample raster data to model grid."""
+
+        if how == 'points':
+            from flopy.utils.preprocessing import get_values_at_points
+            results = get_values_at_points(raster,
+                                           x=self.xcenters.ravel(),
+                                           y=self.ycenters.ravel()
+                                           )
+        if isinstance(self.modelgrid, StructuredModelGrid):
+            results = np.reshape(results, (self.modelgrid.nrow,
+                                           self.modelgrid.ncol))
+        return results
+
+    def intersect(self, feature, id_column=None,
+                  epsg=None,
+                  proj4=None, how='rastersize'):
+        """Intersect feature(s) with the model grid.
+
+        Intersections are determined by the cell center being within the feature.
+        """
+        if how == 'rastersize':
+            from flopy.utils.preprocessing import intersect
+            result = intersect(feature, self, id_column=None,
+                               epsg=None,
+                               proj4=None)
+        return result
 
 
 class TemporalReference(object):
