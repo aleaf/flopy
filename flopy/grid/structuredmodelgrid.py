@@ -35,6 +35,14 @@ class StructuredModelGrid(ModelGrid):
         self._nrow = len(delc)
         self._ncol = len(delr)
 
+        # might want to roll these into a reset method similar to sr
+        self._xcenters = None
+        self._ycenters = None
+        self._xedges = None
+        self._yedges = None
+        self._vertices = None
+        self._gridlines = None
+
     ####################
     # Properties
     ####################
@@ -110,9 +118,96 @@ class StructuredModelGrid(ModelGrid):
                                                  PointType.spatialxyz)
         return xmin, ymin, xmax, ymax
 
+    @property
+    def ycenters(self):
+        if self._ycenters is None:
+            self._set_xycenters()
+        return self._ycenters
+
+    @property
+    def xcenters(self):
+        if self._xcenters is None:
+            self._set_xycenters()
+        return self._xcenters
+
+    @property
+    def xedges(self):
+        if self._xedges is None:
+            self._set_xyedges()
+        return self._xedges
+
+    @property
+    def yedges(self):
+        if self._yedges is None:
+            self._set_xyedges()
+        return self._yedges
+
+    @property
+    def _xcenters1d(self):
+        return np.add.accumulate(self.delr) - 0.5 * self.delr
+
+    @property
+    def _ycenters1d(self):
+        Ly = np.add.reduce(self.delc)
+        y = Ly - (np.add.accumulate(self.delc) - 0.5 *
+                  self.delc)
+        return y
+
+    @property
+    def _xedges1d(self):
+        return np.concatenate(([0.], np.add.accumulate(self.delr)))
+
+    @property
+    def _yedges1d(self):
+        length_y = np.add.reduce(self.delc)
+        yedge = np.concatenate(([length_y], length_y -
+                                np.add.accumulate(self.delc)))
+        return yedge
+
+    @property
+    def vertices(self):
+        """Returns a list of vertices for"""
+        if self._vertices is None:
+            self._set_vertices()
+        return self._vertices
+
+    @property
+    def gridlines(self):
+        if self._gridlines is None:
+            self._gridlines = self.get_grid_lines()
+        return self._gridlines
+
     ####################
     # Methods
     ####################
+    def _set_xycenters(self):
+        self._xcenters, self._ycenters = np.meshgrid(self._xcenters1d,
+                                                     self._ycenters1d)
+
+    def _set_xyedges(self):
+        self._xedges, self._yedges = np.meshgrid(self._xedges1d, self._yedges1d)
+
+    def _set_vertices(self):
+        """populate vertices for the whole grid"""
+        jj, ii = np.meshgrid(range(self.ncol), range(self.nrow))
+        jj, ii = jj.ravel(), ii.ravel()
+        self._vertices = self.get_vertices(ii, jj)
+
+    def get_vertices(self, i, j):
+        """Get vertices for a single cell or sequence if i, j locations."""
+        pts = []
+        xgrid, ygrid = self.xedges, self.yedges
+        pts.append([xgrid[i, j], ygrid[i, j]])
+        pts.append([xgrid[i + 1, j], ygrid[i + 1, j]])
+        pts.append([xgrid[i + 1, j + 1], ygrid[i + 1, j + 1]])
+        pts.append([xgrid[i, j + 1], ygrid[i, j + 1]])
+        pts.append([xgrid[i, j], ygrid[i, j]])
+        if np.isscalar(i):
+            return pts
+        else:
+            vrts = np.array(pts).transpose([2, 0, 1])
+            return [v.tolist() for v in vrts]
+
     def get_tabular_data(self, data, location_type=LocationType.spatialxyz):
         # initialize counters
         current_row = 0
@@ -274,9 +369,9 @@ class StructuredModelGrid(ModelGrid):
             x1 = x0
             y0 = ymin
             y1 = ymax
-            if point_type == PointType.spatialxyz:
-                x0, y0 = self.sr.transform(x0, y0)
-                x1, y1 = self.sr.transform(x1, y1)
+            #if point_type == PointType.spatialxyz:
+            #    x0, y0 = self.sr.transform(x0, y0)
+            #    x1, y1 = self.sr.transform(x1, y1)
             lines.append([(x0, y0), (x1, y1)])
 
         # horizontal lines
@@ -285,9 +380,9 @@ class StructuredModelGrid(ModelGrid):
             x1 = xmax
             y0 = self.yedge[i]
             y1 = y0
-            if point_type == PointType.spatialxyz:
-                x0, y0 = self.sr.transform(x0, y0)
-                x1, y1 = self.sr.transform(x1, y1)
+            #if point_type == PointType.spatialxyz:
+            #    x0, y0 = self.sr.transform(x0, y0)
+            #    x1, y1 = self.sr.transform(x1, y1)
             lines.append([(x0, y0), (x1, y1)])
         return lines
 
@@ -833,11 +928,11 @@ class StructuredModelGrid(ModelGrid):
         j : column or sequence of columns (zero-based)
         """
         if np.isscalar(x):
-            c = (np.abs(self.get_cellcenters[0][0] - x)).argmin()
-            r = (np.abs(self.get_cellcenters[1][:, 0] - y)).argmin()
+            c = (np.abs(self.xcenters[0] - x)).argmin()
+            r = (np.abs(self.ycenters[:, 0] - y)).argmin()
         else:
-            xcp = np.array([self.get_cellcenters[0][0]] * (len(x)))
-            ycp = np.array([self.get_cellcenters[1][:, 0]] * (len(x)))
+            xcp = np.array([self.xcenters[0]] * (len(x)))
+            ycp = np.array([self.ycenters[:, 0]] * (len(x)))
             c = (np.abs(xcp.transpose() - x)).argmin(axis=0)
             r = (np.abs(ycp.transpose() - y)).argmin(axis=0)
         return r, c
@@ -911,3 +1006,4 @@ class StructuredModelGrid(ModelGrid):
                     iverts.append(ivert)
 
         return verts, iverts
+

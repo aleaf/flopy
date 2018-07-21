@@ -5,7 +5,7 @@ Module spatial referencing for flopy model objects
 import sys
 import os
 import numpy as np
-
+from .structuredmodelgrid import StructuredModelGrid
 
 class SpatialReference(object):
     """
@@ -77,10 +77,22 @@ class SpatialReference(object):
                      'centimeters': 3}
     lenuni_text = {v: k for k, v in lenuni_values.items()}
 
-    def __init__(self, delc=np.array([]), lenuni=2,
+    def __init__(self, delr=np.array([]), delc=np.array([]),
+                 grid=None,
+                 lenuni=2,
                  xul=None, yul=None, xll=None, yll=None, rotation=0.0,
                  proj4_str=None, epsg=None, prj=None, units=None,
                  length_multiplier=None):
+
+        # parent grid
+        self.modelgrid = grid
+        # if no grid is supplied,
+        # create structured grid from arguments
+        if self.modelgrid is None:
+            self.modelgrid = StructuredModelGrid(delc, delr,
+                                            top=0,
+                                            botm=[0],
+                                            idomain=1)
         self._lenuni = lenuni
         self._proj4_str = proj4_str
         self._epsg = epsg
@@ -95,6 +107,14 @@ class SpatialReference(object):
         self._length_multiplier = length_multiplier
         self._reset()
         self.set_spatialreference(delc, xul, yul, xll, yll, rotation)
+
+    @property
+    def delc(self):
+        return self.modelgrid.delc
+
+    @property
+    def delr(self):
+        return self.modelgrid.delr
 
     @property
     def xll(self):
@@ -138,6 +158,85 @@ class SpatialReference(object):
             # calculate coords for lower left corner
             yul = self._yul if self._yul is not None else 0.
         return yul
+
+    @property
+    def ycenters(self):
+        if self._ycenters is None:
+            self._set_xycenters()
+        return self._ycenters
+
+    @property
+    def xcenters(self):
+        if self._xcenters is None:
+            self._set_xycenters()
+        return self._xcenters
+
+    @property
+    def yedges(self):
+        if self._yedges is None:
+            self._set_xyedges()
+        return self._yedges
+
+    @property
+    def xedges(self):
+        if self._xedges is None:
+            self._set_xyedges()
+        return self._xedges
+
+    @property
+    def vertices(self):
+        """Returns a list of vertices for"""
+        if self._vertices is None:
+            self._set_vertices()
+        return self._vertices
+
+    @property
+    def gridlines(self):
+        if self._gridlines is None:
+            self._gridlines = self.get_grid_lines()
+        return self._gridlines
+
+    def _set_xycenters(self):
+        self._xcenters, self._ycenters = self.transform(
+            self.modelgrid.xcenters,
+            self.modelgrid.ycenters)
+
+    def _set_xyedges(self):
+        self._xedges, self._yedges = self.transform(self.modelgrid.xedges,
+                                                    self.modelgrid.yedges)
+
+    def _set_vertices(self):
+        """populate vertices for the whole grid"""
+        jj, ii = np.meshgrid(range(self.modelgrid.ncol), range(self.modelgrid.nrow))
+        jj, ii = jj.ravel(), ii.ravel()
+        self._vertices = self.get_vertices(ii, jj)
+
+    def get_grid_lines(self):
+        lines = self.modelgrid.get_grid_lines()
+        lines_trans = []
+        for ln in lines:
+            lines_trans.append([self.transform(*ln[0]),
+                                self.transform(*ln[1])])
+        return lines_trans
+
+    def get_vertices(self, i, j):
+        """Get vertices for a single cell or sequence if i, j locations."""
+        pts = []
+        xgrid, ygrid = self.xedges, self.yedges
+        pts.append([xgrid[i, j], ygrid[i, j]])
+        pts.append([xgrid[i + 1, j], ygrid[i + 1, j]])
+        pts.append([xgrid[i + 1, j + 1], ygrid[i + 1, j + 1]])
+        pts.append([xgrid[i, j + 1], ygrid[i, j + 1]])
+        pts.append([xgrid[i, j], ygrid[i, j]])
+        if np.isscalar(i):
+            return pts
+        else:
+            vrts = np.array(pts).transpose([2, 0, 1])
+            return [v.tolist() for v in vrts]
+
+    def get_rc(self, x, y):
+        return self.modelgrid.get_ij(*self.transform(x, y,
+                                                     inverse=True))
 
     @property
     def proj4_str(self):
@@ -465,11 +564,12 @@ class SpatialReference(object):
         return
 
     def _reset(self):
-        self._xgrid = None
-        self._ygrid = None
-        self._ycentergrid = None
-        self._xcentergrid = None
+        self._xedges = None
+        self._yedges = None
+        self._ycenters = None
+        self._xcenters = None
         self._vertices = None
+        self._gridlines = None
         return
 
     def __eq__(self, other):
