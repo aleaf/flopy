@@ -4,6 +4,7 @@ Module spatial referencing for flopy model objects
 """
 import sys
 import os
+import json
 import numpy as np
 from .structuredmodelgrid import StructuredModelGrid
 
@@ -1098,6 +1099,45 @@ class SpatialReference(object):
         print('wrote {}'.format(filename))
         return
 
+    def write_json(self, filename='sr.json'):
+        with open(filename, 'w') as output:
+            if len(set(np.diff(self.delc))) == 1:
+                delc = self.delc[0]
+            else:
+                delc = self.delc.tolist()
+            if len(set(np.diff(self.delr))) == 1:
+                delr = self.delr[0]
+            else:
+                delr = self.delr.tolist()
+            outdict = {'xul': self.xul,
+                       'yul': self.yul,
+                       'delc': delc,
+                       'delr': delr,
+                       'rotation': self.rotation,
+                       'proj4_str': self.proj4_str,
+                       'epsg': self.epsg,
+                       'lenuni': self.lenuni,
+                       'length_multiplier': self.length_multiplier,
+                       'nrow': self.nrow,
+                       'ncol': self.ncol}
+            json.dump(outdict, output, indent=4, sort_keys=True)
+            print('wrote {}'.format(filename))
+
+    @staticmethod
+    def from_json(filename):
+        with open(filename) as src:
+            d = json.load(src)
+
+        if np.isscalar(d['delc']):
+            assert 'nrow' in d.keys(), "scalar delc requires number of rows (nrow)"
+            d['delc'] = np.ones(d['nrow'], dtype=float) * d['delc']
+            del d['nrow']
+
+        if np.isscalar(d['delr']):
+            assert 'ncol' in d.keys(), "scalar delr requires number of columns (ncol)"
+            d['delr'] = np.ones(d['ncol'], dtype=float) * d['delr']
+            del d['ncol']
+        return SpatialReference(**d)
 
 class TemporalReference(object):
     """For now, just a container to hold start time and time units files
