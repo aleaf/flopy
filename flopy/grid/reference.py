@@ -6,7 +6,7 @@ import sys
 import os
 import json
 import numpy as np
-from .structuredmodelgrid import StructuredModelGrid
+import flopy
 
 class SpatialReference(object):
     """
@@ -87,13 +87,7 @@ class SpatialReference(object):
 
         # parent grid
         self.modelgrid = grid
-        # if no grid is supplied,
-        # create structured grid from arguments
-        if self.modelgrid is None:
-            self.modelgrid = StructuredModelGrid(delc, delr,
-                                            top=0,
-                                            botm=[0],
-                                            idomain=1)
+
         self._lenuni = lenuni
         self._proj4_str = proj4_str
         self._epsg = epsg
@@ -200,6 +194,15 @@ class SpatialReference(object):
         return self._vertices
 
     @property
+    def vertices1d(self):
+        """Returns a list of vertices for"""
+        if self._vertices is None:
+            self._set_vertices()
+        nrow, ncol, npts, xy = self._vertices.shape
+        return np.reshape(self._vertices,
+                          (nrow * ncol * npts, xy)).transpose()
+
+    @property
     def gridlines(self):
         if self._gridlines is None:
             self._gridlines = self.get_grid_lines()
@@ -229,6 +232,8 @@ class SpatialReference(object):
         jj, ii = np.meshgrid(range(self.modelgrid.ncol), range(self.modelgrid.nrow))
         jj, ii = jj.ravel(), ii.ravel()
         self._vertices = self.get_vertices(ii, jj)
+        self._vertices = np.reshape(self._vertices,
+                                    (self.nrow, self.ncol, 5, 2))
 
     def get_grid_lines(self):
         lines = self.modelgrid.get_grid_lines()
@@ -778,7 +783,7 @@ class SpatialReference(object):
                                            x=self.xcenters.ravel(),
                                            y=self.ycenters.ravel()
                                            )
-        if isinstance(self.modelgrid, StructuredModelGrid):
+        if isinstance(self.modelgrid, flopy.grid.StructuredModelGrid):
             results = np.reshape(results, (self.modelgrid.nrow,
                                            self.modelgrid.ncol))
         return results

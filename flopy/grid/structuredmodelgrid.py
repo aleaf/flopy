@@ -3,7 +3,7 @@ from pandas import DataFrame
 from ..utils.datautil import PyListUtil
 from .modelgrid import ModelGrid, GridType, PointType, LocationType, \
                        CachedData, CachedDataType
-
+from .reference import SpatialReference
 
 class StructuredModelGrid(ModelGrid):
     """
@@ -21,8 +21,13 @@ class StructuredModelGrid(ModelGrid):
         returns the number of model columns
 
     """
-    def __init__(self, delc, delr, top, botm, idomain, sr=None,
-                 simulation_time=None, model_name='', steady=False):
+    def __init__(self, delc, delr, top=None, botm=None, idomain=1, sr=None,
+                 simulation_time=None, model_name='', steady=False,
+                 lenuni=2,
+                 xul=None, yul=None, xll=None, yll=None, rotation=0.0,
+                 proj4_str=None, epsg=None, prj=None, units=None,
+                 length_multiplier=None
+                 ):
         super(StructuredModelGrid, self).__init__(GridType.structured, sr,
                                                   simulation_time,
                                                   model_name, steady)
@@ -31,9 +36,17 @@ class StructuredModelGrid(ModelGrid):
         self._top = top
         self._botm = botm
         self._idomain = idomain
-        self._nlay = len(botm)
+        self._nlay = len(botm) if botm is not None else 0
         self._nrow = len(delc)
         self._ncol = len(delr)
+
+        self.sr = SpatialReference(delc=delc, delr=delr,
+                                   grid=self,
+                                   lenuni=lenuni,
+                                   xul=xul, yul=yul, xll=xll, yll=yll, rotation=rotation,
+                                   proj4_str=proj4_str, epsg=epsg, prj=prj, units=units,
+                                   length_multiplier=length_multiplier
+                                   )
 
         # might want to roll these into a reset method similar to sr
         self._xcenters = None
@@ -172,10 +185,27 @@ class StructuredModelGrid(ModelGrid):
         return self._vertices
 
     @property
+    def vertices1d(self):
+        """Returns a list of vertices for"""
+        if self._vertices is None:
+            self._set_vertices()
+        nrow, ncol, npts, xy = self._vertices.shape
+        return np.reshape(self._vertices,
+                          (nrow * ncol * npts, xy)).transpose()
+
+    @property
     def gridlines(self):
         if self._gridlines is None:
             self._gridlines = self.get_grid_lines()
         return self._gridlines
+
+    @property
+    def sr(self):
+        return self._sr
+
+    @sr.setter
+    def sr(self, sr):
+        self._sr = sr
 
     ####################
     # Methods
@@ -192,9 +222,16 @@ class StructuredModelGrid(ModelGrid):
         jj, ii = np.meshgrid(range(self.ncol), range(self.nrow))
         jj, ii = jj.ravel(), ii.ravel()
         self._vertices = self.get_vertices(ii, jj)
+        self._vertices = np.reshape(self._vertices,
+                                    (self.nrow, self.ncol, 5, 2))
 
     def get_vertices(self, i, j):
         """Get vertices for a single cell or sequence if i, j locations."""
+        if not np.isscalar(i):
+            i = i.ravel()
+            j = j.ravel()
+        if self._vertices is not None:
+            return self._vertices[i, j]
         pts = []
         xgrid, ygrid = self.xedges, self.yedges
         pts.append([xgrid[i, j], ygrid[i, j]])

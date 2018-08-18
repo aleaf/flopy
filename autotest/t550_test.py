@@ -1,3 +1,8 @@
+"""
+Test shapefile exporting for
+* consistency between mf2005 and mf6
+* performance
+"""
 import os
 import numpy as np
 import flopy
