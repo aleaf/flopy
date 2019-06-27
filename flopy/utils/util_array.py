@@ -14,7 +14,7 @@ import copy
 import numpy as np
 from warnings import warn
 from ..utils.binaryfile import BinaryHeader
-from ..utils.flopy_io import line_parse
+from ..utils.flopy_io import line_parse, loadtxt
 from ..datbase import DataType, DataInterface
 
 
@@ -2673,15 +2673,18 @@ class Util2d(DataInterface):
             assert os.path.exists(fname), "Util2d.load() error: open/close " + \
                                           "file " + str(fname) + " not found"
             if str('binary') not in str(cr_dict['fmtin'].lower()):
-                f = open(fname, 'r')
-                data = Util2d.load_txt(shape=shape,
-                                       file_in=f,
-                                       dtype=dtype, fmtin=cr_dict['fmtin'])
+                try:
+                    data = loadtxt(fname, dtype=dtype, dest_array_type='ndarray',
+                                   shape=shape)
+                except Exception as e:
+                    with open(fname, 'r') as f:
+                        data = Util2d.load_txt(shape=shape,
+                                               file_in=f,
+                                               dtype=dtype, fmtin=cr_dict['fmtin'])
             else:
-                f = open(fname, 'rb')
-                header_data, data = Util2d.load_bin(shape, f, dtype,
-                                                    bintype='Head')
-            f.close()
+                with open(fname, 'rb') as f:
+                    header_data, data = Util2d.load_bin(shape, f, dtype,
+                                                        bintype='Head')
             u2d = Util2d(model, shape, dtype, data, name=name,
                          iprn=cr_dict['iprn'], fmtin="(FREE)",
                          cnstnt=cr_dict['cnstnt'],

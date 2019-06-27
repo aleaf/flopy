@@ -260,6 +260,7 @@ def flux_to_wel(cbc_file, text, precision="single", model=None, verbose=False):
 
 
 def loadtxt(file, delimiter=' ', dtype=None, skiprows=0, use_pandas=True,
+            dest_array_type='recarray', shape=None,
             **kwargs):
     """
     Use pandas if it is available to load a text file
@@ -278,6 +279,7 @@ def loadtxt(file, delimiter=' ', dtype=None, skiprows=0, use_pandas=True,
         Skip the first skiprows lines; default: 0.
     use_pandas : bool
         If true, the much faster pandas.read_csv method is used.
+
     kwargs : dict
         Keyword arguments passed to numpy.loadtxt or pandas.read_csv.
 
@@ -291,16 +293,29 @@ def loadtxt(file, delimiter=' ', dtype=None, skiprows=0, use_pandas=True,
         if pd:
             if delimiter.isspace():
                 kwargs['delim_whitespace'] = True
-            if isinstance(dtype, np.dtype) and 'names' not in kwargs:
+            if dest_array_type == 'recarray' and isinstance(dtype, np.dtype) and 'names' not in kwargs:
                 kwargs['names'] = dtype.names
+                kwargs['dtype'] = dtype
+            elif dest_array_type == 'ndarray':
+                kwargs['header'] = None
 
     # if use_pandas and pd then use pandas
     if use_pandas and pd:
-        df = pd.read_csv(file, dtype=dtype, skiprows=skiprows, **kwargs)
-        return df.to_records(index=False)
+        df = pd.read_csv(file, skiprows=skiprows, **kwargs)
+        if dest_array_type == 'recarray':
+            arr = df.to_records(index=False)
+        elif dest_array_type == 'ndarray':
+            arr = df.values.astype(dtype)
+            arr = np.reshape(arr, shape)
+        else:
+            raise ValueError('destination array type {} not supported. '
+                             'Use "recarray" or "ndarray"'.format(dest_array_type))
+        return arr
     # default use of numpy
     else:
-        return np.loadtxt(file, dtype=dtype, skiprows=skiprows, **kwargs)
+        arr = np.loadtxt(file, dtype=dtype, skiprows=skiprows, **kwargs)
+        arr = np.reshape(arr, shape)
+    return arr
 
 
 def get_url_text(url, error_msg=None):

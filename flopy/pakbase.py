@@ -17,6 +17,7 @@ import numpy as np
 from numpy.lib.recfunctions import stack_arrays
 
 from .modflow.mfparbc import ModflowParBc as mfparbc
+from .utils.flopy_io import loadtxt
 from .utils import Util2d, Util3d, Transient2d, MfList, check
 from .utils import OptionBlock
 
@@ -839,12 +840,15 @@ class Package(PackageInterface):
                                 current = np.array(d, dtype=current.dtype)
                             else:
                                 cd = current.dtype
-                                current = np.loadtxt(oc_filename).transpose()
-                                if current.ndim == 1:
-                                    current = np.atleast_2d(
-                                        current).transpose()
-                                current = np.core.records.fromarrays(current,
-                                                                     dtype=cd)
+                                try:
+                                    current = loadtxt(oc_filename, dtype=cd, dest_array_type='recarray')
+                                except Exception as e:
+                                    current = np.loadtxt(oc_filename).transpose()
+                                    if current.ndim == 1:
+                                        current = np.atleast_2d(
+                                            current).transpose()
+                                    current = np.core.records.fromarrays(current,
+                                                                         dtype=cd)
                             current = current.view(np.recarray)
                         except Exception as e:
                             msg = 'Package.load() error loading ' + \
