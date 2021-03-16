@@ -110,7 +110,8 @@ class Lgr(object):
         self.xll = xllp + self.delrp[0 : self.npcbeg].sum()
         self.yll = yllp + self.delcp[self.nprend + 1 :].sum()
 
-        return
+        # parent/child connection info produced by get_exchange_data
+        self._exchange_data = None
 
     def get_shape(self):
         """
@@ -306,6 +307,128 @@ class Lgr(object):
 
         return parentlist
 
+    def get_gnc_parent_j_info(self, kc, ic, jc):
+        """
+        Return a list of parent j cells, which contribute to the interpolated 
+        head value at the ghost node, and the alpha factors for the linear
+        interpolation (see the MODFLOW-6 docs).
+
+        Returns
+        -------
+        parent_j_list : list
+            List of parent connection ghost node information, 
+            with each item containing:
+            
+            <parentn> <parentj> <alphaj>
+            
+            (see MODFLOW-6 docs about GNC package for more info)
+            
+        """
+
+        assert 0 <= kc < self.nlay, "layer must be >= 0 and < child nlay"
+        assert 0 <= ic < self.nrow, "layer must be >= 0 and < child nrow"
+        assert 0 <= jc < self.ncol, "layer must be >= 0 and < child ncol"
+
+        parent_j_list = []
+        (kp, ip, jp) = self.get_parent_indices(kc, ic, jc)
+
+        midpoint = self.ncpp / 2
+        # parent cell to left
+        if jc % self.ncpp == 0:
+            if jp - 1 >= 0:
+                if self.idomain[kp, ip, jp - 1] != 0:
+                    # head at ghost node is interpolated using 
+                    # parent cell along the column that is closest to the 
+                    # LGR connection that the ghost node is correcting
+                    lnj = self.delcp[ip] * 0.5
+                    lnj_frac = (ic % self.ncpp + 0.5)/midpoint
+                    if lnj_frac < 1:
+                        ljn = self.delcp[ip - 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip, jp - 1),
+                                              (kp, ip - 1, jp - 1), 
+                                               alphaj))
+                    elif lnj_frac > 1:
+                        lnj_frac = 2 - lnj_frac
+                        ljn = self.delcp[ip + 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip, jp - 1),
+                                              (kp, ip + 1, jp - 1), 
+                                               alphaj))
+
+        # parent cell to right
+        if (jc + 1) % self.ncpp == 0:
+            if jp + 1 < self.ncolp:
+                if self.idomain[kp, ip, jp + 1] != 0:
+                    lnj = self.delcp[ip] * 0.5
+                    lnj_frac = (ic % self.ncpp + 0.5)/midpoint
+                    if lnj_frac < 1:
+                        ljn = self.delcp[ip - 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip, jp + 1),
+                                              (kp, ip - 1, jp + 1), 
+                                              alphaj))
+                    elif lnj_frac > 1:
+                        lnj_frac = 2 - lnj_frac
+                        ljn = self.delcp[ip + 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip, jp + 1),
+                                              (kp, ip + 1, jp + 1), 
+                                              alphaj))
+
+        # parent cell to back
+        if ic % self.ncpp == 0:
+            if ip - 1 >= 0:
+                if self.idomain[kp, ip - 1, jp] != 0:
+                    lnj = self.delrp[jp] * 0.5
+                    lnj_frac = (jc % self.ncpp + 0.5)/midpoint
+                    if lnj_frac < 1:
+                        ljn = self.delcp[jp - 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip - 1, jp),
+                                              (kp, ip - 1, jp - 1), 
+                                              alphaj))
+                    elif lnj_frac > 1:
+                        lnj_frac = 2 - lnj_frac
+                        ljn = self.delcp[jp + 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip - 1, jp),
+                                              (kp, ip - 1, jp + 1), 
+                                              alphaj))
+
+        # parent cell to front
+        if (ic + 1) % self.ncpp == 0:
+            if ip + 1 < self.nrowp:
+                if self.idomain[kp, ip + 1, jp] != 0:
+                    lnj = self.delrp[jp] * 0.5
+                    lnj_frac = (jc % self.ncpp + 0.5)/midpoint
+                    if lnj_frac < 1:
+                        ljn = self.delcp[jp - 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip + 1, jp),
+                                              (kp, ip + 1, jp - 1), 
+                                              alphaj))
+                    elif lnj_frac > 1:
+                        lnj_frac = 2 - lnj_frac
+                        ljn = self.delcp[jp + 1] * 0.5
+                        alphaj = (1 - lnj_frac) * ljn/(lnj + ljn)
+                        parent_j_list.append(((kp, ip + 1, jp),
+                                              (kp, ip + 1, jp + 1), 
+                                              alphaj))
+
+        # parent cell to top is not possible
+
+        # parent cell to bottom
+        if kc + 1 == self.ibcl[kp]:
+            if kp + 1 < self.nlayp:
+                if self.idomain[kp + 1, ip, jp] != 0:
+                    pass
+                    #raise NotImplementedError("Ghost node corrections for bottom cell connections")
+                    #parentlist.append(((kp + 1, ip, jp), -3))
+        if len(parent_j_list) == 0:
+            return
+        return parent_j_list
+    
     def get_exchange_data(self, angldegx=False, cdist=False):
         """
         Get the list of parent/child connections
@@ -431,4 +554,45 @@ class Lgr(object):
                         if cdist:
                             exg.append(cd)
                         exglist.append(exg)
+        self._exchange_data = exglist
         return exglist
+    
+    def get_gnc_data(self):
+        """
+        Get ghost node correction (gnc) infromation for parent/child connections
+
+        Returns
+        -------
+        gnclist : list
+            List of gnc information for each parent/child connection,
+            with each item containing:
+            
+            <cellidn> <cellidm> <parentj> <alphaj>
+            
+            (see MODFLOW-6 docs about GNC package for more info)
+        """
+        exglist = self._exchange_data
+        if exglist is None:
+            exglist = self.get_exchange_data()
+            
+        gnclist = []
+        done = set()
+        for item in exglist:
+            cellidn = item[0]  # parent model cell
+            cellidm = item[1]  # child model cell
+            # child cells with multiple parent connections
+            # are listed more than once in exglist;
+            # only get the gnc info once
+            if cellidm not in done:
+                parent_j_info = self.get_gnc_parent_j_info(*cellidm)
+                # parent_j_info is None for connections where
+                # the child and parent cells 
+                # are in the same position along the axis
+                # (resulting in alphaj=0)
+                if parent_j_info is not None:
+                    parentns, parentjs, alphajs = zip(*parent_j_info)
+                    for parentn, parentj, alphaj in zip(parentns, parentjs, alphajs):
+                        gnclist.append([parentn, cellidm, parentj, alphaj])
+                    done.add(cellidm)
+
+        return gnclist
