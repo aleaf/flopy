@@ -38,7 +38,6 @@ Exporting data
     Notebooks/flopy3_export.ipynb
     Notebooks/flopy3_shapefile_export.ipynb
     Notebooks/flopy3_vtk_export.ipynb
-    Notebooks/flopy3_vtk_pathlines.ipynb
 
 MODFLOW 6 examples
 ---------------------------

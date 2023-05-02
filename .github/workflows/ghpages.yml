@@ -1,0 +1,64 @@
+name: FloPy documentation
+
+on:
+  push:
+    branches:
+      - publish_docs_on_fork
+
+jobs:
+
+  rtd_build:
+    name: GitHub Pages build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Checkout flopy repo
+        uses: actions/checkout@v3
+
+      - name: Output repo information
+        run: |
+          echo $GITHUB_REPOSITORY_OWNER
+          echo $GITHUB_REPOSITORY
+          echo $GITHUB_REF
+          echo $GITHUB_EVENT_NAME
+
+      - name: Setup Micromamba
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: etc/environment.yml
+          extra-specs: |
+            python=3.10
+          channels: conda-forge
+          cache-downloads: true
+          cache-env: true
+
+      - name: Install flopy and dependencies
+        run: |
+          pip install -e .
+
+      - name: Install MODFLOW executables
+        uses: modflowpy/install-modflow-action@v1
+
+      - name: Run jupytext on tutorials
+        working-directory: ./.docs
+        run: |
+          python create_tutorials.py
+
+      - name: Build docs
+        run: |
+          make -C .docs html
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        if: ${{ github.event_name == 'push' }}
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: .docs/_build/html
+          CLEAN: false
+          TARGET_FOLDER: latest
