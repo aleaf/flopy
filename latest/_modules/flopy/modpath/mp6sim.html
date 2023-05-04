@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modpath.mp6sim &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modpath.mp6sim</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modpath.mp6sim</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mpsim module.  Contains the ModpathSim class. Note that the user can access</span>
+<span class="sd">the ModpathSim class as `flopy.modpath.ModpathSim`.</span>
+
+<span class="sd">Additional information for this MODFLOW/MODPATH package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/dis.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util3d</span><span class="p">,</span> <span class="n">import_optional_dependency</span>
+
+<span class="n">pd</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span>
+    <span class="s2">&quot;pandas&quot;</span><span class="p">,</span>
+    <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;writing particles is more effcient with pandas&quot;</span><span class="p">,</span>
+    <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="Modpath6Sim"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.Modpath6Sim">[docs]</a><span class="k">class</span> <span class="nc">Modpath6Sim</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODPATH Simulation File Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modpath.mp.Modpath`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;mpsim&#39;)</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    heading : str</span>
+<span class="sd">        Text string written to top of package input file.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modpath.Modpath6()</span>
+<span class="sd">    &gt;&gt;&gt; dis = flopy.modpath.Modpath6Sim(m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">mp_name_file</span><span class="o">=</span><span class="s2">&quot;mp.nam&quot;</span><span class="p">,</span>
+        <span class="n">mp_list_file</span><span class="o">=</span><span class="s2">&quot;mp.list&quot;</span><span class="p">,</span>
+        <span class="n">option_flags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">ref_time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ref_time_per_stp</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+        <span class="n">stop_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">group_name</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;group_1&quot;</span><span class="p">],</span>
+        <span class="n">group_placement</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">release_times</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">group_region</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">mask_nlay</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">mask_layer</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">mask_1lay</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">face_ct</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">ifaces</span><span class="o">=</span><span class="p">[[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">part_ct</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">time_ct</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">release_time_incr</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">time_pts</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">particle_cell_cnt</span><span class="o">=</span><span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span>
+        <span class="n">cell_bd_ct</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">bud_loc</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">trace_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">stop_zone</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">zone</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">retard_fac</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">retard_fcCB</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">strt_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mpsim&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="s2">&quot;MPSIM&quot;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">heading1</span> <span class="o">=</span> <span class="s2">&quot;# MPSIM for Modpath, generated by Flopy.&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heading2</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mp_name_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.mpnam&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mp_list_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.mplst&quot;</span>
+        <span class="n">options_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;SimulationType&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TrackingDirection&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WeakSinkOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WeakSourceOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ReferenceTimeOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;StopOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ParticleGenerationOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TimePointOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BudgetOutputOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ZoneArrayOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;RetardationOption&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;AdvectiveObservationsOption&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_flags</span> <span class="o">=</span> <span class="n">option_flags</span>
+        <span class="n">options_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">options_list</span><span class="p">,</span> <span class="n">option_flags</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span> <span class="o">=</span> <span class="n">options_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.mpend&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pathline_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.mppth&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_ser_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.mp.tim_ser&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">advobs_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.mp.advobs&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_time</span> <span class="o">=</span> <span class="n">ref_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_time_per_stp</span> <span class="o">=</span> <span class="n">ref_time_per_stp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_time</span> <span class="o">=</span> <span class="n">stop_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_ct</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_name</span> <span class="o">=</span> <span class="n">group_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_placement</span> <span class="o">=</span> <span class="n">group_placement</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">release_times</span> <span class="o">=</span> <span class="n">release_times</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_region</span> <span class="o">=</span> <span class="n">group_region</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_nlay</span> <span class="o">=</span> <span class="n">mask_nlay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_layer</span> <span class="o">=</span> <span class="n">mask_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_1lay</span> <span class="o">=</span> <span class="n">mask_1lay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">face_ct</span> <span class="o">=</span> <span class="n">face_ct</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ifaces</span> <span class="o">=</span> <span class="n">ifaces</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">part_ct</span> <span class="o">=</span> <span class="n">part_ct</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strt_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.loc&quot;</span>
+        <span class="k">if</span> <span class="n">strt_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">strt_file</span> <span class="o">=</span> <span class="n">strt_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_ct</span> <span class="o">=</span> <span class="n">time_ct</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">release_time_incr</span> <span class="o">=</span> <span class="n">release_time_incr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_pts</span> <span class="o">=</span> <span class="n">time_pts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particle_cell_cnt</span> <span class="o">=</span> <span class="n">particle_cell_cnt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_bd_ct</span> <span class="o">=</span> <span class="n">cell_bd_ct</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bud_loc</span> <span class="o">=</span> <span class="n">bud_loc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trace_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.trace_file.txt&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trace_id</span> <span class="o">=</span> <span class="n">trace_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_zone</span> <span class="o">=</span> <span class="n">stop_zone</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">zone</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;zone&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retard_fac</span> <span class="o">=</span> <span class="n">retard_fac</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retard_fcCB</span> <span class="o">=</span> <span class="n">retard_fcCB</span>
+
+        <span class="c1"># self.mask_nlay = Util3d(model,(nlay,nrow,ncol),np.int32,\</span>
+        <span class="c1"># mask_nlay,name=&#39;mask_nlay&#39;,locat=self.unit_number[0])</span>
+        <span class="c1"># self.mask_1lay = Util3d(model,(nlay,nrow,ncol),np.int32,\</span>
+        <span class="c1"># mask_1lay,name=&#39;mask_1lay&#39;,locat=self.unit_number[0])</span>
+        <span class="c1"># self.stop_zone = Util3d(model,(nlay,nrow,ncol),np.int32,\</span>
+        <span class="c1"># stop_zone,name=&#39;stop_zone&#39;,locat=self.unit_number[0])</span>
+        <span class="c1"># self.retard_fac = Util3d(model,(nlay,nrow,ncol),np.float32,\</span>
+        <span class="c1"># retard_fac,name=&#39;retard_fac&#39;,locat=self.unit_number[0])</span>
+        <span class="c1"># self.retard_fcCB = Util3d(model,(nlay,nrow,ncol),np.float32,\</span>
+        <span class="c1"># retard_fcCB,name=&#39;retard_fcCB&#39;,locat=self.unit_number[0])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Modpath6Sim.check"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.Modpath6Sim.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">checktype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check package data for common errors.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str or file handle</span>
+<span class="sd">            String defining file name or file handle for summary file</span>
+<span class="sd">            of check method output. If a sting is passed a file handle</span>
+<span class="sd">            is created. If f is None, check method does not write</span>
+<span class="sd">            results to a summary file. (default is None)</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag used to determine if check method results are</span>
+<span class="sd">            written to the screen</span>
+<span class="sd">        level : int</span>
+<span class="sd">            Check method analysis level. If level=0, summary checks are</span>
+<span class="sd">            performed. If level=1, full checks are performed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">checktype</span><span class="p">)</span>
+
+        <span class="c1"># MODPATH apparently produces no output if stoptime &gt; last timepoint</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;StopOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;TimePointOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_pts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_time</span><span class="p">:</span>
+                <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stop_time</span><span class="p">,</span>
+                    <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Stop time greater than last TimePoint&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">chk</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="s2">&quot;Valid stop time&quot;</span><span class="p">)</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">chk</span></div>
+
+<div class="viewcode-block" id="Modpath6Sim.write_file"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.Modpath6Sim.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># item numbers and CamelCase variable names correspond to Modpath 6 documentation</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+
+        <span class="n">f_sim</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="c1"># item 0</span>
+        <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading1</span><span class="si">}</span><span class="se">\n</span><span class="s2">#</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading2</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 1</span>
+        <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mp_name_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 2</span>
+        <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mp_list_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 3</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">):</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">option_flags</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 4</span>
+        <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">endpoint_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 5</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;SimulationType&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pathline_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 6</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;SimulationType&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_ser_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 7</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;AdvectiveObservationsOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_dict</span><span class="p">[</span><span class="s2">&quot;SimulationType&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">):</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">advobs_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 8</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;ReferenceTimeOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_time</span><span class="si">:</span><span class="s2">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># item 9</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;ReferenceTimeOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">Period</span><span class="p">,</span> <span class="n">Step</span><span class="p">,</span> <span class="n">TimeFraction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_time_per_stp</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Period</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">Step</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">TimeFraction</span><span class="si">:</span><span class="s2">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 10</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;StopOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stop_time</span><span class="si">:</span><span class="s2">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;ParticleGenerationOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># item 11</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_ct</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">group_ct</span><span class="p">):</span>
+                <span class="c1"># item 12</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># item 13</span>
+                <span class="p">(</span>
+                    <span class="n">Grid</span><span class="p">,</span>
+                    <span class="n">GridCellRegionOption</span><span class="p">,</span>
+                    <span class="n">PlacementOption</span><span class="p">,</span>
+                    <span class="n">ReleaseStartTime</span><span class="p">,</span>
+                    <span class="n">ReleaseOption</span><span class="p">,</span>
+                    <span class="n">CHeadOption</span><span class="p">,</span>
+                <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_placement</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:f}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">Grid</span><span class="p">,</span>
+                        <span class="n">GridCellRegionOption</span><span class="p">,</span>
+                        <span class="n">PlacementOption</span><span class="p">,</span>
+                        <span class="n">ReleaseStartTime</span><span class="p">,</span>
+                        <span class="n">ReleaseOption</span><span class="p">,</span>
+                        <span class="n">CHeadOption</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="c1"># item 14</span>
+                <span class="k">if</span> <span class="n">ReleaseOption</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="p">(</span>
+                        <span class="n">ReleasePeriodLength</span><span class="p">,</span>
+                        <span class="n">ReleaseEventCount</span><span class="p">,</span>
+                    <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">release_times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ReleasePeriodLength</span><span class="si">:</span><span class="s2">f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ReleaseEventCount</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="c1"># item 15</span>
+                <span class="k">if</span> <span class="n">GridCellRegionOption</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="p">(</span>
+                        <span class="n">MinLayer</span><span class="p">,</span>
+                        <span class="n">MinRow</span><span class="p">,</span>
+                        <span class="n">MinColumn</span><span class="p">,</span>
+                        <span class="n">MaxLayer</span><span class="p">,</span>
+                        <span class="n">MaxRow</span><span class="p">,</span>
+                        <span class="n">MaxColumn</span><span class="p">,</span>
+                    <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_region</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">MinLayer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">MinRow</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">MinColumn</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">MaxLayer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">MaxRow</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">MaxColumn</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="c1"># item 16</span>
+                <span class="k">if</span> <span class="n">GridCellRegionOption</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_nlay</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                    <span class="c1"># item 17</span>
+                <span class="k">if</span> <span class="n">GridCellRegionOption</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_layer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># item 18</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_1lay</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                <span class="c1"># item 19 and 20</span>
+                <span class="k">if</span> <span class="n">PlacementOption</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">face_ct</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># item 20</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">face_ct</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                        <span class="p">(</span>
+                            <span class="n">IFace</span><span class="p">,</span>
+                            <span class="n">ParticleRowCount</span><span class="p">,</span>
+                            <span class="n">ParticleColumnCount</span><span class="p">,</span>
+                        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ifaces</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+                        <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IFace</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ParticleRowCount</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ParticleColumnCount</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                <span class="c1"># item 21</span>
+                <span class="k">elif</span> <span class="n">PlacementOption</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="p">(</span>
+                        <span class="n">ParticleLayerCount</span><span class="p">,</span>
+                        <span class="n">ParticleRowCount</span><span class="p">,</span>
+                        <span class="n">ParticleColumnCount</span><span class="p">,</span>
+                    <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">particle_cell_cnt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">ParticleLayerCount</span><span class="p">,</span>
+                            <span class="n">ParticleRowCount</span><span class="p">,</span>
+                            <span class="n">ParticleColumnCount</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># item 22</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;ParticleGenerationOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">strt_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;TimePointOption&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># item 23</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;TimePointOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;TimePointOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+            <span class="p">):</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_ct</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># item 24</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;TimePointOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">release_time_incr</span><span class="si">:</span><span class="s2">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># item 25</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;TimePointOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_ct</span><span class="p">):</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_pts</span><span class="p">[</span><span class="n">r</span><span class="p">]</span><span class="si">:</span><span class="s2">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;BudgetOutputOption&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;BudgetOutputOption&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span>
+        <span class="p">):</span>
+            <span class="c1"># item 26</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;BudgetOutputOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_bd_ct</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># item 27</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_bd_ct</span><span class="p">):</span>
+                    <span class="n">Grid</span><span class="p">,</span> <span class="n">Layer</span><span class="p">,</span> <span class="n">Row</span><span class="p">,</span> <span class="n">Column</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bud_loc</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                    <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Grid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">Layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">Row</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">Column</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;BudgetOutputOption&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="c1"># item 28</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">trace_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># item 29</span>
+                <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">trace_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;ZoneArrayOption&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># item 30</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stop_zone</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># item 31</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_dict</span><span class="p">[</span><span class="s2">&quot;RetardationOption&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># item 32</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retard_fac</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+            <span class="c1"># item 33</span>
+            <span class="n">f_sim</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retard_fcCB</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="n">f_sim</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="StartingLocationsFile"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.StartingLocationsFile">[docs]</a><span class="k">class</span> <span class="nc">StartingLocationsFile</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for working with MODPATH Starting Locations file for particles.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : Modpath object</span>
+<span class="sd">        The model object (of type :class:`flopy.modpath.mp.Modpath`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    inputstyle : 1</span>
+<span class="sd">        Input style described in MODPATH6 manual (currently only input style 1 is supported)</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;loc&#39;)</span>
+
+<span class="sd">    use_pandas: bool, if True and pandas is available use pandas to write the particle locations &gt;2x speed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">inputstyle</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;loc&quot;</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_pandas</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="s2">&quot;LOC&quot;</span><span class="p">,</span> <span class="mi">33</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_pandas</span> <span class="o">=</span> <span class="n">use_pandas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;# Starting locations file for Modpath, generated by Flopy.&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_style</span> <span class="o">=</span> <span class="n">inputstyle</span>
+        <span class="k">if</span> <span class="n">inputstyle</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_empty_starting_locations_data</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extension</span> <span class="o">=</span> <span class="n">extension</span>
+
+        <span class="c1"># add to package list so location are written with other ModPath files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StartingLocationsFile.get_dtypes"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.StartingLocationsFile.get_dtypes">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_dtypes</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build numpy dtype for the MODPATH 6 starting locations file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;particleid&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;particlegroup&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;initialgrid&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;k0&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;i0&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;j0&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;xloc0&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;yloc0&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;zloc0&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;initialtime&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="s2">&quot;|S40&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;groupname&quot;</span><span class="p">,</span> <span class="s2">&quot;|S16&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">dtype</span></div>
+
+<div class="viewcode-block" id="StartingLocationsFile.get_empty_starting_locations_data"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.StartingLocationsFile.get_empty_starting_locations_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty_starting_locations_data</span><span class="p">(</span>
+        <span class="n">npt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">default_xloc0</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">default_yloc0</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">default_zloc0</span><span class="o">=</span><span class="mf">0.0</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;get an empty recarray for particle starting location info.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        npt : int</span>
+<span class="sd">            Number of particles. Particles in array will be numbered consecutively from 1 to npt.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">StartingLocationsFile</span><span class="o">.</span><span class="n">get_dtypes</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">npt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;particleid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">npt</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;particlegroup&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;initialgrid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;xloc0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_xloc0</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;yloc0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_yloc0</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;zloc0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_zloc0</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;groupname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;group1&quot;</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+
+<div class="viewcode-block" id="StartingLocationsFile.write_file"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6sim.html#flopy.modpath.mp6sim.StartingLocationsFile.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{:.8f}</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No data to write!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;k0&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;i0&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;j0&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">pd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pandas</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_particle_data_with_pandas</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">float_format</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_wo_pandas</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">float_format</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_write_particle_data_with_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">float_format</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write particle data with pandas, more than twice as efficient</span>
+<span class="sd">        :param data: particle data, pd.Dataframe or numpy record array with keys:</span>
+<span class="sd">                          [&#39;k0&#39;, &#39;i0&#39;, &#39;j0&#39;, &#39;groupname&#39;, &#39;particlegroup&#39;, &#39;xloc0&#39;, &#39;yloc0&#39;, &#39;zloc0&#39;,</span>
+<span class="sd">                          &#39;initialtime&#39;, &#39;label&#39;]</span>
+<span class="sd">        :param save_group_mapper bool, if true, save a groupnumber to group name mapper as well.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># convert float format string to pandas float format</span>
+        <span class="n">float_format</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">float_format</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="s2">&quot;%&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="c1"># check if byte strings and decode</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)):</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">groupname</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)):</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;groupname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupname</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write loc file with pandas to save time</span>
+        <span class="c1"># simple speed test writing particles with flopy and running model took 30 min, writing with pandas took __min</span>
+        <span class="n">loc_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span>
+        <span class="c1"># write groups</span>
+        <span class="n">group_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">[[</span><span class="s2">&quot;particlegroup&quot;</span><span class="p">,</span> <span class="s2">&quot;groupname&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># writing group loc data</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">data</span><span class="p">[[</span><span class="s2">&quot;particlegroup&quot;</span><span class="p">,</span> <span class="s2">&quot;groupname&quot;</span><span class="p">]]</span>
+            <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;particlegroup&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">count</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;groupname&quot;</span><span class="p">:</span> <span class="s2">&quot;count&quot;</span><span class="p">})</span>
+        <span class="p">)</span>
+        <span class="n">groups</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;groupname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;particlegroup&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="n">group_dict</span>
+        <span class="p">)</span>
+        <span class="n">group_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+            <span class="n">groups</span><span class="p">[[</span><span class="s2">&quot;groupname&quot;</span><span class="p">,</span> <span class="s2">&quot;count&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">loc_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_style</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">group_count</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">groups</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">loc_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write particle data</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;writing loc particle data&quot;</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="s2">&quot;groupname&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+            <span class="n">loc_path</span><span class="p">,</span>
+            <span class="n">sep</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span>
+            <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span>
+            <span class="n">float_format</span><span class="o">=</span><span class="n">float_format</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_write_wo_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">float_format</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_style</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">groups</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">groupname</span><span class="p">)</span>
+            <span class="n">ngroups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ngroups</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+                <span class="n">npt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">groupname</span> <span class="o">==</span> <span class="n">g</span><span class="p">])</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">g</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">npt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">)[:</span><span class="mi">6</span><span class="p">])</span>
+                <span class="n">fmtstr</span> <span class="o">=</span> <span class="s2">&quot; </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{0}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">float_format</span><span class="p">)</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="n">fmtstr</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">)[</span><span class="mi">6</span><span class="p">:</span><span class="mi">10</span><span class="p">])</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

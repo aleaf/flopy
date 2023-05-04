@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfdis &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfdis</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfdis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfdis module.  Contains the ModflowDis class. Note that the user can access</span>
+<span class="sd">the ModflowDis class as `flopy.modflow.ModflowDis`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/dis.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util2d</span><span class="p">,</span> <span class="n">Util3d</span>
+<span class="kn">from</span> <span class="nn">..utils.crs</span> <span class="kn">import</span> <span class="n">get_crs</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span>
+<span class="kn">from</span> <span class="nn">..utils.reference</span> <span class="kn">import</span> <span class="n">TemporalReference</span>
+
+<span class="n">ITMUNI</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}</span>
+<span class="n">LENUNI</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="ModflowDis"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis">[docs]</a><span class="k">class</span> <span class="nc">ModflowDis</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Discretization Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nlay : int</span>
+<span class="sd">        Number of model layers (the default is 1).</span>
+<span class="sd">    nrow : int</span>
+<span class="sd">        Number of model rows (the default is 2).</span>
+<span class="sd">    ncol : int</span>
+<span class="sd">        Number of model columns (the default is 2).</span>
+<span class="sd">    nper : int</span>
+<span class="sd">        Number of model stress periods (the default is 1).</span>
+<span class="sd">    delr : float or array of floats (ncol), optional</span>
+<span class="sd">        An array of spacings along a row (the default is 1.0).</span>
+<span class="sd">    delc : float or array of floats (nrow), optional</span>
+<span class="sd">        An array of spacings along a column (the default is 0.0).</span>
+<span class="sd">    laycbd : int or array of ints (nlay), optional</span>
+<span class="sd">        An array of flags indicating whether or not a layer has a Quasi-3D</span>
+<span class="sd">        confining bed below it. 0 indicates no confining bed, and not zero</span>
+<span class="sd">        indicates a confining bed. LAYCBD for the bottom layer must be 0. (the</span>
+<span class="sd">        default is 0)</span>
+<span class="sd">    top : float or array of floats (nrow, ncol), optional</span>
+<span class="sd">        An array of the top elevation of layer 1. For the common situation in</span>
+<span class="sd">        which the top layer represents a water-table aquifer, it may be</span>
+<span class="sd">        reasonable to set Top equal to land-surface elevation (the default is</span>
+<span class="sd">        1.0)</span>
+<span class="sd">    botm : float or array of floats (nlay, nrow, ncol), optional</span>
+<span class="sd">        An array of the bottom elevation for each model cell (the default is</span>
+<span class="sd">        0.)</span>
+<span class="sd">    perlen : float or array of floats (nper)</span>
+<span class="sd">        An array of the stress period lengths.</span>
+<span class="sd">    nstp : int or array of ints (nper)</span>
+<span class="sd">        Number of time steps in each stress period (default is 1).</span>
+<span class="sd">    tsmult : float or array of floats (nper)</span>
+<span class="sd">        Time step multiplier (default is 1.0).</span>
+<span class="sd">    steady : bool or array of bool (nper)</span>
+<span class="sd">        true or False indicating whether or not stress period is steady state</span>
+<span class="sd">        (default is True).</span>
+<span class="sd">    itmuni : int</span>
+<span class="sd">        Time units, default is days (4)</span>
+<span class="sd">    lenuni : int</span>
+<span class="sd">        Length units, default is meters (2)</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;dis&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package. If filenames=None the package name</span>
+<span class="sd">        will be created using the model name and package extension. If a</span>
+<span class="sd">        single string is passed the package will be set to the string.</span>
+<span class="sd">        Default is None.</span>
+<span class="sd">    xul : float</span>
+<span class="sd">        x coordinate of upper left corner of the grid, default is None, which</span>
+<span class="sd">        means xul will be set to zero.</span>
+<span class="sd">    yul : float</span>
+<span class="sd">        y coordinate of upper-left corner of the grid, default is None, which</span>
+<span class="sd">        means yul will be calculated as the sum of the delc array.  This</span>
+<span class="sd">        default, combined with the xul and rotation defaults will place the</span>
+<span class="sd">        lower-left corner of the grid at (0, 0).</span>
+<span class="sd">    rotation : float</span>
+<span class="sd">        counter-clockwise rotation (in degrees) of the grid about the lower-</span>
+<span class="sd">        left corner. default is 0.0</span>
+<span class="sd">    crs : pyproj.CRS, optional if `prjfile` is specified</span>
+<span class="sd">        Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">        (must be projected; geographic CRS are not supported).</span>
+<span class="sd">        The value can be anything accepted by</span>
+<span class="sd">        :meth:`pyproj.CRS.from_user_input() &lt;pyproj.crs.CRS.from_user_input&gt;`,</span>
+<span class="sd">        such as an authority string (eg &quot;EPSG:26916&quot;) or a WKT string.</span>
+<span class="sd">    prjfile : str or pathlike, optional if `crs` is specified</span>
+<span class="sd">        ESRI-style projection file with well-known text defining the CRS</span>
+<span class="sd">        for the model grid (must be projected; geographic CRS are not supported).</span>
+<span class="sd">    start_datetime : str</span>
+<span class="sd">        starting datetime of the simulation. default is &#39;1/1/1970&#39;</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    heading : str</span>
+<span class="sd">        Text string written to top of package input file.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nrow</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">ncol</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">nper</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">delr</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">delc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">laycbd</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">top</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">botm</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">perlen</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nstp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">tsmult</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">steady</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">itmuni</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">lenuni</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;dis&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">xul</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">yul</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">proj4_str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_datetime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowDis</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;dis.html&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">=</span> <span class="n">nrow</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span> <span class="o">=</span> <span class="n">ncol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">=</span> <span class="n">nlay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nper</span> <span class="o">=</span> <span class="n">nper</span>
+
+        <span class="c1"># initialize botm to an appropriate sized</span>
+        <span class="k">if</span> <span class="n">nlay</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">botm</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">botm</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">botm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">botm</span><span class="p">,</span> <span class="n">nlay</span><span class="p">)</span>
+
+        <span class="c1"># Set values of all parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">laycbd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;laycbd&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># bottom layer must be zero</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delr</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">delr</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;delr&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delc</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">delc</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;delc&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">top</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;model_top&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">botm</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">botm</span><span class="p">,</span>
+            <span class="s2">&quot;botm&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perlen</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">perlen</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;perlen&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nstp</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">nstp</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nstp&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tsmult</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tsmult</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tsmult&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steady</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">steady</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;steady&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">itmuni</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span> <span class="o">=</span> <span class="n">ITMUNI</span><span class="p">[</span><span class="n">itmuni</span><span class="o">.</span><span class="n">lower</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lenuni</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span> <span class="o">=</span> <span class="n">LENUNI</span><span class="p">[</span><span class="n">lenuni</span><span class="o">.</span><span class="n">lower</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">itmuni_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;undefined&quot;</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;seconds&quot;</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;minutes&quot;</span><span class="p">,</span>
+            <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;hours&quot;</span><span class="p">,</span>
+            <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;days&quot;</span><span class="p">,</span>
+            <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;years&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">xul</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xul</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_xul</span>
+        <span class="k">if</span> <span class="n">yul</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">yul</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_yul</span>
+        <span class="k">if</span> <span class="n">rotation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rotation</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_rotation</span>
+        <span class="n">crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">,</span> <span class="n">proj4</span><span class="o">=</span><span class="n">proj4_str</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">crs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_crs</span>
+        <span class="k">if</span> <span class="n">start_datetime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start_datetime</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_start_datetime</span>
+
+        <span class="c1"># set the model grid coordinate info</span>
+        <span class="n">xll</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">yll</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="n">rotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mg</span><span class="o">.</span><span class="n">set_coord_info</span><span class="p">(</span><span class="n">xoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">yoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">angrot</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xul</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xll</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">_xul_to_xll</span><span class="p">(</span><span class="n">xul</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">yul</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">yll</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">_yul_to_yll</span><span class="p">(</span><span class="n">yul</span><span class="p">)</span>
+        <span class="n">mg</span><span class="o">.</span><span class="n">set_coord_info</span><span class="p">(</span><span class="n">xoff</span><span class="o">=</span><span class="n">xll</span><span class="p">,</span> <span class="n">yoff</span><span class="o">=</span><span class="n">yll</span><span class="p">,</span> <span class="n">angrot</span><span class="o">=</span><span class="n">rotation</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tr</span> <span class="o">=</span> <span class="n">TemporalReference</span><span class="p">(</span>
+            <span class="n">itmuni</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span><span class="p">,</span> <span class="n">start_datetime</span><span class="o">=</span><span class="n">start_datetime</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_datetime</span> <span class="o">=</span> <span class="n">start_datetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_totim</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ModflowDis.checklayerthickness"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.checklayerthickness">[docs]</a>    <span class="k">def</span> <span class="nf">checklayerthickness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check layer thickness.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_totim"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_totim">[docs]</a>    <span class="k">def</span> <span class="nf">get_totim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_cached</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the totim at the end of each time step</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        use_cached : bool</span>
+<span class="sd">            method to use cached totim values instead of calculating totim</span>
+<span class="sd">            dynamically</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        totim: numpy array</span>
+<span class="sd">            numpy array with simulation totim at the end of each time step</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_cached</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_totim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">totim</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">nstp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span>
+            <span class="n">perlen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">perlen</span><span class="o">.</span><span class="n">array</span>
+            <span class="n">tsmult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsmult</span><span class="o">.</span><span class="n">array</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">):</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">tsmult</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">nstp</span><span class="p">[</span><span class="n">kper</span><span class="p">])</span>
+                <span class="n">dt</span> <span class="o">=</span> <span class="n">perlen</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">*=</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span><span class="o">**</span><span class="n">p</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">p</span>
+                <span class="k">for</span> <span class="n">kstp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstp</span><span class="p">[</span><span class="n">kper</span><span class="p">]):</span>
+                    <span class="n">t</span> <span class="o">+=</span> <span class="n">dt</span>
+                    <span class="n">totim</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">dt</span> <span class="o">*=</span> <span class="n">m</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_totim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">totim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_totim</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_final_totim"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_final_totim">[docs]</a>    <span class="k">def</span> <span class="nf">get_final_totim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the totim at the end of the simulation</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        totim: float</span>
+<span class="sd">            maximum simulation totim</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_totim</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_kstp_kper_toffset"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_kstp_kper_toffset">[docs]</a>    <span class="k">def</span> <span class="nf">get_kstp_kper_toffset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">use_cached_totim</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the stress period, time step, and time offset from passed time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t : float</span>
+<span class="sd">            totim to return the stress period, time step, and toffset for</span>
+<span class="sd">            based on time discretization data. Default is 0.</span>
+<span class="sd">        use_cached_totim : bool</span>
+<span class="sd">            optional flag to use a cached calculation of totim, vs. dynamically</span>
+<span class="sd">            calculating totim. Setting to True significantly speeds up looped</span>
+<span class="sd">            operations that call this function (default is False).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        kstp : int</span>
+<span class="sd">            time step in stress period corresponding to passed totim</span>
+<span class="sd">        kper : int</span>
+<span class="sd">            stress period corresponding to passed totim</span>
+<span class="sd">        toffset : float</span>
+<span class="sd">            time offset of passed totim from the beginning of kper</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">totim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_totim</span><span class="p">(</span><span class="n">use_cached_totim</span><span class="p">)</span>
+        <span class="n">nstp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span>
+        <span class="n">ipos</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">kper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nper</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">kstp</span> <span class="o">=</span> <span class="n">nstp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">toffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">perlen</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">tp0</span> <span class="o">=</span> <span class="n">t0</span>
+            <span class="k">for</span> <span class="n">istp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstp</span><span class="p">[</span><span class="n">iper</span><span class="p">]):</span>
+                <span class="n">t1</span> <span class="o">=</span> <span class="n">totim</span><span class="p">[</span><span class="n">ipos</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="n">t0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">t1</span><span class="p">:</span>
+                    <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">kper</span> <span class="o">=</span> <span class="n">iper</span>
+                    <span class="n">kstp</span> <span class="o">=</span> <span class="n">istp</span>
+                    <span class="n">toffset</span> <span class="o">=</span> <span class="n">t</span> <span class="o">-</span> <span class="n">tp0</span>
+                    <span class="k">break</span>
+                <span class="n">ipos</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">t0</span> <span class="o">=</span> <span class="n">t1</span>
+            <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span><span class="p">,</span> <span class="n">toffset</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_totim_from_kper_toffset"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_totim_from_kper_toffset">[docs]</a>    <span class="k">def</span> <span class="nf">get_totim_from_kper_toffset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">kper</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">toffset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">use_cached_totim</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get totim from a passed kper and time offset from the beginning</span>
+<span class="sd">        of a stress period</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kper : int</span>
+<span class="sd">            stress period. Default is 0</span>
+<span class="sd">        toffset : float</span>
+<span class="sd">            time offset relative to the beginning of kper</span>
+<span class="sd">        use_cached_totim : bool</span>
+<span class="sd">            optional flag to use a cached calculation of totim, vs. dynamically</span>
+<span class="sd">            calculating totim. Setting to True significantly speeds up looped</span>
+<span class="sd">            operations that call this function (default is False).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        t : float</span>
+<span class="sd">            totim to return the stress period, time step, and toffset for</span>
+<span class="sd">            based on time discretization data. Default is 0.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">kper</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">kper</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">kper</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;kper (</span><span class="si">{</span><span class="n">kper</span><span class="si">}</span><span class="s2">) must be less than to nper (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">totim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_totim</span><span class="p">(</span><span class="n">use_cached_totim</span><span class="p">)</span>
+        <span class="n">nstp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span>
+        <span class="n">ipos</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">tp0</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">kper</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">tp0</span> <span class="o">=</span> <span class="n">t0</span>
+            <span class="k">if</span> <span class="n">iper</span> <span class="o">==</span> <span class="n">kper</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">for</span> <span class="n">istp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstp</span><span class="p">[</span><span class="n">iper</span><span class="p">]):</span>
+                <span class="n">t1</span> <span class="o">=</span> <span class="n">totim</span><span class="p">[</span><span class="n">ipos</span><span class="p">]</span>
+                <span class="n">ipos</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">t0</span> <span class="o">=</span> <span class="n">t1</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">tp0</span> <span class="o">+</span> <span class="n">toffset</span>
+        <span class="k">return</span> <span class="n">t</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_cell_volumes"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_cell_volumes">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_volumes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an array of cell volumes.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vol : array of floats (nlay, nrow, ncol)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">vol</span><span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span><span class="p">[</span><span class="n">l</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">):</span>
+            <span class="n">vol</span><span class="p">[:,</span> <span class="n">r</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delc</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">):</span>
+            <span class="n">vol</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">c</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">vol</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zcentroids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">))</span>
+        <span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">z</span><span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="k">return</span> <span class="n">z</span>
+
+<div class="viewcode-block" id="ModflowDis.get_node_coordinates"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_node_coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">get_node_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get y, x, and z cell centroids in local model coordinates.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        y : list of cell y-centroids</span>
+
+<span class="sd">        x : list of cell x-centroids</span>
+
+<span class="sd">        z : array of floats (nlay, nrow, ncol)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">delr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="o">.</span><span class="n">array</span>
+        <span class="n">delc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delc</span><span class="o">.</span><span class="n">array</span>
+
+        <span class="c1"># In row direction</span>
+        <span class="n">Ly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">delc</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">Ly</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delc</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delc</span><span class="p">)</span>
+
+        <span class="c1"># In column direction</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delr</span>
+
+        <span class="c1"># In layer direction</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zcentroids</span>
+
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_rc_from_node_coordinates"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_rc_from_node_coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">get_rc_from_node_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">local</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the row and column of a point or sequence of points</span>
+<span class="sd">        in model coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float or sequence of floats</span>
+<span class="sd">            x coordinate(s) of points to find in model grid</span>
+<span class="sd">        y : float or sequence floats</span>
+<span class="sd">            y coordinate(s) of points to find in model grid</span>
+<span class="sd">        local : bool</span>
+<span class="sd">          x and y coordinates are in model local coordinates.  If false, then</span>
+<span class="sd">          x and y are in world coordinates. (default is True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        r : row or sequence of rows (zero-based)</span>
+<span class="sd">        c : column or sequence of columns (zero-based)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">local</span><span class="o">=</span><span class="n">local</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+                <span class="n">rr</span><span class="p">,</span> <span class="n">cc</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">local</span><span class="o">=</span><span class="n">local</span><span class="p">)</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rr</span><span class="p">)</span>
+                <span class="n">c</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_lrc"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_lrc">[docs]</a>    <span class="k">def</span> <span class="nf">get_lrc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get zero-based layer, row, column from a list of zero-based</span>
+<span class="sd">        MODFLOW node numbers.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        v : list of tuples containing the layer (k), row (i),</span>
+<span class="sd">            and column (j) for each node in the input list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">get_lrc</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_node"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_node">[docs]</a>    <span class="k">def</span> <span class="nf">get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lrc_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get zero-based node number from a list of zero-based MODFLOW</span>
+<span class="sd">        layer, row, column tuples.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        v : list of MODFLOW nodes for each layer (k), row (i),</span>
+<span class="sd">            and column (j) tuple in the input list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">lrc_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowDis.get_layer"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.get_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">elev</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the layer for an elevation at an i, j location.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : row index (zero-based)</span>
+<span class="sd">        j : column index</span>
+<span class="sd">        elev : elevation (in same units as model)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        k : zero-based layer index</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">get_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">elev</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowDis.gettop"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.gettop">[docs]</a>    <span class="k">def</span> <span class="nf">gettop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the top array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        top : array of floats (nrow, ncol)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span></div>
+
+<div class="viewcode-block" id="ModflowDis.getbotm"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.getbotm">[docs]</a>    <span class="k">def</span> <span class="nf">getbotm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the bottom array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        botm : array of floats (nlay, nrow, ncol), or</span>
+
+<span class="sd">        botm : array of floats (nrow, ncol) if k is not none</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">array</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span></div>
+
+<div class="viewcode-block" id="ModflowDis.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        check : bool</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">check</span>
+        <span class="p">):</span>  <span class="c1"># allows turning off package checks when writing files at model level</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># Open file for writing</span>
+        <span class="n">f_dis</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="c1"># Item 0: heading</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Item 1: NLAY, NROW, NCOL, NPER, ITMUNI, LENUNI</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># Item 2: LAYCBD</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Item 3: DELR</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="c1"># Item 4: DELC</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delc</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="c1"># Item 5: Top(NCOL, NROW)</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="c1"># Item 5: BOTM(NCOL, NROW)</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 6: NPER, NSTP, TSMULT, Ss/tr</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">perlen</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="si">:</span><span class="s2">14f</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">nstp</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="si">:</span><span class="s2">14d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">tsmult</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="si">:</span><span class="s2">10f</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="n">t</span><span class="p">]:</span>
+                <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; SS</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; TR</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowDis.check"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">checktype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check dis package data for zero and negative thicknesses.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str or file handle</span>
+<span class="sd">            String defining file name or file handle for summary file</span>
+<span class="sd">            of check method output. If a sting is passed a file handle</span>
+<span class="sd">            is created. If f is None, check method does not write</span>
+<span class="sd">            results to a summary file. (default is None)</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag used to determine if check method results are</span>
+<span class="sd">            written to the screen</span>
+<span class="sd">        level : int</span>
+<span class="sd">            Check method analysis level. If level=0, summary checks are</span>
+<span class="sd">            performed. If level=1, full checks are performed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow.load(&#39;model.nam&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; m.dis.check()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">checktype</span><span class="p">)</span>
+
+        <span class="c1"># make ibound of same shape as thicknesses/botm for quasi-3D models</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="n">chk</span><span class="o">.</span><span class="n">get_active</span><span class="p">(</span><span class="n">include_cbd</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Use either a numpy array or masked array</span>
+        <span class="n">thickness</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span>
+        <span class="n">non_finite</span> <span class="o">=</span> <span class="o">~</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">thickness</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">non_finite</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">thickness</span><span class="p">[</span><span class="n">non_finite</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">thickness</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thickness</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">non_finite</span><span class="p">)</span>
+
+        <span class="n">chk</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="n">thickness</span><span class="p">,</span>
+            <span class="n">active</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">thickness</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s2">&quot;zero or negative thickness&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">thin_cells</span> <span class="o">=</span> <span class="p">(</span><span class="n">thickness</span> <span class="o">&lt;</span> <span class="n">chk</span><span class="o">.</span><span class="n">thin_cell_threshold</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">thickness</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="n">thickness</span><span class="p">,</span>
+            <span class="n">active</span> <span class="o">&amp;</span> <span class="n">thin_cells</span><span class="p">,</span>
+            <span class="s2">&quot;thin cells (less than checker threshold of </span><span class="si">{:.1f}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">chk</span><span class="o">.</span><span class="n">thin_cell_threshold</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+            <span class="n">active</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span><span class="p">),</span>
+            <span class="s2">&quot;nan values in top array&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+            <span class="n">active</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">array</span><span class="p">),</span>
+            <span class="s2">&quot;nan values in bottom array&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">chk</span></div>
+
+<div class="viewcode-block" id="ModflowDis.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.ModflowDis.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+<span class="sd">        check : bool</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dis : ModflowDis object</span>
+<span class="sd">            ModflowDis object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; dis = flopy.modflow.ModflowDis.load(&#39;test.dis&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading dis package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">header</span> <span class="o">+=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">xul</span><span class="p">,</span> <span class="n">yul</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">rotation</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">proj4_str</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">start_datetime</span> <span class="o">=</span> <span class="s2">&quot;1/1/1970&quot;</span>
+        <span class="n">dep</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">header</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;xul&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">xul</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   could not parse xul in </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dep</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="s2">&quot;yul&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">yul</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   could not parse yul in </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dep</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="s2">&quot;rotation&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">rotation</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   could not parse rotation in </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dep</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="s2">&quot;proj4_str&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">proj4_str</span> <span class="o">=</span> <span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   could not parse proj4_str in </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dep</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="s2">&quot;start&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">start_datetime</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   could not parse start in </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dep</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">dep</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;SpatialReference information found in DIS header,&quot;</span>
+                <span class="s2">&quot;this information is being ignored.  &quot;</span>
+                <span class="s2">&quot;SpatialReference info is now stored in the namfile&quot;</span>
+                <span class="s2">&quot;header&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># dataset 1</span>
+        <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nper</span><span class="p">,</span> <span class="n">itmuni</span><span class="p">,</span> <span class="n">lenuni</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nlay</span><span class="p">)</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nrow</span><span class="p">)</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ncol</span><span class="p">)</span>
+        <span class="n">nper</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nper</span><span class="p">)</span>
+        <span class="n">itmuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">itmuni</span><span class="p">)</span>
+        <span class="n">lenuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lenuni</span><span class="p">)</span>
+        <span class="c1"># dataset 2 -- laycbd</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;   Loading dis package with:</span><span class="se">\n</span><span class="s2">      </span><span class="si">{}</span><span class="s2"> layers, </span><span class="si">{}</span><span class="s2"> rows, </span><span class="si">{}</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;columns, and </span><span class="si">{}</span><span class="s2"> stress periods&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nper</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading laycbd...&quot;</span><span class="p">)</span>
+        <span class="n">laycbd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">raw</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">laycbd</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">d</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">d</span> <span class="o">==</span> <span class="n">nlay</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="o">==</span> <span class="n">nlay</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="c1"># dataset 3 -- delr</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading delr...&quot;</span><span class="p">)</span>
+        <span class="n">delr</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">ncol</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;delr&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+        <span class="p">)</span>
+        <span class="c1"># dataset 4 -- delc</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading delc...&quot;</span><span class="p">)</span>
+        <span class="n">delc</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;delc&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+        <span class="p">)</span>
+        <span class="c1"># dataset 5 -- top</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading top...&quot;</span><span class="p">)</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+        <span class="p">)</span>
+        <span class="c1"># dataset 6 -- botm</span>
+        <span class="n">ncbd</span> <span class="o">=</span> <span class="n">laycbd</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading botm...&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      for </span><span class="si">{</span><span class="n">nlay</span><span class="si">}</span><span class="s2"> layers and </span><span class="si">{</span><span class="n">ncbd</span><span class="si">}</span><span class="s2"> confining beds&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nlay</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">botm</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span> <span class="o">+</span> <span class="n">ncbd</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;botm&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">botm</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;botm&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+        <span class="c1"># dataset 7 -- stress period info</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading stress period data...&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;       for </span><span class="si">{</span><span class="n">nper</span><span class="si">}</span><span class="s2"> stress periods&quot;</span><span class="p">)</span>
+        <span class="n">perlen</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">nstp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tsmult</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">steady</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">a3</span><span class="p">,</span> <span class="n">a4</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">a1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+            <span class="n">a2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+            <span class="n">a3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a4</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;TR&quot;</span><span class="p">:</span>
+                <span class="n">a4</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">a4</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">perlen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+            <span class="n">nstp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+            <span class="n">tsmult</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a3</span><span class="p">)</span>
+            <span class="n">steady</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a4</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowDis</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="c1"># create dis object instance</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nlay</span><span class="o">=</span><span class="n">nlay</span><span class="p">,</span>
+            <span class="n">nrow</span><span class="o">=</span><span class="n">nrow</span><span class="p">,</span>
+            <span class="n">ncol</span><span class="o">=</span><span class="n">ncol</span><span class="p">,</span>
+            <span class="n">nper</span><span class="o">=</span><span class="n">nper</span><span class="p">,</span>
+            <span class="n">delr</span><span class="o">=</span><span class="n">delr</span><span class="p">,</span>
+            <span class="n">delc</span><span class="o">=</span><span class="n">delc</span><span class="p">,</span>
+            <span class="n">laycbd</span><span class="o">=</span><span class="n">laycbd</span><span class="p">,</span>
+            <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span>
+            <span class="n">botm</span><span class="o">=</span><span class="n">botm</span><span class="p">,</span>
+            <span class="n">perlen</span><span class="o">=</span><span class="n">perlen</span><span class="p">,</span>
+            <span class="n">nstp</span><span class="o">=</span><span class="n">nstp</span><span class="p">,</span>
+            <span class="n">tsmult</span><span class="o">=</span><span class="n">tsmult</span><span class="p">,</span>
+            <span class="n">steady</span><span class="o">=</span><span class="n">steady</span><span class="p">,</span>
+            <span class="n">itmuni</span><span class="o">=</span><span class="n">itmuni</span><span class="p">,</span>
+            <span class="n">lenuni</span><span class="o">=</span><span class="n">lenuni</span><span class="p">,</span>
+            <span class="n">xul</span><span class="o">=</span><span class="n">xul</span><span class="p">,</span>
+            <span class="n">yul</span><span class="o">=</span><span class="n">yul</span><span class="p">,</span>
+            <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">,</span>
+            <span class="n">crs</span><span class="o">=</span><span class="n">proj4_str</span><span class="p">,</span>
+            <span class="n">start_datetime</span><span class="o">=</span><span class="n">start_datetime</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="n">dis</span><span class="o">.</span><span class="n">check</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dis</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">dis</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># return dis object instance</span>
+        <span class="k">return</span> <span class="n">dis</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;DIS&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">11</span></div>
+
+
+<div class="viewcode-block" id="get_layer"><a class="viewcode-back" href="../../../source/flopy.modflow.mfdis.html#flopy.modflow.mfdis.get_layer">[docs]</a><span class="k">def</span> <span class="nf">get_layer</span><span class="p">(</span><span class="n">dis</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">elev</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the layers for elevations at i, j locations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dis : flopy.modflow.ModflowDis object</span>
+<span class="sd">    i : scaler or sequence</span>
+<span class="sd">        row index (zero-based)</span>
+<span class="sd">    j : scaler or sequence</span>
+<span class="sd">        column index</span>
+<span class="sd">    elev : scaler or sequence</span>
+<span class="sd">        elevation (in same units as model)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    k : np.ndarray (1-D) or scalar</span>
+<span class="sd">        zero-based layer index</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">to_array</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">arg</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+    <span class="n">i</span> <span class="o">=</span> <span class="n">to_array</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">to_array</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+    <span class="n">elev</span> <span class="o">=</span> <span class="n">to_array</span><span class="p">(</span><span class="n">elev</span><span class="p">)</span>
+    <span class="n">botms</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">array</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(((</span><span class="n">botms</span> <span class="o">-</span> <span class="n">elev</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># force elevations below model bottom into bottom layer</span>
+    <span class="n">layers</span><span class="p">[</span><span class="n">layers</span> <span class="o">&gt;</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">layers</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">layers</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

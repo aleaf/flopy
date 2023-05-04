@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mfusg.mfusggnc &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mfusg.mfusggnc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mfusg.mfusggnc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Mfusggnc module.</span>
+
+<span class="sd">This is for the Ghost Node Correction (GNC) Package for MODFLOW-USG.</span>
+<span class="sd">Contains the MfUsgGnc class. Note that the user can access</span>
+<span class="sd">the MfUsgGnc class as `flopy.mfusg.MfUsgGnc`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..modflow.mfparbc</span> <span class="kn">import</span> <span class="n">ModflowParBc</span> <span class="k">as</span> <span class="n">mfparbc</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">ulstrd</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+<span class="kn">from</span> <span class="nn">.mfusg</span> <span class="kn">import</span> <span class="n">MfUsg</span><span class="p">,</span> <span class="n">fmt_string</span>
+
+
+<div class="viewcode-block" id="MfUsgGnc"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusggnc.html#flopy.mfusg.MfUsgGnc">[docs]</a><span class="k">class</span> <span class="nc">MfUsgGnc</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MODFLOW USG Ghost Node Correction (GNC) Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    numgnc : integer</span>
+<span class="sd">        numgnc (integer) is the number of GNC entries.</span>
+<span class="sd">    numalphaj : integer</span>
+<span class="sd">        numalphaj (integer) is the number of contributing factors.</span>
+<span class="sd">    i2kn : integer</span>
+<span class="sd">        0 : second-order correction not applied to unconfined transmissivity.</span>
+<span class="sd">        1 : second-order correction applied to unconfined transmissivity.</span>
+<span class="sd">    isymgncn : integer</span>
+<span class="sd">        0 : implicit update on left-hand side matrix for asymmetric systems.</span>
+<span class="sd">        1 : explicit update on right-hand side vector for symmetric systems.</span>
+<span class="sd">    iflalphan : integer</span>
+<span class="sd">        0 : AlphaJ is contributing factors from all adjacent contributing nodes.</span>
+<span class="sd">        1 : AlphaJ represent the saturated conductances between the ghost node</span>
+<span class="sd">            location and node j, and the contributing factors are computed</span>
+<span class="sd">            internally using the equations for the unconfined conductances.</span>
+<span class="sd">    gncdata : [cellidn, cellidm, cellidsj, alphasj]</span>
+<span class="sd">        * cellidn ((integer, ...)) is the cellid of the cell in which the ghost</span>
+<span class="sd">          node is located.</span>
+<span class="sd">        * cellidm ((integer, ...)) is the cellid of the connecting cell</span>
+<span class="sd">        * cellidsj ((integer, ...)) is the array of CELLIDS for the</span>
+<span class="sd">          contributing j cells. This Item is repeated for each of the numalphaj</span>
+<span class="sd">          adjacent contributing cells of the ghost node.</span>
+<span class="sd">        * alphasj (double) is the contributing factors for each contributing</span>
+<span class="sd">          node in CELLIDSJ. This Item is repeated for each of the numalphaj</span>
+<span class="sd">          adjacent contributing cells of the ghost node.</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    extension : str, optional</span>
+<span class="sd">        File extension (default is &#39;gnc&#39;.</span>
+<span class="sd">    unitnumber : int, optional</span>
+<span class="sd">        FORTRAN unit number for this package (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package. If filenames=None the package name</span>
+<span class="sd">        will be created using the model name and package extension. If a</span>
+<span class="sd">        single string is passed the package will be set to the string.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; gnc = flopy.mfusg.MfUsgGnc(m)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">numgnc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">numalphaj</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">i2kn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">isymgncn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">iflalphan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">gncdata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;gnc&quot;</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Package constructor.&quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># Call ancestor&#39;s init to set self.parent, extension, name and</span>
+        <span class="c1"># unit number</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+
+        <span class="k">if</span> <span class="n">numgnc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numgnc</span> <span class="o">=</span> <span class="n">numgnc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;mfgnc: number of GNC cell must be larger than 0&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">numalphaj</span> <span class="o">&lt;</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numalphaj</span> <span class="o">=</span> <span class="n">numalphaj</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;mfgnc: incorrect number of adjacent contributing nodes&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2kn</span> <span class="o">=</span> <span class="n">i2kn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isymgncn</span> <span class="o">=</span> <span class="n">isymgncn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iflalphan</span> <span class="o">=</span> <span class="n">iflalphan</span>
+
+        <span class="k">if</span> <span class="n">gncdata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;mfgnc: GNC data must be provided&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gncdata</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numgnc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;mfgnc: Length of GNC data must equal number of GNC nodes&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">MfUsgGnc</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numalphaj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iflalphan</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gncdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gncdata</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MfUsgGnc.write_file"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusggnc.html#flopy.mfusg.MfUsgGnc.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write the package file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to write to.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">f_gnc</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_gnc</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_gnc</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Warning: mfgnc package check not yet implemented.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">f_gnc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">f_gnc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="mi">0</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="mi">0</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">numgnc</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">numalphaj</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">i2kn</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">isymgncn</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iflalphan</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">gdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gncdata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">gdata</span><span class="p">[</span><span class="s2">&quot;NodeN&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">gdata</span><span class="p">[</span><span class="s2">&quot;NodeM&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numalphaj</span><span class="p">):</span>
+            <span class="n">gdata</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Node</span><span class="si">{</span><span class="n">idx</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">f_gnc</span><span class="p">,</span> <span class="n">gdata</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="n">fmt_string</span><span class="p">(</span><span class="n">gdata</span><span class="p">),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">f_gnc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_gnc</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MfUsgGnc.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusggnc.html#flopy.mfusg.MfUsgGnc.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">numalphaj</span><span class="p">,</span> <span class="n">iflalphan</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns default GNC dtypes.&quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;NodeN&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;NodeM&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">descr</span>
+
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numalphaj</span><span class="p">):</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;Node</span><span class="si">{</span><span class="n">idx</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;i4&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numalphaj</span><span class="p">):</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;Alpha</span><span class="si">{</span><span class="n">idx</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;f4&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">iflalphan</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;AlphaN&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;f4&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MfUsgGnc.get_empty"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusggnc.html#flopy.mfusg.MfUsgGnc.get_empty">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty</span><span class="p">(</span><span class="n">numgnc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">numalphaj</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">iflalphan</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns empty GNC recarray of defualt dtype.&quot;&quot;&quot;</span>
+        <span class="c1"># get an empty recarray that corresponds to dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">MfUsgGnc</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">numalphaj</span><span class="p">,</span> <span class="n">iflalphan</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">numgnc</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mf">1.0e10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MfUsgGnc.load"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusggnc.html#flopy.mfusg.MfUsgGnc.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">pak_type</span><span class="o">=</span><span class="s2">&quot;gnc&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        gnc : MfUsgGnc object</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; gnc = flopy.modflow.ModflowGnc.load(&#39;test.gnc&#39;, m)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading gnc package file...&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">!=</span> <span class="s2">&quot;mfusg&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Warning: model version was reset from&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&#39; to &#39;mfusg&#39; to load a GNC file&quot;</span>
+            <span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mfusg&quot;</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Item 1 --NPGNCn MXGNn NGNCNPn MXADJn I2Kn ISYMGNCn IFLALPHAn [NOPRINT]</span>
+        <span class="n">line_text</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">imax</span> <span class="o">=</span> <span class="mi">7</span>
+        <span class="n">npgncn</span><span class="p">,</span> <span class="n">mxgnn</span><span class="p">,</span> <span class="n">numgnc</span><span class="p">,</span> <span class="n">numalphaj</span><span class="p">,</span> <span class="n">i2kn</span><span class="p">,</span> <span class="n">isymgncn</span><span class="p">,</span> <span class="n">iflalphan</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+        <span class="p">)</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">imax</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line_text</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;noprint&quot;</span><span class="p">:</span>
+                <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;noprint&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 2 -- read parameter data</span>
+        <span class="k">if</span> <span class="n">npgncn</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">MfUsgGnc</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">npgncn</span><span class="p">,</span> <span class="n">mxgnn</span><span class="p">,</span> <span class="n">iflalphan</span><span class="p">)</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="c1"># Item 3 --</span>
+            <span class="n">mfparbc</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">npgncn</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+
+        <span class="c1"># Item 4 -- read GNC data</span>
+        <span class="n">gncdata</span> <span class="o">=</span> <span class="n">MfUsgGnc</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">numgnc</span><span class="p">,</span> <span class="n">numalphaj</span><span class="p">,</span> <span class="n">iflalphan</span><span class="p">)</span>
+
+        <span class="n">gncdata</span> <span class="o">=</span> <span class="n">ulstrd</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">numgnc</span><span class="p">,</span> <span class="n">gncdata</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">[],</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+
+        <span class="n">gncdata</span><span class="p">[</span><span class="s2">&quot;NodeN&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="n">gncdata</span><span class="p">[</span><span class="s2">&quot;NodeM&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numalphaj</span><span class="p">):</span>
+            <span class="n">gncdata</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Node</span><span class="si">{</span><span class="n">idx</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">numgnc</span><span class="o">=</span><span class="n">numgnc</span><span class="p">,</span>
+            <span class="n">numalphaj</span><span class="o">=</span><span class="n">numalphaj</span><span class="p">,</span>
+            <span class="n">i2kn</span><span class="o">=</span><span class="n">i2kn</span><span class="p">,</span>
+            <span class="n">isymgncn</span><span class="o">=</span><span class="n">isymgncn</span><span class="p">,</span>
+            <span class="n">iflalphan</span><span class="o">=</span><span class="n">iflalphan</span><span class="p">,</span>
+            <span class="n">gncdata</span><span class="o">=</span><span class="n">gncdata</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;GNC&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">72</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

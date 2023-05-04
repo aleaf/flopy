@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfmnw1 &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfmnw1</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfmnw1</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">MfList</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span><span class="p">,</span> <span class="n">pop_item</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span><span class="p">,</span> <span class="n">recarray</span>
+
+
+<div class="viewcode-block" id="ModflowMnw1"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnw1.html#flopy.modflow.mfmnw1.ModflowMnw1">[docs]</a><span class="k">class</span> <span class="nc">ModflowMnw1</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Multi-Node Well 1 Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    mxmnw : integer</span>
+<span class="sd">        maximum number of multi-node wells to be simulated</span>
+<span class="sd">    ipakcb : integer</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    iwelpt : integer</span>
+<span class="sd">        verbosity flag</span>
+<span class="sd">    nomoiter : integer</span>
+<span class="sd">        the number of iterations for which flow in MNW wells is calculated</span>
+<span class="sd">    kspref : string</span>
+<span class="sd">        which set of water levels are to be used as reference values for</span>
+<span class="sd">        calculating drawdown</span>
+<span class="sd">    losstype : string</span>
+<span class="sd">        head loss type for each well</span>
+<span class="sd">    wel1_bynode_qsum : list of lists or None</span>
+<span class="sd">        nested list containing file names, unit numbers, and ALLTIME flag for</span>
+<span class="sd">        auxiliary output, e.g. [[&#39;test.ByNode&#39;,92,&#39;ALLTIME&#39;]]</span>
+<span class="sd">        if None, these optional external filenames and unit numbers are not written out</span>
+<span class="sd">    itmp : array</span>
+<span class="sd">        number of wells to be simulated for each stress period (shape : (NPER))</span>
+<span class="sd">    lay_row_col_qdes_mn_multi : list of arrays</span>
+<span class="sd">        lay, row, col, qdes, and MN or MULTI flag for all well nodes</span>
+<span class="sd">        (length : NPER)</span>
+<span class="sd">    mnwname : string</span>
+<span class="sd">        prefix name of file for outputting time series data from MNW1</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;mnw1&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is 33).</span>
+<span class="sd">    filenames : string or list of strings</span>
+<span class="sd">        File name of the package (with extension) or a list with the filename</span>
+<span class="sd">        of the package and the cell-by-cell budget file for ipakcb. Default</span>
+<span class="sd">        is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    The functionality of the ADD flag in data set 4 is not supported. Also</span>
+<span class="sd">    not supported are all water-quality parameters (Qwval Iqwgrp), water-level</span>
+<span class="sd">    limitations (Hlim, Href, DD), non-linear well losses, and pumping</span>
+<span class="sd">    limitations (QCUT, Q-%CUT, Qfrcmn, Qfrcmx, DEFAULT).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; ml = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; mnw1 = flopy.modflow.ModflowMnw1(ml, ...)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">mxmnw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">iwelpt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">nomoiter</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">kspref</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">wel1_bynode_qsum</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">losstype</span><span class="o">=</span><span class="s2">&quot;skin&quot;</span><span class="p">,</span>
+        <span class="n">stress_period_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mnwname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mnw1&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowMnw1</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with cbc output, if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;mnw.html&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mxmnw</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">mxmnw</span>  <span class="c1"># -maximum number of multi-node wells to be simulated</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iwelpt</span> <span class="o">=</span> <span class="n">iwelpt</span>  <span class="c1"># -verbosity flag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nomoiter</span> <span class="o">=</span> <span class="n">nomoiter</span>  <span class="c1"># -integer indicating the number of iterations for which flow in MNW wells is calculated</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kspref</span> <span class="o">=</span> <span class="n">kspref</span>  <span class="c1"># -alphanumeric key indicating which set of water levels are to be used as reference values for calculating drawdown</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">losstype</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">losstype</span>  <span class="c1"># -string indicating head loss type for each well</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wel1_bynode_qsum</span> <span class="o">=</span> <span class="n">wel1_bynode_qsum</span>  <span class="c1"># -nested list containing file names, unit numbers, and ALLTIME flag for auxiliary output, e.g. [[&#39;test.ByNode&#39;,92,&#39;ALLTIME&#39;]]</span>
+        <span class="c1"># if stress_period_data is not None:</span>
+        <span class="c1">#    for per, spd in stress_period_data.items():</span>
+        <span class="c1">#        for n in spd.dtype.names:</span>
+        <span class="c1">#            self.stress_period_data[per] = ModflowMnw1.get_empty_stress_period_data(len(spd),</span>
+        <span class="c1">#                                                                                    structured=self.parent.structured)</span>
+        <span class="c1">#            self.stress_period_data[per][n] = stress_period_data[per][n]</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span>
+                <span class="n">structured</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span> <span class="o">=</span> <span class="n">MfList</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mnwname</span> <span class="o">=</span> <span class="n">mnwname</span>  <span class="c1"># -string prefix name of file for outputting time series data from MNW1</span>
+
+        <span class="c1"># -input format checks:</span>
+        <span class="n">lossTypes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;skin&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;nonlinear&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">losstype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">lossTypes</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;LOSSTYPE (</span><span class="si">%s</span><span class="s2">) must be one of the following: skin, linear, nonlinear&quot;</span>
+            <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losstype</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># auxFileExtensions = [&#39;wl1&#39;,&#39;ByNode&#39;,&#39;Qsum&#39;]</span>
+        <span class="c1"># for each in self.wel1_bynode_qsum:</span>
+        <span class="c1">#    assert each[0].split(&#39;.&#39;)[1] in auxFileExtensions, &#39;File extensions in &quot;wel1_bynode_qsum&quot; must be one of the following: &quot;.wl1&quot;, &quot;.ByNode&quot;, or &quot;.Qsum&quot;.&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowMnw1.get_empty_stress_period_data"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnw1.html#flopy.modflow.mfmnw1.ModflowMnw1.get_empty_stress_period_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty_stress_period_data</span><span class="p">(</span><span class="n">itmp</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># get an empty recarray that corresponds to dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowMnw1</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">itmp</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="n">default_value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowMnw1.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnw1.html#flopy.modflow.mfmnw1.ModflowMnw1.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;mnw_no&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;qdes&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;mntxt&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;qwval&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;rw&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;skin&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;hlim&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;href&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;dd&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;iqwgrp&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;cpc&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;qcut&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;qfrcmn&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;qfrcmx&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="ModflowMnw1.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnw1.html#flopy.modflow.mfmnw1.ModflowMnw1.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gwt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nsol</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading mnw1 package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">structured</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mi">1</span> <span class="k">if</span> <span class="n">nper</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">nper</span>
+            <span class="p">)</span>  <span class="c1"># otherwise iterations from 0, nper won&#39;t run</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 (header)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># dataset 1</span>
+        <span class="n">mxmnw</span><span class="p">,</span> <span class="n">ipakcb</span><span class="p">,</span> <span class="n">iwelpt</span><span class="p">,</span> <span class="n">nomoiter</span><span class="p">,</span> <span class="n">kspref</span> <span class="o">=</span> <span class="n">_parse_1</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="c1"># dataset 2</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">losstype</span> <span class="o">=</span> <span class="n">_parse_2</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="c1"># dataset 3</span>
+        <span class="n">wel1_bynode_qsum</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">txt</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;wel1&quot;</span><span class="p">,</span> <span class="s2">&quot;bynode&quot;</span><span class="p">,</span> <span class="s2">&quot;qsum&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">txt</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">wel1_bynode_qsum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_3</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">txt</span><span class="p">))</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># dataset 4</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">stress_period_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowMnw1</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">)</span>
+        <span class="n">qfrcmn_default</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">qfrcmx_default</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">qcut_default</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># not sure what &#39;add&#39; means</span>
+        <span class="n">add</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s2">&quot;add&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">per</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">per</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">add</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s2">&quot;add&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="n">itmp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">itmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># dataset 5</span>
+                <span class="n">data</span><span class="p">,</span> <span class="n">qfrcmn_default</span><span class="p">,</span> <span class="n">qfrcmx_default</span><span class="p">,</span> <span class="n">qcut_default</span> <span class="o">=</span> <span class="n">_parse_5</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">itmp</span><span class="p">,</span> <span class="n">qfrcmn_default</span><span class="p">,</span> <span class="n">qfrcmx_default</span><span class="p">,</span> <span class="n">qcut_default</span>
+                <span class="p">)</span>
+
+                <span class="c1"># cast data (list) to recarray</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">recarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+                <span class="n">spd</span> <span class="o">=</span> <span class="n">ModflowMnw1</span><span class="o">.</span><span class="n">get_empty_stress_period_data</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">descr</span><span class="p">:</span>
+                    <span class="n">spd</span><span class="p">[</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">[</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                <span class="n">stress_period_data</span><span class="p">[</span><span class="n">per</span><span class="p">]</span> <span class="o">=</span> <span class="n">spd</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">mxmnw</span><span class="o">=</span><span class="n">mxmnw</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">iwelpt</span><span class="o">=</span><span class="n">iwelpt</span><span class="p">,</span>
+            <span class="n">nomoiter</span><span class="o">=</span><span class="n">nomoiter</span><span class="p">,</span>
+            <span class="n">kspref</span><span class="o">=</span><span class="n">kspref</span><span class="p">,</span>
+            <span class="n">wel1_bynode_qsum</span><span class="o">=</span><span class="n">wel1_bynode_qsum</span><span class="p">,</span>
+            <span class="n">losstype</span><span class="o">=</span><span class="n">losstype</span><span class="p">,</span>
+            <span class="n">stress_period_data</span><span class="o">=</span><span class="n">stress_period_data</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowMnw1.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnw1.html#flopy.modflow.mfmnw1.ModflowMnw1.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># -open file for writing</span>
+        <span class="c1"># f_mnw1 = open( self.file_name[0], &#39;w&#39; )</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># -write header</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="p">)</span>
+
+        <span class="c1"># -Section 1 - MXMNW ipakcb IWELPT NOMOITER REF:kspref</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%10i%10i%10i%10i</span><span class="s2"> REF = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mxmnw</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iwelpt</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nomoiter</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">kspref</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># -Section 2 - LOSSTYPE {PLossMNW}</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losstype</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wel1_bynode_qsum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># -Section 3a - {FILE:filename WEL1:iunw1}</span>
+            <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">wel1_bynode_qsum</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;wl1&quot;</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;FILE:</span><span class="si">%s</span><span class="s2"> WEL1:</span><span class="si">%-10i</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+
+            <span class="c1"># -Section 3b - {FILE:filename BYNODE:iunby} {ALLTIME}</span>
+            <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">wel1_bynode_qsum</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;bynode&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="s2">&quot;FILE:</span><span class="si">%s</span><span class="s2"> BYNODE:</span><span class="si">%-10i</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="s2">&quot;FILE:</span><span class="si">%s</span><span class="s2"> BYNODE:</span><span class="si">%-10i</span><span class="s2"> </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">each</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># -Section 3C - {FILE:filename QSUM:iunqs} {ALLTIME}</span>
+            <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">wel1_bynode_qsum</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;qsum&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="s2">&quot;FILE:</span><span class="si">%s</span><span class="s2"> QSUM:</span><span class="si">%-10i</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="s2">&quot;FILE:</span><span class="si">%s</span><span class="s2"> QSUM:</span><span class="si">%-10i</span><span class="s2"> </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">each</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                        <span class="p">)</span>
+
+        <span class="n">spd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;mnw_no&quot;</span><span class="p">)</span>
+        <span class="c1"># force write_transient to keep the list arrays internal because MNW1 doesn&#39;t allow open/close</span>
+        <span class="n">spd</span><span class="o">.</span><span class="n">write_transient</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">forceInternal</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># -Un-numbered section PREFIX:MNWNAME</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mnwname</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;PREFIX:</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mnwname</span><span class="p">))</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;MNW1&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">33</span></div>
+
+
+<div class="viewcode-block" id="skipcomments"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnw1.html#flopy.modflow.mfmnw1.skipcomments">[docs]</a><span class="k">def</span> <span class="nf">skipcomments</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">line</span></div>
+
+
+<span class="k">def</span> <span class="nf">_parse_1</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">mnwmax</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">ipakcb</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">mnwprint</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">next_item</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="n">nomoiter</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">kspref</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">next_item</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+        <span class="n">nomoiter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">next_item</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;ref&quot;</span> <span class="ow">in</span> <span class="n">next_item</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">kspref</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d+&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kspref</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">kspref</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kspref</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">mnwmax</span><span class="p">,</span> <span class="n">ipakcb</span><span class="p">,</span> <span class="n">mnwprint</span><span class="p">,</span> <span class="n">nomoiter</span><span class="p">,</span> <span class="n">kspref</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_2</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;!!&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SKIN&quot;</span><span class="p">,</span> <span class="s2">&quot;NONLINEAR&quot;</span><span class="p">,</span> <span class="s2">&quot;LINEAR&quot;</span><span class="p">]</span>
+    <span class="n">losstype</span> <span class="o">=</span> <span class="s2">&quot;skin&quot;</span>
+    <span class="k">for</span> <span class="n">lt</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">lt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">losstype</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">losstype</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_3</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">txt</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">getitem</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">txt</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">txt</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">getitem</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">),</span> <span class="n">getitem</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">txt</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="s2">&quot;alltime&quot;</span> <span class="ow">in</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+        <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;alltime&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">items</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_5</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">,</span> <span class="n">itmp</span><span class="p">,</span> <span class="n">qfrcmn_default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qfrcmx_default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qcut_default</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">mnw_no</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">mn</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">multi</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">itmp</span><span class="p">):</span>
+        <span class="n">linetxt</span> <span class="o">=</span> <span class="n">skipcomments</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">linetxt</span><span class="p">)</span>
+
+        <span class="c1"># get the label; strip it out</span>
+        <span class="k">if</span> <span class="s2">&quot;site:&quot;</span> <span class="ow">in</span> <span class="n">linetxt</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">linetxt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;site:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;site:&quot;</span> <span class="o">+</span> <span class="n">label</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">line</span> <span class="k">if</span> <span class="s2">&quot;site:&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># site: might have been in the comments section</span>
+                <span class="n">line</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">txt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">k</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">qdes</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># logic to create column of unique numbers for each MNW</span>
+        <span class="n">mntxt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;mn&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">mn</span><span class="p">:</span>
+                <span class="n">mnw_no</span> <span class="o">-=</span> <span class="mi">1</span>  <span class="c1"># this node has same number as previous</span>
+                <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">mn</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">mntxt</span> <span class="o">=</span> <span class="s2">&quot;mn&quot;</span>
+            <span class="n">line</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;mn&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;multi&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">multi</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">mntxt</span> <span class="o">=</span> <span class="s2">&quot;multi&quot;</span>
+            <span class="n">line</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;multi&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mn</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">multi</span><span class="p">:</span>
+            <span class="n">multi</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># &quot;The alphanumeric flags MN and DD can appear anywhere</span>
+        <span class="c1"># between columns 41 and 256, inclusive.&quot;</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;dd&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">line</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;dd&quot;</span><span class="p">)</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="s2">&quot;dd&quot;</span>
+
+        <span class="n">qwval</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="n">rw</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="n">skin</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="n">hlim</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="n">href</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="n">iqwgrp</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="n">cpc</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;cp:&quot;</span> <span class="ow">in</span> <span class="n">linetxt</span><span class="p">:</span>
+            <span class="n">cpc</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d+&quot;</span><span class="p">,</span> <span class="n">line</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="c1"># in case there is whitespace between cp: and the value</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cpc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cpc</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">cpc</span> <span class="o">=</span> <span class="s2">&quot;cp:&quot;</span> <span class="o">+</span> <span class="n">cpc</span>
+
+        <span class="n">qcut</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">qfrcmn</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">qfrcmx</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="s2">&quot;qcut&quot;</span> <span class="ow">in</span> <span class="n">linetxt</span><span class="p">:</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">line</span> <span class="k">if</span> <span class="s2">&quot;qcut&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">qcut</span> <span class="o">=</span> <span class="n">txt</span>
+            <span class="n">line</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s2">&quot;</span><span class="si">%c</span><span class="s2">ut&quot;</span> <span class="ow">in</span> <span class="n">linetxt</span><span class="p">:</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">line</span> <span class="k">if</span> <span class="s2">&quot;</span><span class="si">%c</span><span class="s2">ut&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">qcut</span> <span class="o">=</span> <span class="n">txt</span>
+            <span class="n">line</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;qcut&quot;</span> <span class="ow">in</span> <span class="n">linetxt</span> <span class="ow">or</span> <span class="s2">&quot;</span><span class="si">%c</span><span class="s2">ut&quot;</span> <span class="ow">in</span> <span class="n">linetxt</span><span class="p">:</span>
+            <span class="n">qfrcmn</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+            <span class="n">qfrcmx</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">qfrcmn_default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">qfrcmx_default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">qfrcmn</span> <span class="o">=</span> <span class="n">qfrcmn_default</span>
+            <span class="n">qfrcmx</span> <span class="o">=</span> <span class="n">qfrcmx_default</span>
+            <span class="k">if</span> <span class="s2">&quot;qcut&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">linetxt</span> <span class="ow">and</span> <span class="s2">&quot;</span><span class="si">%c</span><span class="s2">ut&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">linetxt</span><span class="p">:</span>
+                <span class="n">qcut</span> <span class="o">=</span> <span class="n">qcut_default</span>
+        <span class="k">if</span> <span class="s2">&quot;default&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">qfrcmn_default</span> <span class="o">=</span> <span class="n">qfrcmn</span>
+            <span class="n">qfrcmx_default</span> <span class="o">=</span> <span class="n">qfrcmx</span>
+            <span class="n">qcut_default</span> <span class="o">=</span> <span class="n">qcut</span>
+
+        <span class="n">idata</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">mnw_no</span><span class="p">,</span>
+            <span class="n">k</span><span class="p">,</span>
+            <span class="n">i</span><span class="p">,</span>
+            <span class="n">j</span><span class="p">,</span>
+            <span class="n">qdes</span><span class="p">,</span>
+            <span class="n">mntxt</span><span class="p">,</span>
+            <span class="n">qwval</span><span class="p">,</span>
+            <span class="n">rw</span><span class="p">,</span>
+            <span class="n">skin</span><span class="p">,</span>
+            <span class="n">hlim</span><span class="p">,</span>
+            <span class="n">href</span><span class="p">,</span>
+            <span class="n">dd</span><span class="p">,</span>
+            <span class="n">iqwgrp</span><span class="p">,</span>
+            <span class="n">cpc</span><span class="p">,</span>
+            <span class="n">qcut</span><span class="p">,</span>
+            <span class="n">qfrcmn</span><span class="p">,</span>
+            <span class="n">qfrcmx</span><span class="p">,</span>
+            <span class="n">label</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idata</span><span class="p">)</span>
+
+        <span class="c1"># reset MNW designators</span>
+        <span class="c1"># if at the end of the well</span>
+        <span class="k">if</span> <span class="n">mn</span> <span class="ow">and</span> <span class="n">multi</span><span class="p">:</span>
+            <span class="n">mnw_no</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">mn</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">multi</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">mn</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">multi</span><span class="p">:</span>
+            <span class="n">mnw_no</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">qfrcmn_default</span><span class="p">,</span> <span class="n">qfrcmx_default</span><span class="p">,</span> <span class="n">qcut_default</span>
+
+
+<span class="k">def</span> <span class="nf">_write_5</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">spd</span><span class="p">):</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{:d}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

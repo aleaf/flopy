@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.optionblock &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.optionblock</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.optionblock</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">flopy_io</span>
+
+
+<div class="viewcode-block" id="OptionBlock"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionBlock">[docs]</a><span class="k">class</span> <span class="nc">OptionBlock</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent class to for option blocks within</span>
+<span class="sd">    Modflow-nwt models. This class contains base</span>
+<span class="sd">    information and routines that can be shared throughout</span>
+<span class="sd">    all option block classes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    options_line : str</span>
+<span class="sd">        single line based options string</span>
+<span class="sd">    package : flopy.pakbase.Package instance</span>
+<span class="sd">        valid packages include ModflowWel, ModflowSfr2, ModflowUzf1</span>
+<span class="sd">    block : bool</span>
+<span class="sd">        flag to write as single line or block type</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nested</span> <span class="o">=</span> <span class="s2">&quot;nested&quot;</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="s2">&quot;dtype&quot;</span>
+    <span class="n">n_nested</span> <span class="o">=</span> <span class="s2">&quot;nvars&quot;</span>
+    <span class="nb">vars</span> <span class="o">=</span> <span class="s2">&quot;vars&quot;</span>
+    <span class="n">optional</span> <span class="o">=</span> <span class="s2">&quot;optional&quot;</span>
+
+    <span class="n">simple_flag</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">),</span> <span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="kc">False</span><span class="p">)])</span>
+    <span class="n">simple_str</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="kc">False</span><span class="p">)])</span>
+    <span class="n">simple_float</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span> <span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="kc">False</span><span class="p">)])</span>
+    <span class="n">simple_int</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="kc">False</span><span class="p">)])</span>
+
+    <span class="n">simple_tabfile</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">n_nested</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="nb">vars</span><span class="p">,</span>
+                <span class="nb">dict</span><span class="p">([(</span><span class="s2">&quot;numtab&quot;</span><span class="p">,</span> <span class="n">simple_int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;maxval&quot;</span><span class="p">,</span> <span class="n">simple_int</span><span class="p">)]),</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options_line</span><span class="p">,</span> <span class="n">package</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_context</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">_options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options_line</span> <span class="o">=</span> <span class="n">options_line</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">package</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auxillary</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noprint</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">block</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__build_attr_types</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_attributes</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">single_line_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get the single line representation of the</span>
+<span class="sd">        Options Block</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        t : (str) single line representation of Options</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OptionBlock.update_from_package"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionBlock.update_from_package">[docs]</a>    <span class="k">def</span> <span class="nf">update_from_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pak</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updater method to check the package and update</span>
+<span class="sd">        OptionBlock attribute values based on package</span>
+<span class="sd">        values.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pak : flopy.package</span>
+<span class="sd">            valid packages include ModflowWel, ModflowSfr2,</span>
+<span class="sd">            and ModflowUzf1 instances</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ctx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">pak</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">pak</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]:</span>
+                    <span class="k">for</span> <span class="n">k2</span><span class="p">,</span> <span class="n">ctx2</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">k2</span> <span class="ow">in</span> <span class="n">pak</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                            <span class="n">v2</span> <span class="o">=</span> <span class="n">pak</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">k2</span><span class="p">]</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">k2</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Syntactic sugar that creates a dynamic representation</span>
+<span class="sd">        of the OptionsBlock. Makes it very easy to write to file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;OPTIONS</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ctx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                        <span class="k">continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)))</span>
+
+                <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]:</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                                <span class="k">pass</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+                            <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;None&quot;</span> <span class="ow">and</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">optional</span><span class="p">]:</span>
+                                <span class="k">pass</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                                    <span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+                                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="s2">&quot;None&quot;</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;END</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Syntactic sugar to allow for dynamic recarray/attribute</span>
+<span class="sd">        interactions and data type enforcement on dynamic attributes</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">            key : str</span>
+<span class="sd">                string refering to an attribute</span>
+<span class="sd">            value : object</span>
+<span class="sd">                a python object (int, str, float, bool) that</span>
+<span class="sd">                is consistant with the attribute data type</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;Data type must be compatible with </span><span class="si">{}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;_context&quot;</span><span class="p">,</span> <span class="s2">&quot;_attr_types&quot;</span><span class="p">,</span> <span class="s2">&quot;options_line&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">elif</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">value</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Syntactic sugar that creates recarrays of nested/related items.</span>
+<span class="sd">        Ex. Tabfiles, numtab, and maxval will be returned in a</span>
+<span class="sd">        recarray if the user calls &lt;.tabfiles&gt;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;__dict__&quot;</span><span class="p">,</span> <span class="s2">&quot;_context&quot;</span><span class="p">,</span> <span class="s2">&quot;package&quot;</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_context&quot;</span><span class="p">):</span>
+            <span class="n">ctx</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_context&quot;</span><span class="p">)[</span><span class="n">item</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]:</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)]</span>
+                <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[(</span><span class="n">item</span><span class="p">,</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">])]</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+                    <span class="n">dtypes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]))</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="p">)</span>
+                    <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__build_attr_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to build a type dictionary for type</span>
+<span class="sd">        enforcements in __setattr__. This uses the package&#39;s</span>
+<span class="sd">        contex tree to build and enforce attribute</span>
+<span class="sd">        types for the class</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">value</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_attr_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_set_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dynamic attribute creation method. This uses the</span>
+<span class="sd">        package&#39;s context tree to build attributes for the class</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set up all attributes for the class!</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ctx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nested</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">ix</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">ix</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nested</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">:</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span>
+                    <span class="n">ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span>
+                    <span class="n">nested</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]</span>
+
+                    <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isvalid</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+
+                    <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dtype</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">]))</span>
+
+                    <span class="n">ix</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">err_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Option: </span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="si">}</span><span class="s2"> not a valid option&quot;</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">optional</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">ix</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+                            <span class="k">continue</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">try</span><span class="p">:</span>
+                                <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isvalid</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+                            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                                <span class="k">continue</span>
+
+                    <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isvalid</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+
+                    <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dtype</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">]))</span>
+
+                    <span class="n">ix</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="n">nested</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="OptionBlock.write_options"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionBlock.write_options">[docs]</a>    <span class="k">def</span> <span class="nf">write_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to write the options block or options line to</span>
+<span class="sd">        an open file object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">            f : file, str</span>
+<span class="sd">                open file object, or path to file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">optfile</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">:</span>
+                    <span class="n">optfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">optfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_line_options</span><span class="p">)</span>
+                    <span class="n">optfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_line_options</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OptionBlock.load_options"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionBlock.load_options">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">package</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loader for the options class. Reads in an options</span>
+<span class="sd">        block and uses context from option util dictionaries</span>
+<span class="sd">        to check the validity of the data</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">            options: str or file</span>
+<span class="sd">                string path to a file or file object</span>
+<span class="sd">            package : flopy.package type</span>
+<span class="sd">                valid packages include flopy.modflow.ModflowWel,</span>
+<span class="sd">                flopy.modflow.ModflowUzf1, flopy.modflow.ModflowSfr2</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            OptionBlock object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">_options</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">options</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unrecognized type for options variable: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">options</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">option_line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">flopy_io</span><span class="o">.</span><span class="n">line_strip</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;options&quot;</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;end&quot;</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">option_line</span> <span class="o">+=</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                    <span class="n">ctx</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]:</span>
+                        <span class="n">ix</span> <span class="o">=</span> <span class="mi">1</span>
+
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="n">ix</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">and</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">optional</span><span class="p">]:</span>
+                                <span class="k">continue</span>
+
+                            <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+                                <span class="n">valid</span> <span class="o">=</span> <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isfloat</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+                            <span class="k">elif</span> <span class="n">d</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                                <span class="n">valid</span> <span class="o">=</span> <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isint</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="p">:</span>
+                                <span class="n">err_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Invalid type set to variable </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> in option block&quot;</span>
+                                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+                            <span class="n">option_line</span> <span class="o">+=</span> <span class="n">t</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                            <span class="n">ix</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">options_line</span><span class="o">=</span><span class="n">option_line</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="OptionUtil"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionUtil">[docs]</a><span class="k">class</span> <span class="nc">OptionUtil</span><span class="p">:</span>
+<div class="viewcode-block" id="OptionUtil.isfloat"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionUtil.isfloat">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">isfloat</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simple method to check that a string is a valid</span>
+<span class="sd">        floating point variable</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        s : str</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="OptionUtil.isint"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionUtil.isint">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">isint</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simple data check method to check that a string</span>
+<span class="sd">        is a valid integer</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        s : str</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="OptionUtil.isvalid"><a class="viewcode-back" href="../../../source/flopy.utils.optionblock.html#flopy.utils.optionblock.OptionUtil.isvalid">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">isvalid</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check to see if a dtype is valid before setting</span>
+<span class="sd">        as an attribute</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dtype : type</span>
+<span class="sd">            int, float, str, bool, etc...</span>
+<span class="sd">        val : string</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># check if valid</span>
+            <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                <span class="n">valid</span> <span class="o">=</span> <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isint</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+                <span class="n">valid</span> <span class="o">=</span> <span class="n">OptionUtil</span><span class="o">.</span><span class="n">isfloat</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Invalid type set to variable </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2"> in option block&quot;</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">valid</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

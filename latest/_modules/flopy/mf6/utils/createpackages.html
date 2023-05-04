@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.utils.createpackages &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.utils.createpackages</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.utils.createpackages</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">createpackages.py is a utility script that reads in the file definition</span>
+<span class="sd">metadata in the .dfn files and creates the package classes in the modflow</span>
+<span class="sd">folder. Run this script any time changes are made to the .dfn files.</span>
+
+<span class="sd">To create a new package that is part of an existing model, first create a new</span>
+<span class="sd">dfn file for the package in the mf6/data/dfn folder.</span>
+<span class="sd">1) Follow the file naming convention &lt;model abbr&gt;-&lt;package abbr&gt;.dfn.</span>
+<span class="sd">2) Run this script (createpackages.py), and check in your new dfn file, and</span>
+<span class="sd">   the package class and updated __init__.py that createpackages.py created.</span>
+
+<span class="sd">A subpackage is a package referenced by another package (vs being referenced</span>
+<span class="sd">in the name file).  The tas, ts, and obs packages are examples of subpackages.</span>
+<span class="sd">There are a few additional steps required when creating a subpackage</span>
+<span class="sd">definition file.  First, verify that the parent package&#39;s dfn file has a file</span>
+<span class="sd">record for the subpackage to the option block.   For example, for the time</span>
+<span class="sd">series package the file record definition starts with:</span>
+
+<span class="sd">    block options</span>
+<span class="sd">    name ts_filerecord</span>
+<span class="sd">    type record ts6 filein ts6_filename</span>
+
+<span class="sd">Verify that the same naming convention is followed as the example above,</span>
+<span class="sd">specifically:</span>
+
+<span class="sd">    name &lt;subpackage-abbr&gt;_filerecord</span>
+<span class="sd">    record &lt;subpackage-abbr&gt;6 filein &lt;subpackage-abbr&gt;6_filename</span>
+
+<span class="sd">Next, create the child package definition file in the mf6/data/dfn folder</span>
+<span class="sd">following the naming convention above.</span>
+
+<span class="sd">When your child package is ready for release follow the same procedure as</span>
+<span class="sd">other packages along with these a few additional steps required for</span>
+<span class="sd">subpackages.</span>
+
+<span class="sd">At the top of the child dfn file add two lines describing how the parent and</span>
+<span class="sd">child packages are related. The first line determines how the subpackage is</span>
+<span class="sd">linked to the package:</span>
+
+<span class="sd"># flopy subpackage &lt;parent record&gt; &lt;abbreviation&gt; &lt;child data&gt;</span>
+<span class="sd">&lt;data name&gt;</span>
+
+<span class="sd">* Parent record is the MF6 record name of the filerecord in parent package</span>
+<span class="sd">  that references the child packages file name</span>
+<span class="sd">* Abbreviation is the short abbreviation of the new subclass</span>
+<span class="sd">* Child data is the name of the child class data that can be passed in as</span>
+<span class="sd">  parameter to the parent class. Passing in this parameter to the parent class</span>
+<span class="sd">  automatically creates the child class with the data provided.</span>
+<span class="sd">* Data name is the parent class parameter name that automatically creates the</span>
+<span class="sd">  child class with the data provided.</span>
+
+<span class="sd">The example below is the first line from the ts subpackage dfn:</span>
+
+<span class="sd"># flopy subpackage ts_filerecord ts timeseries timeseries</span>
+
+<span class="sd">The second line determines the variable name of the subpackage&#39;s parent and</span>
+<span class="sd">the type of parent (the parent package&#39;s object oriented parent):</span>
+
+<span class="sd"># flopy parent_name_type &lt;parent package variable name&gt;</span>
+<span class="sd">&lt;parent package type&gt;</span>
+
+<span class="sd">An example below is the second line in the ts subpackage dfn:</span>
+
+<span class="sd"># flopy parent_name_type parent_package MFPackage</span>
+
+<span class="sd">There are three possible types (or combination of them) that can be used for</span>
+<span class="sd">&quot;parent package type&quot;, MFPackage, MFModel, and MFSimulation. If a package</span>
+<span class="sd">supports multiple types of parents (for example, it can be either in the model</span>
+<span class="sd">namefile or in a package, like the obs package), include all the types</span>
+<span class="sd">supported, seperating each type with a / (MFPackage/MFModel).</span>
+
+<span class="sd">To create a new type of model choose a unique three letter model abbreviation</span>
+<span class="sd">(&quot;gwf&quot;, &quot;gwt&quot;, ...). Create a name file dfn with the naming convention</span>
+<span class="sd">&lt;model abbr&gt;-nam.dfn. The name file must have only an options and packages</span>
+<span class="sd">block (see gwf-nam.dfn as an example). Create a new dfn file for each of the</span>
+<span class="sd">packages in your new model, following the naming convention described above.</span>
+
+<span class="sd">When your model is ready for release make sure all the dfn files are in the</span>
+<span class="sd">flopy/mf6/data/dfn folder, run createpackages.py, and check in your new dfn</span>
+<span class="sd">files, the package classes, and updated init.py that createpackages.py created.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+
+<span class="c1"># keep below as absolute imports</span>
+<span class="kn">from</span> <span class="nn">flopy.mf6.data</span> <span class="kn">import</span> <span class="n">mfdatautil</span><span class="p">,</span> <span class="n">mfstructure</span>
+<span class="kn">from</span> <span class="nn">flopy.utils</span> <span class="kn">import</span> <span class="n">datautil</span>
+
+
+<div class="viewcode-block" id="PackageLevel"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.PackageLevel">[docs]</a><span class="k">class</span> <span class="nc">PackageLevel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">sim_level</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">model_level</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="build_doc_string"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.build_doc_string">[docs]</a><span class="k">def</span> <span class="nf">build_doc_string</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">param_desc</span><span class="p">,</span> <span class="n">indent</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">indent</span><span class="si">}{</span><span class="n">param_name</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">param_type</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">indent</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="si">}</span><span class="s2">* </span><span class="si">{</span><span class="n">param_desc</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="generator_type"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.generator_type">[docs]</a><span class="k">def</span> <span class="nf">generator_type</span><span class="p">(</span><span class="n">data_type</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">scalar_keyword</span>
+        <span class="ow">or</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">scalar</span>
+    <span class="p">):</span>
+        <span class="c1"># regular scalar</span>
+        <span class="k">return</span> <span class="s2">&quot;ScalarTemplateGenerator&quot;</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">scalar_keyword_transient</span>
+        <span class="ow">or</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">scalar_transient</span>
+    <span class="p">):</span>
+        <span class="c1"># transient scalar</span>
+        <span class="k">return</span> <span class="s2">&quot;ScalarTemplateGenerator&quot;</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+        <span class="c1"># array</span>
+        <span class="k">return</span> <span class="s2">&quot;ArrayTemplateGenerator&quot;</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">array_transient</span><span class="p">:</span>
+        <span class="c1"># transient array</span>
+        <span class="k">return</span> <span class="s2">&quot;ArrayTemplateGenerator&quot;</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">list</span><span class="p">:</span>
+        <span class="c1"># list</span>
+        <span class="k">return</span> <span class="s2">&quot;ListTemplateGenerator&quot;</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">list_transient</span>
+        <span class="ow">or</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">list_multiple</span>
+    <span class="p">):</span>
+        <span class="c1"># transient or multiple list</span>
+        <span class="k">return</span> <span class="s2">&quot;ListTemplateGenerator&quot;</span></div>
+
+
+<div class="viewcode-block" id="clean_class_string"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.clean_class_string">[docs]</a><span class="k">def</span> <span class="nf">clean_class_string</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">clean_string</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">clean_string</span> <span class="o">=</span> <span class="n">clean_string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">MFStructure</span><span class="p">()</span><span class="o">.</span><span class="n">get_version_string</span><span class="p">()</span>
+        <span class="c1"># FIX: remove all numbers</span>
+        <span class="k">if</span> <span class="n">clean_string</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">version</span><span class="p">:</span>
+            <span class="n">clean_string</span> <span class="o">=</span> <span class="n">clean_string</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">clean_string</span>
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="build_dfn_string"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.build_dfn_string">[docs]</a><span class="k">def</span> <span class="nf">build_dfn_string</span><span class="p">(</span><span class="n">dfn_list</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">package_abbr</span><span class="p">,</span> <span class="n">flopy_dict</span><span class="p">):</span>
+    <span class="n">dfn_string</span> <span class="o">=</span> <span class="s2">&quot;    dfn = [&quot;</span>
+    <span class="n">line_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dfn_string</span><span class="p">)</span>
+    <span class="n">leading_spaces</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="n">line_length</span>
+    <span class="n">first_di</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># process header</span>
+    <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s1">[&quot;header&quot;, &#39;</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">header</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;multi-package&quot;</span><span class="p">:</span>
+            <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s1"> &quot;multi-package&quot;, &#39;</span>
+    <span class="c1"># process solution packages</span>
+    <span class="k">if</span> <span class="n">package_abbr</span> <span class="ow">in</span> <span class="n">flopy_dict</span><span class="p">[</span><span class="s2">&quot;solution_packages&quot;</span><span class="p">]:</span>
+        <span class="n">model_types</span> <span class="o">=</span> <span class="s1">&#39;&quot;, &quot;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">flopy_dict</span><span class="p">[</span><span class="s2">&quot;solution_packages&quot;</span><span class="p">][</span><span class="n">package_abbr</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">dfn_string</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="sa">f</span><span class="s1">&#39;[&quot;solution_package&quot;, &quot;</span><span class="si">{</span><span class="n">model_types</span><span class="si">}</span><span class="s1">&quot;], &#39;</span>
+        <span class="p">)</span>
+    <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s2">],</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="c1"># process all data items</span>
+    <span class="k">for</span> <span class="n">data_item</span> <span class="ow">in</span> <span class="n">dfn_list</span><span class="p">:</span>
+        <span class="n">line_length</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">first_di</span><span class="p">:</span>
+            <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s2">,</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">line_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">leading_spaces</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">first_di</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s2">[&quot;</span>
+        <span class="n">first_line</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># process each line in a data item</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data_item</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="c1"># do not include the description of longname</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+                <span class="s2">&quot;description&quot;</span>
+            <span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;longname&quot;</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+                <span class="n">line_length</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">first_line</span><span class="p">:</span>
+                    <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s2">,&quot;</span>
+                <span class="k">if</span> <span class="n">line_length</span> <span class="o">&lt;</span> <span class="mi">77</span><span class="p">:</span>
+                    <span class="c1"># added text fits on the current line</span>
+                    <span class="k">if</span> <span class="n">first_line</span><span class="p">:</span>
+                        <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s1">&quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s1"> &quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># added text does not fit on the current line</span>
+                    <span class="n">line_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">leading_spaces</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+                    <span class="k">if</span> <span class="n">line_length</span> <span class="o">&gt;</span> <span class="mi">79</span><span class="p">:</span>
+                        <span class="c1"># added text too long to fit on a single line, wrap</span>
+                        <span class="c1"># text as needed</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                        <span class="n">lines</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span>
+                            <span class="n">line</span><span class="p">,</span>
+                            <span class="mi">75</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">leading_spaces</span><span class="p">),</span>
+                            <span class="n">drop_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="n">line_join</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; &quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s1"> &quot;&#39;</span>
+                        <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">line_join</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s1"> &quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+            <span class="n">first_line</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s2">]&quot;</span>
+    <span class="n">dfn_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dfn_string</span><span class="si">}</span><span class="s2">]&quot;</span>
+    <span class="k">return</span> <span class="n">dfn_string</span></div>
+
+
+<div class="viewcode-block" id="create_init_var"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.create_init_var">[docs]</a><span class="k">def</span> <span class="nf">create_init_var</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">,</span> <span class="n">data_structure_name</span><span class="p">,</span> <span class="n">init_val</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">init_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">init_val</span> <span class="o">=</span> <span class="n">clean_ds_name</span>
+
+    <span class="n">init_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;        self.</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2"> = self.build_mfdata(&quot;</span>
+    <span class="n">leading_spaces</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">init_var</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">init_var</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_structure_name</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">&gt;</span> <span class="mi">79</span><span class="p">:</span>
+        <span class="n">second_line</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">            &quot;</span><span class="si">{</span><span class="n">data_structure_name</span><span class="si">}</span><span class="s1">&quot;,&#39;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">second_line</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">&gt;</span> <span class="mi">79</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_var</span><span class="si">}{</span><span class="n">second_line</span><span class="si">}</span><span class="se">\n</span><span class="s2">            </span><span class="si">{</span><span class="n">init_val</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_var</span><span class="si">}{</span><span class="n">second_line</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">init_val</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">init_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">init_var</span><span class="si">}</span><span class="s1">&quot;</span><span class="si">{</span><span class="n">data_structure_name</span><span class="si">}</span><span class="s1">&quot;,&#39;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">init_var</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">&gt;</span> <span class="mi">79</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_var</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}{</span><span class="n">init_val</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_var</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">init_val</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="k">return</span> <span class="n">init_var</span></div>
+
+
+<div class="viewcode-block" id="create_basic_init"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.create_basic_init">[docs]</a><span class="k">def</span> <span class="nf">create_basic_init</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;        self.</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="create_property"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.create_property">[docs]</a><span class="k">def</span> <span class="nf">create_property</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2"> = property(get_</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">, set_</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+<div class="viewcode-block" id="format_var_list"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.format_var_list">[docs]</a><span class="k">def</span> <span class="nf">format_var_list</span><span class="p">(</span><span class="n">base_string</span><span class="p">,</span> <span class="n">var_list</span><span class="p">,</span> <span class="n">is_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">is_tuple</span><span class="p">:</span>
+        <span class="n">base_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}</span><span class="s2">(&quot;</span>
+        <span class="n">extra_chars</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">extra_chars</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">line_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">base_string</span><span class="p">)</span>
+    <span class="n">leading_spaces</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="n">line_length</span>
+    <span class="c1"># determine if any variable name is too long to fit</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line_length</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">+</span> <span class="n">extra_chars</span> <span class="o">&gt;</span> <span class="mi">80</span><span class="p">:</span>
+            <span class="n">leading_spaces</span> <span class="o">=</span> <span class="s2">&quot;        &quot;</span>
+            <span class="n">base_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">line_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">leading_spaces</span><span class="p">)</span>
+            <span class="k">break</span>
+
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">var_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_tuple</span><span class="p">:</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">next_var_str</span> <span class="o">=</span> <span class="n">item</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">next_var_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">,&quot;</span>
+        <span class="n">line_length</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">+</span> <span class="n">extra_chars</span>
+        <span class="k">if</span> <span class="n">line_length</span> <span class="o">&gt;</span> <span class="mi">80</span><span class="p">:</span>
+            <span class="n">base_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}{</span><span class="n">next_var_str</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">base_string</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;,&quot;</span><span class="p">:</span>
+                <span class="n">base_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">base_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}{</span><span class="n">next_var_str</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">is_tuple</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}</span><span class="s2">))&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_string</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+<div class="viewcode-block" id="create_package_init_var"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.create_package_init_var">[docs]</a><span class="k">def</span> <span class="nf">create_package_init_var</span><span class="p">(</span>
+    <span class="n">parameter_name</span><span class="p">,</span> <span class="n">package_abbr</span><span class="p">,</span> <span class="n">data_name</span><span class="p">,</span> <span class="n">clean_ds_name</span>
+<span class="p">):</span>
+    <span class="n">one_line</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;        self._</span><span class="si">{</span><span class="n">package_abbr</span><span class="si">}</span><span class="s2">_package = self.build_child_package(&quot;</span>
+    <span class="p">)</span>
+    <span class="n">one_line_b</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">package_abbr</span><span class="si">}</span><span class="s1">&quot;, </span><span class="si">{</span><span class="n">parameter_name</span><span class="si">}</span><span class="s1">,&#39;</span>
+    <span class="n">leading_spaces</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">one_line</span><span class="p">)</span>
+    <span class="n">two_line</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s1">&quot;</span><span class="si">{</span><span class="n">data_name</span><span class="si">}</span><span class="s1">&quot;,&#39;</span>
+    <span class="n">three_line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">leading_spaces</span><span class="si">}</span><span class="s2">self._</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">one_line</span><span class="si">}{</span><span class="n">one_line_b</span><span class="si">}{</span><span class="n">two_line</span><span class="si">}{</span><span class="n">three_line</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="add_var"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.add_var">[docs]</a><span class="k">def</span> <span class="nf">add_var</span><span class="p">(</span>
+    <span class="n">init_vars</span><span class="p">,</span>
+    <span class="n">class_vars</span><span class="p">,</span>
+    <span class="n">init_param_list</span><span class="p">,</span>
+    <span class="n">package_properties</span><span class="p">,</span>
+    <span class="n">doc_string</span><span class="p">,</span>
+    <span class="n">data_structure_dict</span><span class="p">,</span>
+    <span class="n">default_value</span><span class="p">,</span>
+    <span class="n">name</span><span class="p">,</span>
+    <span class="n">python_name</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">,</span>
+    <span class="n">data_type</span><span class="p">,</span>
+    <span class="n">basic_init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">construct_package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">construct_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">parameter_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">set_param_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">set_param_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">set_param_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">clean_ds_name</span> <span class="o">=</span> <span class="n">datautil</span><span class="o">.</span><span class="n">clean_name</span><span class="p">(</span><span class="n">python_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">construct_package</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># add variable initialization lines</span>
+        <span class="k">if</span> <span class="n">basic_init</span><span class="p">:</span>
+            <span class="n">init_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_basic_init</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">init_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_init_var</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="c1"># add to parameter list</span>
+        <span class="k">if</span> <span class="n">default_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">default_value</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span>
+        <span class="n">init_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">default_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># add to set parameter list</span>
+        <span class="n">set_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">clean_parameter_name</span> <span class="o">=</span> <span class="n">datautil</span><span class="o">.</span><span class="n">clean_name</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
+        <span class="c1"># init hidden variable</span>
+        <span class="n">init_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_init_var</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;None&quot;</span><span class="p">))</span>
+        <span class="c1"># init child package</span>
+        <span class="n">init_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">create_package_init_var</span><span class="p">(</span>
+                <span class="n">clean_parameter_name</span><span class="p">,</span>
+                <span class="n">construct_package</span><span class="p">,</span>
+                <span class="n">construct_data</span><span class="p">,</span>
+                <span class="n">clean_ds_name</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># add to parameter list</span>
+        <span class="n">init_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clean_parameter_name</span><span class="si">}</span><span class="s2">=None&quot;</span><span class="p">)</span>
+        <span class="c1"># add to set parameter list</span>
+        <span class="n">set_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clean_parameter_name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">clean_parameter_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">package_properties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_property</span><span class="p">(</span><span class="n">clean_ds_name</span><span class="p">))</span>
+    <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="n">model_parameter</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">data_structure_dict</span><span class="p">[</span><span class="n">python_name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">class_vars</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gen_type</span> <span class="o">=</span> <span class="n">generator_type</span><span class="p">(</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gen_type</span> <span class="o">!=</span> <span class="s2">&quot;ScalarTemplateGenerator&quot;</span><span class="p">:</span>
+            <span class="n">new_class_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">clean_ds_name</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">gen_type</span><span class="si">}</span><span class="s2">(&quot;</span>
+            <span class="n">class_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">format_var_list</span><span class="p">(</span><span class="n">new_class_var</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">gen_type</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="build_init_string"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.build_init_string">[docs]</a><span class="k">def</span> <span class="nf">build_init_string</span><span class="p">(</span>
+    <span class="n">init_string</span><span class="p">,</span> <span class="n">init_param_list</span><span class="p">,</span> <span class="n">whitespace</span><span class="o">=</span><span class="s2">&quot;                 &quot;</span>
+<span class="p">):</span>
+    <span class="n">line_chars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">init_string</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">init_param_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">init_param_list</span><span class="p">):</span>
+            <span class="n">line_chars</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">line_chars</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">+</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">line_chars</span> <span class="o">&gt;</span> <span class="mi">79</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">whitespace</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;</span> <span class="mi">79</span><span class="p">:</span>
+                <span class="c1"># try to break apart at = sign</span>
+                <span class="n">param_list</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">init_string</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">,</span><span class="se">\n</span><span class="si">{}{}</span><span class="s2">=</span><span class="se">\n</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">init_string</span><span class="p">,</span>
+                        <span class="n">whitespace</span><span class="p">,</span>
+                        <span class="n">param_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">whitespace</span><span class="p">,</span>
+                        <span class="n">param_list</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">line_chars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_list</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">whitespace</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="k">continue</span>
+            <span class="n">init_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_string</span><span class="si">}</span><span class="s2">,</span><span class="se">\n</span><span class="si">{</span><span class="n">whitespace</span><span class="si">}{</span><span class="n">param</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">line_chars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">whitespace</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">init_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_string</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_string</span><span class="si">}</span><span class="s2">):</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="build_model_load"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.build_model_load">[docs]</a><span class="k">def</span> <span class="nf">build_model_load</span><span class="p">(</span><span class="n">model_type</span><span class="p">):</span>
+    <span class="n">model_load_c</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;    Methods</span><span class="se">\n</span><span class="s2">    -------</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;    load : (simulation : MFSimulationData, model_name : &quot;</span>
+        <span class="s2">&quot;string,</span><span class="se">\n</span><span class="s2">        namfile : string, &quot;</span>
+        <span class="s2">&quot;version : string, exe_name : string,</span><span class="se">\n</span><span class="s2">        model_ws : &quot;</span>
+        <span class="s2">&quot;string, strict : boolean) : MFSimulation</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;        a class method that loads a model from files&quot;</span>
+        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">    &quot;&quot;&quot;&#39;</span>
+    <span class="p">)</span>
+
+    <span class="n">model_load</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;    @classmethod</span><span class="se">\n</span><span class="s2">    def load(cls, simulation, structure, &quot;</span>
+        <span class="s2">&quot;modelname=&#39;NewModel&#39;,</span><span class="se">\n</span><span class="s2">             &quot;</span>
+        <span class="s2">&quot;model_nam_file=&#39;modflowtest.nam&#39;, version=&#39;mf6&#39;,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;             exe_name=&#39;mf6&#39;, strict=True, &quot;</span>
+        <span class="s2">&quot;model_rel_path=&#39;.&#39;,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;             load_only=None):</span><span class="se">\n</span><span class="s2">        &quot;</span>
+        <span class="s2">&quot;return mfmodel.MFModel.load_base(simulation, structure, &quot;</span>
+        <span class="s2">&quot;modelname,</span><span class="se">\n</span><span class="s2">                                         &quot;</span>
+        <span class="s2">&quot;model_nam_file, &#39;</span><span class="si">{}</span><span class="s2">6&#39;, version,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;                                         exe_name, strict, &quot;</span>
+        <span class="s2">&quot;model_rel_path,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;                                         load_only)&quot;</span>
+        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model_type</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">model_load</span><span class="p">,</span> <span class="n">model_load_c</span></div>
+
+
+<div class="viewcode-block" id="build_model_init_vars"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.build_model_init_vars">[docs]</a><span class="k">def</span> <span class="nf">build_model_init_vars</span><span class="p">(</span><span class="n">param_list</span><span class="p">):</span>
+    <span class="n">init_var_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">param_list</span><span class="p">:</span>
+        <span class="n">param_parts</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+        <span class="n">init_var_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;        self.name_file.</span><span class="si">{</span><span class="n">param_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.set_data(</span><span class="si">{</span><span class="n">param_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">init_var_list</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_packages"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.createpackages.html#flopy.mf6.utils.createpackages.create_packages">[docs]</a><span class="k">def</span> <span class="nf">create_packages</span><span class="p">():</span>
+    <span class="n">indent</span> <span class="o">=</span> <span class="s2">&quot;    &quot;</span>
+    <span class="n">init_string_def</span> <span class="o">=</span> <span class="s2">&quot;    def __init__(self&quot;</span>
+
+    <span class="c1"># load JSON file</span>
+    <span class="n">file_structure</span> <span class="o">=</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">MFStructure</span><span class="p">(</span><span class="n">load_from_dfn_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">sim_struct</span> <span class="o">=</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">sim_struct</span>
+
+    <span class="c1"># assemble package list of buildable packages</span>
+    <span class="n">package_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">package_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">sim_struct</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="p">,</span>
+            <span class="n">PackageLevel</span><span class="o">.</span><span class="n">sim_level</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">sim_struct</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="o">.</span><span class="n">dfn_list</span><span class="p">,</span>
+            <span class="n">sim_struct</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+            <span class="n">sim_struct</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">sim_struct</span><span class="o">.</span><span class="n">package_struct_objs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="c1"># add simulation level package to list</span>
+        <span class="n">package_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">package</span><span class="p">,</span>
+                <span class="n">PackageLevel</span><span class="o">.</span><span class="n">sim_level</span><span class="p">,</span>
+                <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">dfn_list</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">sim_struct</span><span class="o">.</span><span class="n">utl_struct_objs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="c1"># add utility packages to list</span>
+        <span class="n">package_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">package</span><span class="p">,</span>
+                <span class="n">PackageLevel</span><span class="o">.</span><span class="n">model_level</span><span class="p">,</span>
+                <span class="s2">&quot;utl&quot;</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">dfn_list</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">model_key</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">sim_struct</span><span class="o">.</span><span class="n">model_struct_objs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">package_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="p">,</span>
+                <span class="n">PackageLevel</span><span class="o">.</span><span class="n">model_level</span><span class="p">,</span>
+                <span class="n">model_key</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="o">.</span><span class="n">dfn_list</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">name_file_struct_obj</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">package_struct_objs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">package_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">package</span><span class="p">,</span>
+                    <span class="n">PackageLevel</span><span class="o">.</span><span class="n">model_level</span><span class="p">,</span>
+                    <span class="n">model_key</span><span class="p">,</span>
+                    <span class="n">package</span><span class="o">.</span><span class="n">dfn_list</span><span class="p">,</span>
+                    <span class="n">package</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+                    <span class="n">package</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="n">util_path</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+    <span class="n">init_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">util_path</span><span class="p">,</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;modflow&quot;</span><span class="p">,</span> <span class="s2">&quot;__init__.py&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+        <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">init_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;from .mfsimulation import MFSimulation  # isort:skip</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">nam_import_string</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;from .. import mfmodel</span><span class="se">\n</span><span class="s2">from ..data.mfdatautil &quot;</span>
+        <span class="s2">&quot;import ArrayTemplateGenerator, ListTemplateGenerator&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># loop through packages list</span>
+    <span class="n">init_file_imports</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">flopy_dict</span> <span class="o">=</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">flopy_dict</span>
+    <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">package_list</span><span class="p">:</span>
+        <span class="n">data_structure_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">package_properties</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">init_vars</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">init_param_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">set_param_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">class_vars</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">template_gens</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">package_abbr</span> <span class="o">=</span> <span class="n">clean_class_string</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clean_class_string</span><span class="p">(</span><span class="n">package</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="si">}{</span><span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">dfn_string</span> <span class="o">=</span> <span class="n">build_dfn_string</span><span class="p">(</span>
+            <span class="n">package</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">package</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">package_abbr</span><span class="p">,</span> <span class="n">flopy_dict</span>
+        <span class="p">)</span>
+        <span class="n">package_name</span> <span class="o">=</span> <span class="n">clean_class_string</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">clean_class_string</span><span class="p">(</span><span class="n">package</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file_prefix</span><span class="p">,</span>
+                <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+            <span class="n">doc_string</span> <span class="o">=</span> <span class="n">mfdatautil</span><span class="o">.</span><span class="n">MFDocString</span><span class="p">(</span><span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="n">package_container_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; within a </span><span class="si">{</span><span class="n">package</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2"> model&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">package_container_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="s2">&quot;Modflow</span><span class="si">{}</span><span class="s2"> defines a </span><span class="si">{}</span><span class="s2"> package</span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span>
+                <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span>
+                <span class="n">package_container_text</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;mvr&quot;</span><span class="p">:</span>
+                <span class="c1"># mvr package warning</span>
+                <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> This package</span><span class="se">\n</span><span class="s2">    can only be used to move &quot;</span>
+                        <span class="s2">&quot;water between packages within a single model.&quot;</span>
+                        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    To move water between models use ModflowMvr&quot;</span>
+                        <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> This package can only be used to move</span><span class="se">\n</span><span class="s2">    &quot;</span>
+                        <span class="s2">&quot;water between two different models. To move &quot;</span>
+                        <span class="s2">&quot;water between two packages</span><span class="se">\n</span><span class="s2">    in the same &quot;</span>
+                        <span class="s1">&#39;model use the &quot;model level&quot; mover package (ex. &#39;</span>
+                        <span class="s2">&quot;ModflowGwfmvr).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="n">doc_string</span> <span class="o">=</span> <span class="n">mfdatautil</span><span class="o">.</span><span class="n">MFDocString</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dfn_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DfnType</span><span class="o">.</span><span class="n">exch_file</span><span class="p">:</span>
+            <span class="n">add_var</span><span class="p">(</span>
+                <span class="n">init_vars</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="n">init_param_list</span><span class="p">,</span>
+                <span class="n">package_properties</span><span class="p">,</span>
+                <span class="n">doc_string</span><span class="p">,</span>
+                <span class="n">data_structure_dict</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;exgtype&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;exgtype&quot;</span><span class="p">,</span>
+                <span class="n">build_doc_string</span><span class="p">(</span>
+                    <span class="s2">&quot;exgtype&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;&lt;string&gt;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;is the exchange type (GWF-GWF or GWF-GWT).&quot;</span><span class="p">,</span>
+                    <span class="n">indent</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">add_var</span><span class="p">(</span>
+                <span class="n">init_vars</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="n">init_param_list</span><span class="p">,</span>
+                <span class="n">package_properties</span><span class="p">,</span>
+                <span class="n">doc_string</span><span class="p">,</span>
+                <span class="n">data_structure_dict</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;exgmnamea&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;exgmnamea&quot;</span><span class="p">,</span>
+                <span class="n">build_doc_string</span><span class="p">(</span>
+                    <span class="s2">&quot;exgmnamea&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;&lt;string&gt;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;is the name of the first model that is &quot;</span>
+                    <span class="s2">&quot;part of this exchange.&quot;</span><span class="p">,</span>
+                    <span class="n">indent</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">add_var</span><span class="p">(</span>
+                <span class="n">init_vars</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="n">init_param_list</span><span class="p">,</span>
+                <span class="n">package_properties</span><span class="p">,</span>
+                <span class="n">doc_string</span><span class="p">,</span>
+                <span class="n">data_structure_dict</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;exgmnameb&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;exgmnameb&quot;</span><span class="p">,</span>
+                <span class="n">build_doc_string</span><span class="p">(</span>
+                    <span class="s2">&quot;exgmnameb&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;&lt;string&gt;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;is the name of the second model that is &quot;</span>
+                    <span class="s2">&quot;part of this exchange.&quot;</span><span class="p">,</span>
+                    <span class="n">indent</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">init_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s2">&quot;        simulation.register_exchange_file(self)</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># loop through all blocks</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">data_structure</span> <span class="ow">in</span> <span class="n">block</span><span class="o">.</span><span class="n">data_structures</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="c1"># only create one property for each unique data structure name</span>
+                <span class="k">if</span> <span class="n">data_structure</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data_structure_dict</span><span class="p">:</span>
+                    <span class="n">tg</span> <span class="o">=</span> <span class="n">add_var</span><span class="p">(</span>
+                        <span class="n">init_vars</span><span class="p">,</span>
+                        <span class="n">class_vars</span><span class="p">,</span>
+                        <span class="n">init_param_list</span><span class="p">,</span>
+                        <span class="n">package_properties</span><span class="p">,</span>
+                        <span class="n">doc_string</span><span class="p">,</span>
+                        <span class="n">data_structure_dict</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">default_value</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">python_name</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">get_doc_string</span><span class="p">(</span><span class="mi">79</span><span class="p">,</span> <span class="n">indent</span><span class="p">,</span> <span class="n">indent</span><span class="p">),</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">get_datatype</span><span class="p">(),</span>
+                        <span class="kc">False</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">construct_package</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">construct_data</span><span class="p">,</span>
+                        <span class="n">data_structure</span><span class="o">.</span><span class="n">parameter_name</span><span class="p">,</span>
+                        <span class="n">set_param_list</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">tg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">template_gens</span><span class="p">:</span>
+                        <span class="n">template_gens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tg</span><span class="p">)</span>
+
+        <span class="n">import_string</span> <span class="o">=</span> <span class="s2">&quot;from .. import mfpackage&quot;</span>
+        <span class="k">if</span> <span class="n">template_gens</span><span class="p">:</span>
+            <span class="n">import_string</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">from ..data.mfdatautil import &quot;</span>
+            <span class="n">import_string</span> <span class="o">+=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">template_gens</span><span class="p">))</span>
+        <span class="c1"># add extra docstrings for additional variables</span>
+        <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="s2">&quot;    filename : String</span><span class="se">\n</span><span class="s2">        File name for this package.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="s2">&quot;    pname : String</span><span class="se">\n</span><span class="s2">        Package name for this package.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="s2">&quot;    parent_file : MFPackage</span><span class="se">\n</span><span class="s2">        &quot;</span>
+            <span class="s2">&quot;Parent package file that references this &quot;</span>
+            <span class="s2">&quot;package. Only needed for</span><span class="se">\n</span><span class="s2">        utility &quot;</span>
+            <span class="s2">&quot;packages (mfutl*). For example, mfutllaktab &quot;</span>
+            <span class="s2">&quot;package must have </span><span class="se">\n</span><span class="s2">        a mfgwflak &quot;</span>
+            <span class="s2">&quot;package parent_file.&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># build package builder class string</span>
+        <span class="n">init_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;        self._init_complete = True&quot;</span><span class="p">)</span>
+        <span class="n">init_vars</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">init_vars</span><span class="p">)</span>
+        <span class="n">package_short_name</span> <span class="o">=</span> <span class="n">clean_class_string</span><span class="p">(</span><span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file_type</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">class_def_string</span> <span class="o">=</span> <span class="s2">&quot;class Modflow</span><span class="si">{}</span><span class="s2">(mfpackage.MFPackage):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">class_def_string</span> <span class="o">=</span> <span class="n">class_def_string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">class_var_string</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="se">\n</span><span class="s1">    package_abbr = &quot;</span><span class="si">{}</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">    _package_type = &#39;</span>
+            <span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">    dfn_file_name = &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">class_vars</span><span class="p">),</span>
+                <span class="n">package_abbr</span><span class="p">,</span>
+                <span class="n">package</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dfn_file_name</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">init_string_full</span> <span class="o">=</span> <span class="n">init_string_def</span>
+        <span class="n">init_string_model</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_string_def</span><span class="si">}</span><span class="s2">, simulation&quot;</span>
+        <span class="c1"># add variables to init string</span>
+        <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="s2">&quot;    loading_package : bool</span><span class="se">\n</span><span class="s2">        &quot;</span>
+            <span class="s2">&quot;Do not set this parameter. It is intended &quot;</span>
+            <span class="s2">&quot;for debugging and internal</span><span class="se">\n</span><span class="s2">        &quot;</span>
+            <span class="s2">&quot;processing purposes only.&quot;</span><span class="p">,</span>
+            <span class="n">beginning_of_list</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;parent_name_type&quot;</span> <span class="ow">in</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;parent_name_type&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">parent_type</span> <span class="o">=</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;parent_name_type&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">package</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">PackageLevel</span><span class="o">.</span><span class="n">sim_level</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="s2">&quot;simulation&quot;</span>
+            <span class="n">parent_type</span> <span class="o">=</span> <span class="s2">&quot;MFSimulation&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">init_var</span> <span class="o">=</span> <span class="s2">&quot;model&quot;</span>
+            <span class="n">parent_type</span> <span class="o">=</span> <span class="s2">&quot;MFModel&quot;</span>
+        <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">init_var</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">parent_type</span><span class="si">}</span><span class="se">\n</span><span class="s2">        &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_var</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2"> that this package is a part &quot;</span>
+            <span class="s2">&quot;of. Package is automatically</span><span class="se">\n</span><span class="s2">        &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;added to </span><span class="si">{</span><span class="n">init_var</span><span class="si">}</span><span class="s2"> when it is &quot;</span>
+            <span class="s2">&quot;initialized.&quot;</span><span class="p">,</span>
+            <span class="n">beginning_of_list</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">init_string_full</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">init_string_full</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">init_var</span><span class="si">}</span><span class="s2">, loading_package=False&quot;</span>
+        <span class="p">)</span>
+        <span class="n">init_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;filename=None&quot;</span><span class="p">)</span>
+        <span class="n">init_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;pname=None&quot;</span><span class="p">)</span>
+        <span class="n">init_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;**kwargs&quot;</span><span class="p">)</span>
+        <span class="n">init_string_full</span> <span class="o">=</span> <span class="n">build_init_string</span><span class="p">(</span><span class="n">init_string_full</span><span class="p">,</span> <span class="n">init_param_list</span><span class="p">)</span>
+
+        <span class="c1"># build init code</span>
+        <span class="n">parent_init_string</span> <span class="o">=</span> <span class="s2">&quot;        super().__init__(&quot;</span>
+        <span class="n">spaces</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent_init_string</span><span class="p">)</span>
+        <span class="n">parent_init_string</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">, &quot;</span><span class="si">{}</span><span class="s1">&quot;, filename, pname,</span><span class="se">\n</span><span class="si">{}</span><span class="s1">&#39;</span>
+            <span class="s2">&quot;loading_package, **kwargs)</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;        # set up variables&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">parent_init_string</span><span class="p">,</span> <span class="n">init_var</span><span class="p">,</span> <span class="n">package_short_name</span><span class="p">,</span> <span class="n">spaces</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">local_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+        <span class="n">comment_string</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;# DO NOT MODIFY THIS FILE DIRECTLY.  THIS FILE &quot;</span>
+            <span class="s2">&quot;MUST BE CREATED BY</span><span class="se">\n</span><span class="s2"># mf6/utils/createpackages.py</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;# FILE created on </span><span class="si">{}</span><span class="s2"> UTC&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">local_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%B </span><span class="si">%d</span><span class="s2">, %Y %H:%M:%S&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># assemble full package string</span>
+        <span class="n">package_string</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n\n\n</span><span class="si">{}{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n\n</span><span class="si">{}{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">comment_string</span><span class="p">,</span>
+            <span class="n">import_string</span><span class="p">,</span>
+            <span class="n">class_def_string</span><span class="p">,</span>
+            <span class="n">doc_string</span><span class="o">.</span><span class="n">get_doc_string</span><span class="p">(),</span>
+            <span class="n">class_var_string</span><span class="p">,</span>
+            <span class="n">dfn_string</span><span class="p">,</span>
+            <span class="n">init_string_full</span><span class="p">,</span>
+            <span class="n">parent_init_string</span><span class="p">,</span>
+            <span class="n">init_vars</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># open new Packages file</span>
+        <span class="n">pb_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">util_path</span><span class="p">,</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;modflow&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mf</span><span class="si">{</span><span class="n">package_name</span><span class="si">}</span><span class="s2">.py&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+            <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pb_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">package_string</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sub_package</span> <span class="ow">and</span> <span class="n">package_abbr</span> <span class="o">!=</span> <span class="s2">&quot;utltab&quot;</span><span class="p">:</span>
+            <span class="n">set_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;filename=filename&quot;</span><span class="p">)</span>
+            <span class="n">set_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;pname=pname&quot;</span><span class="p">)</span>
+            <span class="n">set_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;child_builder_call=True&quot;</span><span class="p">)</span>
+            <span class="n">whsp_1</span> <span class="o">=</span> <span class="s2">&quot;                   &quot;</span>
+            <span class="n">whsp_2</span> <span class="o">=</span> <span class="s2">&quot;                                    &quot;</span>
+
+            <span class="n">file_prefix</span> <span class="o">=</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dfn_file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">chld_doc_string</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;    &quot;&quot;&quot;</span><span class="se">\n</span><span class="s1">    </span><span class="si">{}</span><span class="s1">Packages is a container &#39;</span>
+                <span class="s2">&quot;class for the Modflow</span><span class="si">{}</span><span class="s2"> class.</span><span class="se">\n\n</span><span class="s2">    &quot;</span>
+                <span class="s2">&quot;Methods</span><span class="se">\n</span><span class="s2">    ----------&quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span> <span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+            <span class="p">)</span>
+
+            <span class="c1"># write out child packages class</span>
+            <span class="n">chld_cls</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">class </span><span class="si">{}</span><span class="s2">Packages(mfpackage.MFChildPackage&quot;</span>
+                <span class="s2">&quot;s):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="n">chld_var</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;    package_abbr = &quot;</span>
+                <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s1">packages&quot;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="n">chld_init</span> <span class="o">=</span> <span class="s2">&quot;    def initialize(self&quot;</span>
+            <span class="n">chld_init</span> <span class="o">=</span> <span class="n">build_init_string</span><span class="p">(</span>
+                <span class="n">chld_init</span><span class="p">,</span> <span class="n">init_param_list</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">whsp_1</span>
+            <span class="p">)</span>
+            <span class="n">init_pkg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">        self.init_package(new_package, filename)&quot;</span>
+            <span class="n">params_init</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;        new_package = Modflow&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="si">}</span><span class="s2">(self._cpparent&quot;</span>
+            <span class="p">)</span>
+            <span class="n">params_init</span> <span class="o">=</span> <span class="n">build_init_string</span><span class="p">(</span>
+                <span class="n">params_init</span><span class="p">,</span> <span class="n">set_param_list</span><span class="p">,</span> <span class="n">whsp_2</span>
+            <span class="p">)</span>
+            <span class="n">chld_doc_string</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">    initialize</span><span class="se">\n</span><span class="s2">        Initializes a new &quot;</span>
+                <span class="s2">&quot;Modflow</span><span class="si">{}</span><span class="s2"> package removing any sibling &quot;</span>
+                <span class="s2">&quot;child</span><span class="se">\n</span><span class="s2">        packages attached to the same &quot;</span>
+                <span class="s2">&quot;parent package. See Modflow</span><span class="si">{}</span><span class="s2"> init</span><span class="se">\n</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;       documentation for definition of &quot;</span>
+                <span class="s2">&quot;parameters.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">chld_doc_string</span><span class="p">,</span> <span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span> <span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">chld_appn</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">params_appn</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">append_pkg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">package_abbr</span> <span class="o">!=</span> <span class="s2">&quot;utlobs&quot;</span><span class="p">:</span>  <span class="c1"># Hard coded obs no multi-pkg support</span>
+                <span class="n">chld_appn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">    def append_package(self&quot;</span>
+                <span class="n">chld_appn</span> <span class="o">=</span> <span class="n">build_init_string</span><span class="p">(</span>
+                    <span class="n">chld_appn</span><span class="p">,</span> <span class="n">init_param_list</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">whsp_1</span>
+                <span class="p">)</span>
+                <span class="n">append_pkg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">        self._append_package(new_package, filename)&quot;</span>
+                <span class="p">)</span>
+                <span class="n">params_appn</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;        new_package = Modflow&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_prefix</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">package_short_name</span><span class="si">}</span><span class="s2">(self._cpparent&quot;</span>
+                <span class="p">)</span>
+                <span class="n">params_appn</span> <span class="o">=</span> <span class="n">build_init_string</span><span class="p">(</span>
+                    <span class="n">params_appn</span><span class="p">,</span> <span class="n">set_param_list</span><span class="p">,</span> <span class="n">whsp_2</span>
+                <span class="p">)</span>
+                <span class="n">chld_doc_string</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">    append_package</span><span class="se">\n</span><span class="s2">        Adds a &quot;</span>
+                    <span class="s2">&quot;new Modflow</span><span class="si">{}{}</span><span class="s2"> package to the container.&quot;</span>
+                    <span class="s2">&quot; See Modflow</span><span class="si">{}{}</span><span class="se">\n</span><span class="s2">        init &quot;</span>
+                    <span class="s2">&quot;documentation for definition of &quot;</span>
+                    <span class="s2">&quot;parameters.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">chld_doc_string</span><span class="p">,</span>
+                        <span class="n">file_prefix</span><span class="o">.</span><span class="n">capitalize</span><span class="p">(),</span>
+                        <span class="n">package_short_name</span><span class="p">,</span>
+                        <span class="n">file_prefix</span><span class="o">.</span><span class="n">capitalize</span><span class="p">(),</span>
+                        <span class="n">package_short_name</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">chld_doc_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">chld_doc_string</span><span class="si">}</span><span class="s1">    &quot;&quot;&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">packages_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}{}{}{}{}{}{}{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">chld_cls</span><span class="p">,</span>
+                <span class="n">chld_doc_string</span><span class="p">,</span>
+                <span class="n">chld_var</span><span class="p">,</span>
+                <span class="n">chld_init</span><span class="p">,</span>
+                <span class="n">params_init</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">init_pkg</span><span class="p">,</span>
+                <span class="n">chld_appn</span><span class="p">,</span>
+                <span class="n">params_appn</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">append_pkg</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">pb_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">packages_str</span><span class="p">)</span>
+        <span class="n">pb_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">init_file_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;from .mf</span><span class="si">{</span><span class="n">package_name</span><span class="si">}</span><span class="s2"> import Modflow</span><span class="si">{</span><span class="n">package_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">package</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dfn_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DfnType</span><span class="o">.</span><span class="n">model_name_file</span><span class="p">:</span>
+            <span class="c1"># build model file</span>
+            <span class="n">model_param_list</span> <span class="o">=</span> <span class="n">init_param_list</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">init_vars</span> <span class="o">=</span> <span class="n">build_model_init_vars</span><span class="p">(</span><span class="n">model_param_list</span><span class="p">)</span>
+
+            <span class="n">model_param_list</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;model_rel_path=&#39;.&#39;&quot;</span><span class="p">)</span>
+            <span class="n">model_param_list</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;exe_name=&#39;mf6&#39;&quot;</span><span class="p">)</span>
+            <span class="n">model_param_list</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;version=&#39;mf6&#39;&quot;</span><span class="p">)</span>
+            <span class="n">model_param_list</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;model_nam_file=None&quot;</span><span class="p">)</span>
+            <span class="n">model_param_list</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;modelname=&#39;model&#39;&quot;</span><span class="p">)</span>
+            <span class="n">model_param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;**kwargs,&quot;</span><span class="p">)</span>
+            <span class="n">init_string_model</span> <span class="o">=</span> <span class="n">build_init_string</span><span class="p">(</span>
+                <span class="n">init_string_model</span><span class="p">,</span> <span class="n">model_param_list</span>
+            <span class="p">)</span>
+            <span class="n">model_name</span> <span class="o">=</span> <span class="n">clean_class_string</span><span class="p">(</span><span class="n">package</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">class_def_string</span> <span class="o">=</span> <span class="s2">&quot;class Modflow</span><span class="si">{}</span><span class="s2">(mfmodel.MFModel):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">model_name</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">class_def_string</span> <span class="o">=</span> <span class="n">class_def_string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="n">doc_string</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+                <span class="s2">&quot;    sim : MFSimulation</span><span class="se">\n</span><span class="s2">        &quot;</span>
+                <span class="s2">&quot;Simulation that this model is a part &quot;</span>
+                <span class="s2">&quot;of.  Model is automatically</span><span class="se">\n</span><span class="s2">        &quot;</span>
+                <span class="s2">&quot;added to simulation when it is &quot;</span>
+                <span class="s2">&quot;initialized.&quot;</span><span class="p">,</span>
+                <span class="n">beginning_of_list</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">model_parameter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">doc_string</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Modflow</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> defines a </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> model&quot;</span>
+            <span class="p">)</span>
+            <span class="n">class_var_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;    model_type = &#39;</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">mparent_init_string</span> <span class="o">=</span> <span class="s2">&quot;        super().__init__(&quot;</span>
+            <span class="n">spaces</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mparent_init_string</span><span class="p">)</span>
+            <span class="n">mparent_init_string</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">simulation, model_type=&#39;</span><span class="si">{}</span><span class="s2">6&#39;,</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;modelname=modelname,</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;model_nam_file=model_nam_file,</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;version=version, exe_name=exe_name,</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;model_rel_path=model_rel_path,</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;**kwargs,&quot;</span>
+                <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">mparent_init_string</span><span class="p">,</span>
+                    <span class="n">model_name</span><span class="p">,</span>
+                    <span class="n">spaces</span><span class="p">,</span>
+                    <span class="n">spaces</span><span class="p">,</span>
+                    <span class="n">spaces</span><span class="p">,</span>
+                    <span class="n">spaces</span><span class="p">,</span>
+                    <span class="n">spaces</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">load_txt</span><span class="p">,</span> <span class="n">doc_text</span> <span class="o">=</span> <span class="n">build_model_load</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+            <span class="n">package_string</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n\n\n</span><span class="si">{}{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">comment_string</span><span class="p">,</span>
+                <span class="n">nam_import_string</span><span class="p">,</span>
+                <span class="n">class_def_string</span><span class="p">,</span>
+                <span class="n">doc_string</span><span class="o">.</span><span class="n">get_doc_string</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                <span class="n">doc_text</span><span class="p">,</span>
+                <span class="n">class_var_string</span><span class="p">,</span>
+                <span class="n">init_string_model</span><span class="p">,</span>
+                <span class="n">mparent_init_string</span><span class="p">,</span>
+                <span class="n">init_vars</span><span class="p">,</span>
+                <span class="n">load_txt</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">md_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">util_path</span><span class="p">,</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;modflow&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mf</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.py&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+                <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">md_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">package_string</span><span class="p">)</span>
+            <span class="n">md_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">init_file_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;from .mf</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> import Modflow</span><span class="si">{</span><span class="n">model_name</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="c1"># Sort the imports</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">init_file_imports</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">3</span><span class="p">]):</span>
+        <span class="n">init_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">init_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">create_packages</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

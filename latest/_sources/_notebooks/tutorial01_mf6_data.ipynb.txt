@@ -1,0 +1,1048 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "4a047f5f",
+   "metadata": {},
+   "source": [
+    "# MODFLOW 6: Accessing Simulation Settings, Models, and Packages\n",
+    "\n",
+    "This tutorial shows how to view, access, and change the underlying package\n",
+    "variables for MODFLOW 6 objects in FloPy.  Interaction with a FloPy\n",
+    "MODFLOW 6 model is different from other models, such as MODFLOW-2005,\n",
+    "MT3D, and SEAWAT, for example.\n",
+    "\n",
+    "The MODFLOW 6 simulation structure is arranged in the following\n",
+    "generalized way:\n",
+    "\n",
+    ">       SIMULATION --> PACKAGE --> Data\n",
+    ">\n",
+    ">       SIMULATION --> MODEL --> PACKAGE (--> PACKAGE) --> Data\n",
+    "\n",
+    "This tutorial focuses on accessing simulation-wide FloPy settings and\n",
+    "how to create and access models and packages.  Tutorial 3, 4, and 5 offer a\n",
+    "more in depth look at observation, time series, and time array series\n",
+    "packages, and tutorial 6, 7, 8, and 9 offer a more in depth look at the data."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "226926fd",
+   "metadata": {},
+   "source": [
+    "## Create Simple Demonstration Model\n",
+    "\n",
+    "This tutorial uses a simple demonstration simulation with one GWF Model.\n",
+    "The model has 3 layers, 4 rows, and 5 columns.  The model is set up to\n",
+    "use multiple model layers in order to demonstrate some of the layered\n",
+    "functionality in FloPy."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "bdacd7d1",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:41.170127Z",
+     "iopub.status.busy": "2023-05-04T15:50:41.168856Z",
+     "iopub.status.idle": "2023-05-04T15:50:41.177760Z",
+     "shell.execute_reply": "2023-05-04T15:50:41.177105Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# package import\n",
+    "from pathlib import Path\n",
+    "from tempfile import TemporaryDirectory"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "72d7b53b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:41.180882Z",
+     "iopub.status.busy": "2023-05-04T15:50:41.180640Z",
+     "iopub.status.idle": "2023-05-04T15:50:41.931993Z",
+     "shell.execute_reply": "2023-05-04T15:50:41.931258Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import flopy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "8c18ef2b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:41.935322Z",
+     "iopub.status.busy": "2023-05-04T15:50:41.934840Z",
+     "iopub.status.idle": "2023-05-04T15:50:41.939308Z",
+     "shell.execute_reply": "2023-05-04T15:50:41.938693Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "temp_dir = TemporaryDirectory()\n",
+    "workspace = temp_dir.name\n",
+    "name = \"tutorial01_mf6_data\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "573c70f9",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:41.942206Z",
+     "iopub.status.busy": "2023-05-04T15:50:41.941758Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.018713Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.017830Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Done creating simulation.\n"
+     ]
+    }
+   ],
+   "source": [
+    "# set up simulation and basic packages\n",
+    "sim = flopy.mf6.MFSimulation(sim_name=name, sim_ws=workspace)\n",
+    "flopy.mf6.ModflowTdis(\n",
+    "    sim, nper=10, perioddata=[[365.0, 1, 1.0] for _ in range(10)]\n",
+    ")\n",
+    "flopy.mf6.ModflowIms(sim)\n",
+    "gwf = flopy.mf6.ModflowGwf(sim, modelname=name, save_flows=True)\n",
+    "flopy.mf6.ModflowGwfdis(gwf, nlay=3, nrow=4, ncol=5)\n",
+    "flopy.mf6.ModflowGwfic(gwf)\n",
+    "flopy.mf6.ModflowGwfnpf(gwf, save_specific_discharge=True)\n",
+    "flopy.mf6.ModflowGwfchd(\n",
+    "    gwf, stress_period_data=[[(0, 0, 0), 1.0], [(2, 3, 4), 0.0]]\n",
+    ")\n",
+    "budget_file = f\"{name}.bud\"\n",
+    "head_file = f\"{name}.hds\"\n",
+    "flopy.mf6.ModflowGwfoc(\n",
+    "    gwf,\n",
+    "    budget_filerecord=budget_file,\n",
+    "    head_filerecord=head_file,\n",
+    "    saverecord=[(\"HEAD\", \"ALL\"), (\"BUDGET\", \"ALL\")],\n",
+    ")\n",
+    "print(\"Done creating simulation.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "41c28317",
+   "metadata": {},
+   "source": [
+    "## Accessing Simulation-Level Settings\n",
+    "\n",
+    "FloPy has a number of settings that can be set for the entire simulation.\n",
+    "These include how much information FloPy writes to the console, how to\n",
+    "format the MODFLOW package files, and whether to verify MODFLOW data."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "75f4083e",
+   "metadata": {},
+   "source": [
+    "The verbosity level, which determines how much FloPy writes to command line\n",
+    "output.  The options are 1 for quiet, 2 for normal, and 3 for verbose.\n",
+    "Below we set the verbosity level to verbose."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "c7100b14",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.022208Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.021602Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.025828Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.025188Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "sim.simulation_data.verbosity_level = 3"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "814e5ad2",
+   "metadata": {},
+   "source": [
+    "We can also set the number of spaces to indent data when writing package\n",
+    "files by setting the indent string."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "a91c385f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.028937Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.028346Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.032076Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.031462Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "sim.simulation_data.indent_string = \"    \""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "85a729bf",
+   "metadata": {},
+   "source": [
+    "Next we set the precision and number of characters written for floating\n",
+    "point variables."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "252305b6",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.034919Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.034494Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.038314Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.037706Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "sim.float_precision = 8\n",
+    "sim.float_characters = 15"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "77541835",
+   "metadata": {},
+   "source": [
+    "Lastly, we disable verify_data and auto_set_sizes for faster performance.\n",
+    "With these options disabled FloPy will not do any checking or autocorrecting\n",
+    "of your data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "5e38624c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.041174Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.040670Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.044438Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.043829Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "sim.verify_data = False\n",
+    "sim.auto_set_sizes = False"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "778ede83",
+   "metadata": {},
+   "source": [
+    "## Accessing Models and Packages\n",
+    "\n",
+    "At this point a simulation is available in memory.  In this particular case\n",
+    "the simulation was created directly using Python code; however, the\n",
+    "simulation might also have been loaded from existing model files using\n",
+    "the `FloPy.mf6.MFSimulation.load()` function."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7e0124c1",
+   "metadata": {},
+   "source": [
+    "Once a MODFLOW 6 simulation is available in memory, the contents of the\n",
+    "simulation object can be listed using a simple print command."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "b977e195",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.047189Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.046834Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.051462Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.050831Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "sim_name = tutorial01_mf6_data\n",
+      "sim_path = /tmp/tmppj6oomyw\n",
+      "exe_name = mf6\n",
+      "\n",
+      "###################\n",
+      "Package mfsim.nam\n",
+      "###################\n",
+      "\n",
+      "package_name = mfsim.nam\n",
+      "filename = mfsim.nam\n",
+      "package_type = nam\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package tutorial01_mf6_data.tdis\n",
+      "###################\n",
+      "\n",
+      "package_name = tutorial01_mf6_data.tdis\n",
+      "filename = tutorial01_mf6_data.tdis\n",
+      "package_type = tdis\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package ims_-1\n",
+      "###################\n",
+      "\n",
+      "package_name = ims_-1\n",
+      "filename = tutorial01_mf6_data.ims\n",
+      "package_type = ims\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "@@@@@@@@@@@@@@@@@@@@\n",
+      "Model tutorial01_mf6_data\n",
+      "@@@@@@@@@@@@@@@@@@@@\n",
+      "\n",
+      "name = tutorial01_mf6_data\n",
+      "model_type = gwf6\n",
+      "version = mf6\n",
+      "model_relative_path = .\n",
+      "\n",
+      "###################\n",
+      "Package dis\n",
+      "###################\n",
+      "\n",
+      "package_name = dis\n",
+      "filename = tutorial01_mf6_data.dis\n",
+      "package_type = dis\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package ic\n",
+      "###################\n",
+      "\n",
+      "package_name = ic\n",
+      "filename = tutorial01_mf6_data.ic\n",
+      "package_type = ic\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package npf\n",
+      "###################\n",
+      "\n",
+      "package_name = npf\n",
+      "filename = tutorial01_mf6_data.npf\n",
+      "package_type = npf\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package chd_0\n",
+      "###################\n",
+      "\n",
+      "package_name = chd_0\n",
+      "filename = tutorial01_mf6_data.chd\n",
+      "package_type = chd\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package oc\n",
+      "###################\n",
+      "\n",
+      "package_name = oc\n",
+      "filename = tutorial01_mf6_data.oc\n",
+      "package_type = oc\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(sim)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0ecfda61",
+   "metadata": {},
+   "source": [
+    "Simulation-level packages, models, and model packages can be shown by\n",
+    "printing the simulation object.  In this case, you should see the\n",
+    "all of the contents of simulation and some information about each FloPy\n",
+    "object that is part of simulation."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "65e4a1a9",
+   "metadata": {},
+   "source": [
+    "To get the `TDIS` package and print the contents, we can do the following"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "9d491324",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.054380Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.054014Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.060182Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.059489Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "package_name = tutorial01_mf6_data.tdis\n",
+      "filename = tutorial01_mf6_data.tdis\n",
+      "package_type = tdis\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "Block dimensions\n",
+      "--------------------\n",
+      "nper\n",
+      "{internal}\n",
+      "(10)\n",
+      "\n",
+      "\n",
+      "Block perioddata\n",
+      "--------------------\n",
+      "perioddata\n",
+      "{internal}\n",
+      "([(365., 1, 1.) (365., 1, 1.) (365., 1, 1.) (365., 1, 1.) (365., 1, 1.)\n",
+      " (365., 1, 1.) (365., 1, 1.) (365., 1, 1.) (365., 1, 1.) (365., 1, 1.)])\n",
+      "\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "tdis = sim.tdis\n",
+    "print(tdis)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c272b1b7",
+   "metadata": {},
+   "source": [
+    "To get the Iterative Model Solution (`IMS`) object, we use the following\n",
+    "syntax"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "1a22bb73",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.063133Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.062765Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.066637Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.065916Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "package_name = ims_-1\n",
+      "filename = tutorial01_mf6_data.ims\n",
+      "package_type = ims\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "ims = sim.get_package(\"ims_-1\")\n",
+    "print(ims)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9d91d3da",
+   "metadata": {},
+   "source": [
+    "Or because there is only one `IMS` object for this simulation, we can\n",
+    "access it as"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "a726d206",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.069800Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.069319Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.074656Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.073987Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "package_name = ims_-1\n",
+      "filename = tutorial01_mf6_data.ims\n",
+      "package_type = ims\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "ims = sim.get_package(\"ims\")\n",
+    "print(ims)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "85df3d17",
+   "metadata": {},
+   "source": [
+    "When printing the sim object, there is also a simulation package called\n",
+    "nam.  This package contains the information that is written to the\n",
+    "`mfsim.nam` file, which is the primary file that MODFLOW 6 reads when it\n",
+    "first starts.  The nam package is automatically updated for you by FloPy and\n",
+    "does not require modification."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "d1535ae2",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.077533Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.076901Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.082400Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.081753Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "package_name = mfsim.nam\n",
+      "filename = mfsim.nam\n",
+      "package_type = nam\n",
+      "model_or_simulation_package = simulation\n",
+      "simulation_name = tutorial01_mf6_data\n",
+      "\n",
+      "Block timing\n",
+      "--------------------\n",
+      "tdis6\n",
+      "{internal}\n",
+      "(tutorial01_mf6_data.tdis)\n",
+      "\n",
+      "\n",
+      "Block models\n",
+      "--------------------\n",
+      "models\n",
+      "{internal}\n",
+      "([('gwf6', 'tutorial01_mf6_data.nam', 'tutorial01_mf6_data')])\n",
+      "\n",
+      "\n",
+      "Block solutiongroup\n",
+      "--------------------\n",
+      "solutiongroup\n",
+      "{internal}\n",
+      "([('ims6', 'tutorial01_mf6_data.ims', 'tutorial01_mf6_data')])\n",
+      "\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "nam = sim.get_package(\"nam\")\n",
+    "print(nam)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cab006cc",
+   "metadata": {},
+   "source": [
+    "To see the models that are contained within the simulation, we can get a\n",
+    "list of their names as follows"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "18c29119",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.085416Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.084864Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.089433Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.088828Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "dict_keys(['tutorial01_mf6_data'])\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(sim.model_names)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c719ea9f",
+   "metadata": {},
+   "source": [
+    "`sim.model_names` returns the keys of an ordered dictionary, which isn't very\n",
+    "useful to us, but we can convert that to a list and then go through that\n",
+    "list and print information about each model in the simulation.  In this\n",
+    "case there is only one model, but had there been more models, we would\n",
+    "see them listed here"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "592897ec",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.092092Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.091637Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.096221Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.095517Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "tutorial01_mf6_data\n"
+     ]
+    }
+   ],
+   "source": [
+    "model_names = list(sim.model_names)\n",
+    "for mname in model_names:\n",
+    "    print(mname)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bf3ec115",
+   "metadata": {},
+   "source": [
+    "If we want to get a model from a simulation, then we use the `get_model()`\n",
+    "method of the sim object.  Here we go through all the models in the\n",
+    "simulation and print the model name and the model type."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "c32582eb",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.099214Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.098718Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.103541Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.102928Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "tutorial01_mf6_data gwf6\n"
+     ]
+    }
+   ],
+   "source": [
+    "model_names = list(sim.model_names)\n",
+    "for mname in model_names:\n",
+    "    m = sim.get_model(mname)\n",
+    "    print(m.name, m.model_type)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "80900d33",
+   "metadata": {},
+   "source": [
+    "For this simple case here with only one `GWF` model, we can very easily get\n",
+    "the FloPy representation of the `GWF` model as"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "fff65ca3",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.106374Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.105956Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.109743Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.109128Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "gwf = sim.get_model(name)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9187fd0d",
+   "metadata": {},
+   "source": [
+    "Now that we have the `GWF` object, we can print it, and see what's it\n",
+    "contains."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "436ce1a1",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.112411Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.112181Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.120961Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.120382Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "name = tutorial01_mf6_data\n",
+      "model_type = gwf6\n",
+      "version = mf6\n",
+      "model_relative_path = .\n",
+      "\n",
+      "###################\n",
+      "Package dis\n",
+      "###################\n",
+      "\n",
+      "package_name = dis\n",
+      "filename = tutorial01_mf6_data.dis\n",
+      "package_type = dis\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package ic\n",
+      "###################\n",
+      "\n",
+      "package_name = ic\n",
+      "filename = tutorial01_mf6_data.ic\n",
+      "package_type = ic\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package npf\n",
+      "###################\n",
+      "\n",
+      "package_name = npf\n",
+      "filename = tutorial01_mf6_data.npf\n",
+      "package_type = npf\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package chd_0\n",
+      "###################\n",
+      "\n",
+      "package_name = chd_0\n",
+      "filename = tutorial01_mf6_data.chd\n",
+      "package_type = chd\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "###################\n",
+      "Package oc\n",
+      "###################\n",
+      "\n",
+      "package_name = oc\n",
+      "filename = tutorial01_mf6_data.oc\n",
+      "package_type = oc\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(gwf)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "40f4c48c",
+   "metadata": {},
+   "source": [
+    "What we see here is the information that we saw when we printed the sim\n",
+    "object."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5847fe27",
+   "metadata": {},
+   "source": [
+    "One of the most common operations on a model is to see what packages are in\n",
+    "it and then get packages of interest.  A list of packages in a model can\n",
+    "obtained as"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "b75581eb",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.124070Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.123428Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.128446Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.127879Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['DIS', 'IC', 'NPF', 'CHD_0', 'OC']\n"
+     ]
+    }
+   ],
+   "source": [
+    "package_list = gwf.get_package_list()\n",
+    "print(package_list)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fa157a62",
+   "metadata": {},
+   "source": [
+    "As you might expect we can access each package in this list with\n",
+    "gwf.get_package().  Thus, the following syntax can be used to obtain and\n",
+    "print the contents of the `DIS` Package"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "d863f630",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.131457Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.130826Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.135816Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.135123Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "package_name = dis\n",
+      "filename = tutorial01_mf6_data.dis\n",
+      "package_type = dis\n",
+      "model_or_simulation_package = model\n",
+      "model_name = tutorial01_mf6_data\n",
+      "\n",
+      "Block dimensions\n",
+      "--------------------\n",
+      "nlay\n",
+      "{internal}\n",
+      "(3)\n",
+      "\n",
+      "nrow\n",
+      "{internal}\n",
+      "(4)\n",
+      "\n",
+      "ncol\n",
+      "{internal}\n",
+      "(5)\n",
+      "\n",
+      "\n",
+      "Block griddata\n",
+      "--------------------\n",
+      "delr\n",
+      "{constant 1.0}\n",
+      "\n",
+      "delc\n",
+      "{constant 1.0}\n",
+      "\n",
+      "top\n",
+      "{constant 1.0}\n",
+      "\n",
+      "botm\n",
+      "{constant 0.0}\n",
+      "\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "dis = gwf.get_package(\"dis\")\n",
+    "print(dis)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "aed568bf",
+   "metadata": {},
+   "source": [
+    "The Python type for this dis package is simply"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "b28d1c10",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.138776Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.138402Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.142294Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.141584Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'flopy.mf6.modflow.mfgwfdis.ModflowGwfdis'>\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(type(dis))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "7cc5a5e6",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:50:42.145250Z",
+     "iopub.status.busy": "2023-05-04T15:50:42.144880Z",
+     "iopub.status.idle": "2023-05-04T15:50:42.148658Z",
+     "shell.execute_reply": "2023-05-04T15:50:42.147953Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    temp_dir.cleanup()\n",
+    "except PermissionError:\n",
+    "    # can occur on windows: https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryDirectory\n",
+    "    pass"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

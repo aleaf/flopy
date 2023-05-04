@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.plot.map &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.plot.map</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.plot.map</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.colors</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib.collections</span> <span class="kn">import</span> <span class="n">LineCollection</span><span class="p">,</span> <span class="n">PathCollection</span>
+<span class="kn">from</span> <span class="nn">matplotlib.path</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">geometry</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">plotutil</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">,</span> <span class="ne">PendingDeprecationWarning</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PlotMapView"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView">[docs]</a><span class="k">class</span> <span class="nc">PlotMapView</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to create a map of the model. Delegates plotting</span>
+<span class="sd">    functionality based on model grid type.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    modelgrid : flopy.discretization.Grid</span>
+<span class="sd">        The modelgrid class can be StructuredGrid, VertexGrid,</span>
+<span class="sd">        or UnstructuredGrid (Default is None)</span>
+<span class="sd">    ax : matplotlib.pyplot axis</span>
+<span class="sd">        The plot axis.  If not provided it, plt.gca() will be used.</span>
+<span class="sd">        If there is not a current axis then a new one will be created.</span>
+<span class="sd">    model : flopy.modflow object</span>
+<span class="sd">        flopy model object. (Default is None)</span>
+<span class="sd">    layer : int</span>
+<span class="sd">        Layer to plot.  Default is 0.  Must be between 0 and nlay - 1.</span>
+<span class="sd">    extent : tuple of floats</span>
+<span class="sd">        (xmin, xmax, ymin, ymax) will be used to specify axes limits.  If None</span>
+<span class="sd">        then these will be calculated based on grid, coordinates, and rotation.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">modelgrid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="o">=</span> <span class="n">layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">modelgrid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="n">modelgrid</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;A model grid instance must be provided to PlotMapView&quot;</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="n">axisbg</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax</span>
+
+        <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extent</span> <span class="o">=</span> <span class="n">extent</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extent</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e30</span><span class="p">,</span> <span class="o">-</span><span class="mf">1e30</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">hnoflo</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">hdry</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">extent</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extent</span>
+
+<div class="viewcode-block" id="PlotMapView.plot_array"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_array">[docs]</a>    <span class="k">def</span> <span class="nf">plot_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">masked_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot an array.  If the array is three-dimensional, then the method</span>
+<span class="sd">        will plot the layer tied to this class (self.layer).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        a : numpy.ndarray</span>
+<span class="sd">            Array to plot.</span>
+<span class="sd">        masked_values : iterable of floats, ints</span>
+<span class="sd">            Values to mask.</span>
+<span class="sd">        **kwargs : dictionary</span>
+<span class="sd">            keyword arguments passed to matplotlib.pyplot.pcolormesh</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        quadmesh : matplotlib.collections.QuadMesh or</span>
+<span class="sd">            matplotlib.collections.PatchCollection</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+        <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># Use the model grid to pass back an array of the correct shape</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_plottable_layer_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+
+        <span class="c1"># if masked_values are provided mask the plotting array</span>
+        <span class="k">if</span> <span class="n">masked_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">masked_values</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">mval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span><span class="p">:</span>
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_values</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">mval</span><span class="p">)</span>
+
+        <span class="c1"># add NaN values to mask</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">plotarray</span><span class="p">),</span> <span class="n">plotarray</span><span class="p">)</span>
+
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+
+        <span class="c1"># use cached patch collection for plotting</span>
+        <span class="n">polygons</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">map_polygons</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">polygons</span> <span class="o">=</span> <span class="n">polygons</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">polygons</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">polygons</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Path</span><span class="p">):</span>
+            <span class="n">collection</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">xvertices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">yvertices</span><span class="p">,</span> <span class="n">plotarray</span>
+            <span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">plotarray</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">collection</span> <span class="o">=</span> <span class="n">PathCollection</span><span class="p">(</span><span class="n">polygons</span><span class="p">)</span>
+            <span class="n">collection</span><span class="o">.</span><span class="n">set_array</span><span class="p">(</span><span class="n">plotarray</span><span class="p">)</span>
+
+        <span class="c1"># set max and min</span>
+        <span class="n">vmin</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;vmin&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">vmax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;vmax&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;cmap&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cmap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;viridis&quot;</span>
+
+        <span class="c1"># set matplotlib kwargs</span>
+        <span class="n">collection</span><span class="o">.</span><span class="n">set_clim</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
+        <span class="n">collection</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="n">collection</span><span class="p">)</span>
+
+        <span class="c1"># set limits</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">collection</span></div>
+
+<div class="viewcode-block" id="PlotMapView.contour_array"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.contour_array">[docs]</a>    <span class="k">def</span> <span class="nf">contour_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">masked_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Contour an array.  If the array is three-dimensional, then the method</span>
+<span class="sd">        will contour the layer tied to this class (self.layer).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        a : numpy.ndarray</span>
+<span class="sd">            Array to plot.</span>
+<span class="sd">        masked_values : iterable of floats, ints</span>
+<span class="sd">            Values to mask.</span>
+<span class="sd">        **kwargs : dictionary</span>
+<span class="sd">            keyword arguments passed to matplotlib.pyplot.pcolormesh</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        contour_set : matplotlib.pyplot.contour</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.tri</span> <span class="k">as</span> <span class="nn">tri</span>
+
+        <span class="c1"># coerce array to ndarray of floats</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># Use the model grid to pass back an array of the correct shape</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_plottable_layer_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+
+        <span class="c1"># Get vertices for the selected layer</span>
+        <span class="n">xcentergrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_xcellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+        <span class="n">ycentergrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_ycellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">filled</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;filled&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">plot_triplot</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;plot_triplot&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">tri_mask</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tri_mask&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;colors&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s2">&quot;cmap&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;cmap&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;extent&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">extent</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;extent&quot;</span><span class="p">)</span>
+
+            <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">xcentergrid</span> <span class="o">&gt;=</span> <span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">xcentergrid</span> <span class="o">&lt;=</span> <span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">ycentergrid</span> <span class="o">&gt;=</span> <span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">ycentergrid</span> <span class="o">&lt;=</span> <span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">plotarray</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">xcentergrid</span> <span class="o">=</span> <span class="n">xcentergrid</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">ycentergrid</span> <span class="o">=</span> <span class="n">ycentergrid</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="c1"># use standard contours for structured grid, otherwise tricontours</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span><span class="p">:</span>
+            <span class="n">ismasked</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">masked_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">masked_values</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">mval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ismasked</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ismasked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">mval</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">mval</span><span class="p">)</span>
+                    <span class="n">ismasked</span> <span class="o">+=</span> <span class="n">t</span>
+
+            <span class="k">if</span> <span class="n">ismasked</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">plotarray</span><span class="p">[</span><span class="n">ismasked</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+            <span class="n">contour_set</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">xcentergrid</span><span class="p">,</span> <span class="n">ycentergrid</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">filled</span>
+                <span class="k">else</span> <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xcentergrid</span><span class="p">,</span> <span class="n">ycentergrid</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># work around for tri-contour ignore vmin &amp; vmax</span>
+            <span class="c1"># necessary block for tri-contour NaN issue</span>
+            <span class="k">if</span> <span class="s2">&quot;levels&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">vmin</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;vmin&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">plotarray</span><span class="p">))</span>
+                <span class="n">vmax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;vmax&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">plotarray</span><span class="p">))</span>
+                <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;levels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">levels</span>
+
+            <span class="c1"># workaround for tri-contour nan issue</span>
+            <span class="c1"># use -2**31 to allow for 32 bit int arrays</span>
+            <span class="n">plotarray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">plotarray</span><span class="p">)]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">masked_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">masked_values</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">masked_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">masked_values</span><span class="p">)</span>
+                <span class="k">if</span> <span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">masked_values</span><span class="p">:</span>
+                    <span class="n">masked_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">))</span>
+
+            <span class="n">ismasked</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">masked_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">masked_values</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">mval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_values</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ismasked</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ismasked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">mval</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">mval</span><span class="p">)</span>
+                    <span class="n">ismasked</span> <span class="o">+=</span> <span class="n">t</span>
+
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">plotarray</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">xcentergrid</span> <span class="o">=</span> <span class="n">xcentergrid</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">ycentergrid</span> <span class="o">=</span> <span class="n">ycentergrid</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">triang</span> <span class="o">=</span> <span class="n">tri</span><span class="o">.</span><span class="n">Triangulation</span><span class="p">(</span><span class="n">xcentergrid</span><span class="p">,</span> <span class="n">ycentergrid</span><span class="p">)</span>
+            <span class="n">analyze</span> <span class="o">=</span> <span class="n">tri</span><span class="o">.</span><span class="n">TriAnalyzer</span><span class="p">(</span><span class="n">triang</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">analyze</span><span class="o">.</span><span class="n">get_flat_tri_mask</span><span class="p">(</span><span class="n">rescale</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="c1"># mask out holes, optional???</span>
+            <span class="k">if</span> <span class="n">tri_mask</span><span class="p">:</span>
+                <span class="n">triangles</span> <span class="o">=</span> <span class="n">triang</span><span class="o">.</span><span class="n">triangles</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">nodes</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">triangles</span><span class="p">):</span>
+                        <span class="n">neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">as_nodes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="n">isin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span> <span class="n">neighbors</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">alltrue</span><span class="p">(</span><span class="n">isin</span><span class="p">):</span>
+                            <span class="n">mask</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">ismasked</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ismasked</span> <span class="o">=</span> <span class="n">ismasked</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                <span class="n">mask2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ismasked</span><span class="p">[</span><span class="n">triang</span><span class="o">.</span><span class="n">triangles</span><span class="p">],</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">mask2</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">triang</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="n">contour_set</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">tricontourf</span><span class="p">(</span><span class="n">triang</span><span class="p">,</span> <span class="n">plotarray</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">filled</span>
+                <span class="k">else</span> <span class="n">ax</span><span class="o">.</span><span class="n">tricontour</span><span class="p">(</span><span class="n">triang</span><span class="p">,</span> <span class="n">plotarray</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">plot_triplot</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">triplot</span><span class="p">(</span><span class="n">triang</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">contour_set</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_inactive"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_inactive">[docs]</a>    <span class="k">def</span> <span class="nf">plot_inactive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ibound</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_noflow</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make a plot of inactive cells.  If not specified, then pull ibound</span>
+<span class="sd">        from the self.ml</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ibound : numpy.ndarray</span>
+<span class="sd">            ibound array to plot.  (Default is ibound in &#39;BAS6&#39; package.)</span>
+
+<span class="sd">        color_noflow : string</span>
+<span class="sd">            (Default is &#39;black&#39;)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        quadmesh : matplotlib.collections.QuadMesh</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">ibound</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">idomain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Ibound/Idomain array must be provided&quot;</span><span class="p">)</span>
+
+            <span class="n">ibound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">idomain</span>
+
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ibound</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">idx1</span> <span class="o">=</span> <span class="n">ibound</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">plotarray</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="n">color_noflow</span><span class="p">])</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">BoundaryNorm</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">quadmesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">quadmesh</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_ibound"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_ibound">[docs]</a>    <span class="k">def</span> <span class="nf">plot_ibound</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ibound</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">color_noflow</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+        <span class="n">color_ch</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
+        <span class="n">color_vpt</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make a plot of ibound.  If not specified, then pull ibound from the</span>
+<span class="sd">        self.ml</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ibound : numpy.ndarray</span>
+<span class="sd">            ibound array to plot.  (Default is ibound in the modelgrid)</span>
+<span class="sd">        color_noflow : string</span>
+<span class="sd">            (Default is &#39;black&#39;)</span>
+<span class="sd">        color_ch : string</span>
+<span class="sd">            Color for constant heads (Default is &#39;blue&#39;.)</span>
+<span class="sd">        color_vpt: string</span>
+<span class="sd">            Color for vertical pass through cells (Default is &#39;red&#39;)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        quadmesh : matplotlib.collections.QuadMesh</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">ibound</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+                    <span class="n">color_ch</span> <span class="o">=</span> <span class="n">color_vpt</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">idomain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Ibound/Idomain array must be provided&quot;</span><span class="p">)</span>
+
+            <span class="n">ibound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">idomain</span>
+
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ibound</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">idx1</span> <span class="o">=</span> <span class="n">ibound</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">idx2</span> <span class="o">=</span> <span class="n">ibound</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="n">plotarray</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">plotarray</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="n">color_noflow</span><span class="p">,</span> <span class="n">color_ch</span><span class="p">])</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">BoundaryNorm</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">quadmesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">quadmesh</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_grid"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_grid">[docs]</a>    <span class="k">def</span> <span class="nf">plot_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the grid lines.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kwargs : ax, colors.  The remaining kwargs are passed into the</span>
+<span class="sd">            the LineCollection constructor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lc : matplotlib.collections.LineCollection</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;colors&quot;</span><span class="p">,</span> <span class="s2">&quot;grey&quot;</span><span class="p">)</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ec&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;edgecolor&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+
+        <span class="n">grid_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">grid_lines</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grid_lines</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">grid_lines</span> <span class="o">=</span> <span class="n">grid_lines</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">]</span>
+
+        <span class="n">collection</span> <span class="o">=</span> <span class="n">LineCollection</span><span class="p">(</span><span class="n">grid_lines</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="n">collection</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">collection</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_bc"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_bc">[docs]</a>    <span class="k">def</span> <span class="nf">plot_bc</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">kper</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">plotAll</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot boundary conditions locations for a specific boundary</span>
+<span class="sd">        type from a flopy model</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : string</span>
+<span class="sd">            Package name string (&#39;WEL&#39;, &#39;GHB&#39;, etc.). (Default is None)</span>
+<span class="sd">        package : flopy.modflow.Modflow package class instance</span>
+<span class="sd">            flopy package class instance. (Default is None)</span>
+<span class="sd">        kper : int</span>
+<span class="sd">            Stress period to plot</span>
+<span class="sd">        color : string</span>
+<span class="sd">            matplotlib color string. (Default is None)</span>
+<span class="sd">        plotAll : bool</span>
+<span class="sd">            Boolean used to specify that boundary condition locations for all</span>
+<span class="sd">            layers will be plotted on the current ModelMap layer.</span>
+<span class="sd">            (Default is False)</span>
+<span class="sd">        **kwargs : dictionary</span>
+<span class="sd">            keyword arguments passed to matplotlib.collections.PatchCollection</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        quadmesh : matplotlib.collections.QuadMesh</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;ftype&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ftype&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Find package to plot</span>
+        <span class="k">if</span> <span class="n">package</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">package</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;ftype not specified&quot;</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot find package to plot&quot;</span><span class="p">)</span>
+
+        <span class="c1"># trap for mf6 &#39;cellid&#39; vs mf2005 &#39;k&#39;, &#39;i&#39;, &#39;j&#39; convention</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pp</span><span class="o">.</span><span class="n">package_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lak&quot;</span><span class="p">,</span> <span class="s2">&quot;sfr&quot;</span><span class="p">,</span> <span class="s2">&quot;maw&quot;</span><span class="p">,</span> <span class="s2">&quot;uzf&quot;</span><span class="p">):</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">advanced_package_bc_helper</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="p">,</span> <span class="n">kper</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">mflist</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Not a list-style boundary package: </span><span class="si">{</span><span class="n">e</span><span class="si">!s}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">mflist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">return</span>
+
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;cellid&quot;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># modflow-2005 structured and unstructured grid</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">package_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;uzf&quot;</span><span class="p">,</span> <span class="s2">&quot;lak&quot;</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">advanced_package_bc_helper</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="p">,</span> <span class="n">kper</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">mflist</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Not a list-style boundary package: </span><span class="si">{</span><span class="n">e</span><span class="si">!s}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">mflist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">],</span> <span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span>
+
+        <span class="n">nlay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">nlay</span>
+
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plotAll</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">pa</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+                <span class="n">plotarray</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">plotarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plotarray</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># mask the plot array</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># set the colormap</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># modflow 6 ftype fix, since multiple packages append _0, _1, etc:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">bc_color_dict</span><span class="p">:</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">bc_color_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">bc_color_dict</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">color</span>
+
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">BoundaryNorm</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+
+        <span class="c1"># create normalized quadmesh or patch object depending on grid type</span>
+        <span class="n">quadmesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">quadmesh</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_shapefile"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_shapefile">[docs]</a>    <span class="k">def</span> <span class="nf">plot_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot a shapefile.  The shapefile must be in the same coordinates as</span>
+<span class="sd">        the rotated and offset grid.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        shp : str, os.PathLike or pyshp shapefile object</span>
+<span class="sd">            Path of the shapefile to plot</span>
+
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            Keyword arguments passed to plotutil.plot_shapefile()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_shapes</span><span class="p">(</span><span class="n">shp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_shapes"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_shapes">[docs]</a>    <span class="k">def</span> <span class="nf">plot_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot shapes is a method that facilitates plotting a collection</span>
+<span class="sd">        of geospatial objects</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obj : collection object</span>
+<span class="sd">            obj can accept the following types</span>
+
+<span class="sd">            str : shapefile path</span>
+<span class="sd">            PathLike : shapefile path</span>
+<span class="sd">            shapefile.Reader object</span>
+<span class="sd">            list of [shapefile.Shape, shapefile.Shape,]</span>
+<span class="sd">            shapefile.Shapes object</span>
+<span class="sd">            flopy.utils.geometry.Collection object</span>
+<span class="sd">            list of [flopy.utils.geometry, ...] objects</span>
+<span class="sd">            geojson.GeometryCollection object</span>
+<span class="sd">            geojson.FeatureCollection object</span>
+<span class="sd">            shapely.GeometryCollection object</span>
+<span class="sd">            list of [[vertices], ...]</span>
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            keyword arguments passed to plotutil.plot_shapefile()</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            matplotlib.Collection object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">patch_collection</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">plot_shapefile</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">patch_collection</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_vector"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_vector">[docs]</a>    <span class="k">def</span> <span class="nf">plot_vector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">vx</span><span class="p">,</span>
+        <span class="n">vy</span><span class="p">,</span>
+        <span class="n">istep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">jstep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">masked_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot a vector.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vx : np.ndarray</span>
+<span class="sd">            x component of the vector to be plotted (non-rotated)</span>
+<span class="sd">            array shape must be (nlay, nrow, ncol) for a structured grid</span>
+<span class="sd">            array shape must be (nlay, ncpl) for a unstructured grid</span>
+<span class="sd">        vy : np.ndarray</span>
+<span class="sd">            y component of the vector to be plotted (non-rotated)</span>
+<span class="sd">            array shape must be (nlay, nrow, ncol) for a structured grid</span>
+<span class="sd">            array shape must be (nlay, ncpl) for a unstructured grid</span>
+<span class="sd">        istep : int</span>
+<span class="sd">            row frequency to plot (default is 1)</span>
+<span class="sd">        jstep : int</span>
+<span class="sd">            column frequency to plot (default is 1)</span>
+<span class="sd">        normalize : bool</span>
+<span class="sd">            boolean flag used to determine if vectors should be normalized</span>
+<span class="sd">            using the vector magnitude in each cell (default is False)</span>
+<span class="sd">        masked_values : iterable of floats</span>
+<span class="sd">            values to mask</span>
+<span class="sd">        kwargs : matplotlib.pyplot keyword arguments for the</span>
+<span class="sd">            plt.quiver method</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        quiver : matplotlib.pyplot.quiver</span>
+<span class="sd">            result of the quiver function</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pivot</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;pivot&quot;</span><span class="p">,</span> <span class="s2">&quot;middle&quot;</span><span class="p">)</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+
+        <span class="c1"># get ibound array to mask inactive cells</span>
+        <span class="n">ib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">idomain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">idomain</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="n">xcentergrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_xcellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+        <span class="n">ycentergrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_ycellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+        <span class="n">vx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_plottable_layer_array</span><span class="p">(</span><span class="n">vx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+        <span class="n">vy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_plottable_layer_array</span><span class="p">(</span><span class="n">vy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+        <span class="n">ib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">get_plottable_layer_array</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">xcentergrid</span><span class="p">[::</span><span class="n">istep</span><span class="p">,</span> <span class="p">::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">ycentergrid</span><span class="p">[::</span><span class="n">istep</span><span class="p">,</span> <span class="p">::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">vx</span><span class="p">[::</span><span class="n">istep</span><span class="p">,</span> <span class="p">::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">vy</span><span class="p">[::</span><span class="n">istep</span><span class="p">,</span> <span class="p">::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="n">ib</span><span class="p">[::</span><span class="n">istep</span><span class="p">,</span> <span class="p">::</span><span class="n">jstep</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">xcentergrid</span><span class="p">[::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">ycentergrid</span><span class="p">[::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">vx</span><span class="p">[::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">vy</span><span class="p">[::</span><span class="n">jstep</span><span class="p">]</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="n">ib</span><span class="p">[::</span><span class="n">jstep</span><span class="p">]</span>
+
+        <span class="c1"># if necessary, copy to avoid changing the passed values</span>
+        <span class="k">if</span> <span class="n">masked_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="c1"># mask values</span>
+        <span class="k">if</span> <span class="n">masked_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">mval</span> <span class="ow">in</span> <span class="n">masked_values</span><span class="p">:</span>
+                <span class="n">to_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">u</span> <span class="o">==</span> <span class="n">mval</span><span class="p">,</span> <span class="n">v</span> <span class="o">==</span> <span class="n">mval</span><span class="p">)</span>
+                <span class="n">u</span><span class="p">[</span><span class="n">to_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="n">v</span><span class="p">[</span><span class="n">to_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="c1"># normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">vmag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">v</span><span class="o">**</span><span class="mf">2.0</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">vmag</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+            <span class="n">u</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">/=</span> <span class="n">vmag</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">/=</span> <span class="n">vmag</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="n">u</span><span class="p">[</span><span class="n">ib</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">v</span><span class="p">[</span><span class="n">ib</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="c1"># rotate and plot, offsets must be zero since</span>
+        <span class="c1"># these are vectors not locations</span>
+        <span class="n">urot</span><span class="p">,</span> <span class="n">vrot</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">)</span>
+        <span class="n">quiver</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">quiver</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">urot</span><span class="p">,</span> <span class="n">vrot</span><span class="p">,</span> <span class="n">pivot</span><span class="o">=</span><span class="n">pivot</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">quiver</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_pathline"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_pathline">[docs]</a>    <span class="k">def</span> <span class="nf">plot_pathline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pl</span><span class="p">,</span> <span class="n">travel_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the MODPATH pathlines.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pl : list of rec arrays or a single rec array</span>
+<span class="sd">            rec array or list of rec arrays is data returned from</span>
+<span class="sd">            modpathfile PathlineFile get_data() or get_alldata()</span>
+<span class="sd">            methods. Data in rec array is &#39;x&#39;, &#39;y&#39;, &#39;z&#39;, &#39;time&#39;,</span>
+<span class="sd">            &#39;k&#39;, and &#39;particleid&#39;.</span>
+<span class="sd">        travel_time : float or str</span>
+<span class="sd">            travel_time is a travel time selection for the displayed</span>
+<span class="sd">            pathlines. If a float is passed then pathlines with times</span>
+<span class="sd">            less than or equal to the passed time are plotted. If a</span>
+<span class="sd">            string is passed a variety logical constraints can be added</span>
+<span class="sd">            in front of a time value to select pathlines for a select</span>
+<span class="sd">            period of time. Valid logical constraints are &lt;=, &lt;, ==, &gt;=, and</span>
+<span class="sd">            &gt;. For example, to select all pathlines less than 10000 days</span>
+<span class="sd">            travel_time=&#39;&lt; 10000&#39; would be passed to plot_pathline.</span>
+<span class="sd">            (default is None)</span>
+<span class="sd">        kwargs : layer, ax, colors.  The remaining kwargs are passed</span>
+<span class="sd">            into the LineCollection constructor. If layer=&#39;all&#39;,</span>
+<span class="sd">            pathlines are output for all layers</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lc : matplotlib.collections.LineCollection</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">matplotlib.collections</span> <span class="kn">import</span> <span class="n">LineCollection</span>
+
+        <span class="c1"># make sure pathlines is a list</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">pl</span><span class="p">[</span><span class="s2">&quot;particleid&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">pl</span> <span class="o">=</span> <span class="p">[</span><span class="n">pl</span><span class="p">[</span><span class="n">pl</span><span class="p">[</span><span class="s2">&quot;particleid&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">pid</span><span class="p">]</span> <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">pids</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pl</span> <span class="o">=</span> <span class="p">[</span><span class="n">pl</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s2">&quot;layer&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kon</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;layer&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kon</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="n">kon</span> <span class="o">=</span> <span class="n">kon</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kon</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">kon</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+                    <span class="n">kon</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">kon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span>
+
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;marker&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">markersize</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;markersize&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">markersize</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ms&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="p">)</span>
+        <span class="n">markercolor</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;markercolor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">markerevery</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;markerevery&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;colors&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;colors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0.5&quot;</span>
+
+        <span class="n">linecol</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">markers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pl</span><span class="p">:</span>
+            <span class="n">tp</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">filter_modpath_by_travel_time</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">travel_time</span><span class="p">)</span>
+
+            <span class="c1"># transform data!</span>
+            <span class="n">x0r</span><span class="p">,</span> <span class="n">y0r</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+                <span class="n">tp</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span>
+                <span class="n">tp</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">xoffset</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">yoffset</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># build polyline array</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">x0r</span><span class="p">,</span> <span class="n">y0r</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+            <span class="c1"># select based on layer</span>
+            <span class="k">if</span> <span class="n">kon</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">kk</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">kk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">kk</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">((</span><span class="n">kk</span> <span class="o">!=</span> <span class="n">kon</span><span class="p">),</span> <span class="n">arr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+            <span class="c1"># append line to linecol if there is some unmasked segment</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">arr</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="n">linecol</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">arr</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="n">linecol</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">xy</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">[::</span><span class="n">markerevery</span><span class="p">]:</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">xy</span><span class="o">.</span><span class="n">mask</span><span class="p">):</span>
+                                <span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xy</span><span class="p">)</span>
+        <span class="c1"># create line collection</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">linecol</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lc</span> <span class="o">=</span> <span class="n">LineCollection</span><span class="p">(</span><span class="n">linecol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">markers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">markers</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                    <span class="n">markers</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                    <span class="n">markers</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="n">markercolor</span><span class="p">,</span>
+                    <span class="n">ms</span><span class="o">=</span><span class="n">markersize</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">lc</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_timeseries"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_timeseries">[docs]</a>    <span class="k">def</span> <span class="nf">plot_timeseries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">travel_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the MODPATH timeseries.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ts : list of rec arrays or a single rec array</span>
+<span class="sd">            rec array or list of rec arrays is data returned from</span>
+<span class="sd">            modpathfile TimeseriesFile get_data() or get_alldata()</span>
+<span class="sd">            methods. Data in rec array is &#39;x&#39;, &#39;y&#39;, &#39;z&#39;, &#39;time&#39;,</span>
+<span class="sd">            &#39;k&#39;, and &#39;particleid&#39;.</span>
+<span class="sd">        travel_time : float or str</span>
+<span class="sd">            travel_time is a travel time selection for the displayed</span>
+<span class="sd">            pathlines. If a float is passed then pathlines with times</span>
+<span class="sd">            less than or equal to the passed time are plotted. If a</span>
+<span class="sd">            string is passed a variety logical constraints can be added</span>
+<span class="sd">            in front of a time value to select pathlines for a select</span>
+<span class="sd">            period of time. Valid logical constraints are &lt;=, &lt;, ==, &gt;=, and</span>
+<span class="sd">            &gt;. For example, to select all pathlines less than 10000 days</span>
+<span class="sd">            travel_time=&#39;&lt; 10000&#39; would be passed to plot_pathline.</span>
+<span class="sd">            (default is None)</span>
+<span class="sd">        kwargs : layer, ax, colors.  The remaining kwargs are passed</span>
+<span class="sd">            into the LineCollection constructor. If layer=&#39;all&#39;,</span>
+<span class="sd">            pathlines are output for all layers</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            lo : list of Line2D objects</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;markercolor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_pathline</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">travel_time</span><span class="o">=</span><span class="n">travel_time</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PlotMapView.plot_endpoint"><a class="viewcode-back" href="../../../source/flopy.plot.map.html#flopy.plot.map.PlotMapView.plot_endpoint">[docs]</a>    <span class="k">def</span> <span class="nf">plot_endpoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ep</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;ending&quot;</span><span class="p">,</span>
+        <span class="n">selection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">selection_direction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the MODPATH endpoints.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ep : rec array</span>
+<span class="sd">            A numpy recarray with the endpoint particle data from the</span>
+<span class="sd">            MODPATH 6 endpoint file</span>
+<span class="sd">        direction : str</span>
+<span class="sd">            String defining if starting or ending particle locations should be</span>
+<span class="sd">            considered. (default is &#39;ending&#39;)</span>
+<span class="sd">        selection : tuple</span>
+<span class="sd">            tuple that defines the zero-base layer, row, column location</span>
+<span class="sd">            (l, r, c) to use to make a selection of particle endpoints.</span>
+<span class="sd">            The selection could be a well location to determine capture zone</span>
+<span class="sd">            for the well. If selection is None, all particle endpoints for</span>
+<span class="sd">            the user-sepcified direction will be plotted. (default is None)</span>
+<span class="sd">        selection_direction : str</span>
+<span class="sd">            String defining is a selection should be made on starting or</span>
+<span class="sd">            ending particle locations. If selection is not None and</span>
+<span class="sd">            selection_direction is None, the selection direction will be set</span>
+<span class="sd">            to the opposite of direction. (default is None)</span>
+
+<span class="sd">        kwargs : ax, c, s or size, colorbar, colorbar_label, shrink. The</span>
+<span class="sd">            remaining kwargs are passed into the matplotlib scatter</span>
+<span class="sd">            method. If colorbar is True a colorbar will be added to the plot.</span>
+<span class="sd">            If colorbar_label is passed in and colorbar is True then</span>
+<span class="sd">            colorbar_label will be passed to the colorbar set_label()</span>
+<span class="sd">            method. If shrink is passed in and colorbar is True then</span>
+<span class="sd">            the colorbar size will be set using shrink.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sp : matplotlib.pyplot.scatter</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">tep</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">xp</span><span class="p">,</span> <span class="n">yp</span> <span class="o">=</span> <span class="n">plotutil</span><span class="o">.</span><span class="n">parse_modpath_selection_options</span><span class="p">(</span>
+            <span class="n">ep</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="n">selection_direction</span>
+        <span class="p">)</span>
+
+        <span class="c1"># marker size</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span> <span class="o">**</span> <span class="mf">2.0</span>
+
+        <span class="c1"># colorbar kwargs</span>
+        <span class="n">createcb</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;colorbar&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">colorbar_label</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;colorbar_label&quot;</span><span class="p">,</span> <span class="s2">&quot;Endpoint Time&quot;</span><span class="p">)</span>
+        <span class="n">shrink</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;shrink&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+
+        <span class="c1"># transform data!</span>
+        <span class="n">x0r</span><span class="p">,</span> <span class="n">y0r</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+            <span class="n">tep</span><span class="p">[</span><span class="n">xp</span><span class="p">],</span>
+            <span class="n">tep</span><span class="p">[</span><span class="n">yp</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">xoffset</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">yoffset</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># build array to plot</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">x0r</span><span class="p">,</span> <span class="n">y0r</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># plot the end point data</span>
+        <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">)</span>
+            <span class="n">sp</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">tep</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tep</span><span class="p">[</span><span class="s2">&quot;time0&quot;</span><span class="p">]</span>
+            <span class="n">sp</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># add a colorbar for travel times</span>
+        <span class="k">if</span> <span class="n">createcb</span><span class="p">:</span>
+            <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="n">shrink</span><span class="p">)</span>
+            <span class="n">cb</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="n">colorbar_label</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sp</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.seawat.swtvsc &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.seawat.swtvsc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.seawat.swtvsc</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Transient3d</span><span class="p">,</span> <span class="n">Util3d</span>
+
+
+<div class="viewcode-block" id="SeawatVsc"><a class="viewcode-back" href="../../../source/flopy.seawat.swtvsc.html#flopy.seawat.swtvsc.SeawatVsc">[docs]</a><span class="k">class</span> <span class="nc">SeawatVsc</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SEAWAT Viscosity Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.seawat.swt.Seawat`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    mt3dmuflg (or mt3drhoflg) : int</span>
+<span class="sd">        is the MT3DMS species number that will be used in the equation to</span>
+<span class="sd">        compute fluid viscosity.</span>
+<span class="sd">        If MT3DMUFLG &gt;= 0, fluid density is calculated using the MT3DMS</span>
+<span class="sd">        species number that corresponds with MT3DMUFLG.</span>
+<span class="sd">        If MT3DMUFLG = -1, fluid viscosity is calculated using one or more</span>
+<span class="sd">        MT3DMS species.</span>
+<span class="sd">    viscmin : float</span>
+<span class="sd">        is the minimum fluid viscosity. If the resulting viscosity value</span>
+<span class="sd">        calculated with the equation is less than VISCMIN, the viscosity</span>
+<span class="sd">        value is set to VISCMIN.</span>
+<span class="sd">        If VISCMIN = 0, the computed fluid viscosity is not limited by</span>
+<span class="sd">        VISCMIN (this is the option to use for most simulations).</span>
+<span class="sd">        If VISCMIN &gt; 0, a computed fluid viscosity less than VISCMIN is</span>
+<span class="sd">        automatically reset to VISCMIN.</span>
+<span class="sd">    viscmax : float</span>
+<span class="sd">        is the maximum fluid viscosity. If the resulting viscosity value</span>
+<span class="sd">        calculated with the equation is greater than VISCMAX, the viscosity</span>
+<span class="sd">        value is set to VISCMAX.</span>
+<span class="sd">        If VISCMAX = 0, the computed fluid viscosity is not limited by</span>
+<span class="sd">        VISCMAX (this is the option to use for most simulations).</span>
+<span class="sd">        If VISCMAX &gt; 0, a computed fluid viscosity larger than VISCMAX is</span>
+<span class="sd">        automatically reset to VISCMAX.</span>
+<span class="sd">    viscref : float</span>
+<span class="sd">        is the fluid viscosity at the reference concentration and reference</span>
+<span class="sd">        temperature. For most simulations, VISCREF is specified as the</span>
+<span class="sd">        viscosity of freshwater.</span>
+<span class="sd">    dmudc : float</span>
+<span class="sd">        is the slope of the linear equation that relates fluid viscosity to</span>
+<span class="sd">        solute concentration.</span>
+<span class="sd">    nmueos : int</span>
+<span class="sd">        is the number of MT3DMS species to be used in the linear equation</span>
+<span class="sd">        for fluid viscosity (this number does not include the temperature</span>
+<span class="sd">        species if the nonlinear option is being used). This value is read</span>
+<span class="sd">        only if MT3DMUFLG = -1. A value of zero indicates that none of the</span>
+<span class="sd">        MT3DMS species have a linear effect on fluid viscosity (the nonlinear</span>
+<span class="sd">        temperature dependence may still be activated); nothing should be</span>
+<span class="sd">        entered for item 3c in this case.</span>
+<span class="sd">    mutempopt : int</span>
+<span class="sd">        is a flag that specifies the option for including the effect of</span>
+<span class="sd">        temperature on fluid viscosity.</span>
+<span class="sd">        If MUTEMPOPT = 0, the effect of temperature on fluid viscosity is not</span>
+<span class="sd">        included or is a simple linear relation that is specified in item 3c.</span>
+<span class="sd">        If MUTEMPOPT = 1, fluid viscosity is calculated using equation 18.</span>
+<span class="sd">        The size of the AMUCOEFF array in item 3e is 4 (MUNCOEFF = 4).</span>
+<span class="sd">        If MUTEMPOPT = 2, fluid viscosity is calculated using equation 19.</span>
+<span class="sd">        The size of the AMUCOEFF array in item 3e is 5 (MUNCOEFF = 5).</span>
+<span class="sd">        If MUTEMPOPT = 3, fluid viscosity is calculated using equation 20.</span>
+<span class="sd">        The size of the AMUCOEFF array in item 3e is 2 (MUNCOEFF = 2).</span>
+<span class="sd">        If NSMUEOS and MUTEMPOPT are both set to zero, all fluid viscosities</span>
+<span class="sd">        are set to VISCREF.</span>
+<span class="sd">    mtmuspec : int, or list of ints (of size nsmueos) if nsmueos &gt; 1</span>
+<span class="sd">        is the MT3DMS species number corresponding to the adjacent DMUDC and</span>
+<span class="sd">        CMUREF.</span>
+<span class="sd">    dmudc : float, or list of floats (of size nsmueos) if nsmueos &gt; 1</span>
+<span class="sd">        is the slope of the linear equation that relates fluid viscosity to</span>
+<span class="sd">        solute concentration.</span>
+<span class="sd">    cmuref : float, or list of floats (of size nsmueos) if nsmueos &gt; 1</span>
+<span class="sd">        is the reference concentration.</span>
+<span class="sd">    mtmuspectemp : int</span>
+<span class="sd">        is the MT3DMS species number that corresponds to temperature. This</span>
+<span class="sd">        value must be between 1 and NCOMP and should not be listed in</span>
+<span class="sd">        MTMUSPEC of item 3c.</span>
+<span class="sd">    amucoeff : float</span>
+<span class="sd">        is the coefficient array of size MUNCOEFF. AMUCOEFF is A in</span>
+<span class="sd">        equations 18, 19, and 20.</span>
+<span class="sd">    muncoeff : int</span>
+<span class="sd">        is the size of the AMUCOEFF array.</span>
+<span class="sd">    invisc : int</span>
+<span class="sd">        is a flag. INVISC is read only if MT3DMUFLG is equal to zero.</span>
+<span class="sd">        If INVISC &lt; 0, values for the VISC array will be reused from the</span>
+<span class="sd">        previous stress period. If it is the first stress period, values for</span>
+<span class="sd">        the VISC array will be set to VISCREF.</span>
+<span class="sd">        If INVISC = 0, values for the VISC array will be set to VISCREF. If</span>
+<span class="sd">        INVISC &gt;= 1, values for the VISC array will be read from item 5.</span>
+<span class="sd">        If INVISC = 2, values read for the VISC array are assumed to</span>
+<span class="sd">        represent solute concentration, and will be converted to viscosity</span>
+<span class="sd">        values.</span>
+<span class="sd">    visc : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is the fluid viscosity array read for each layer using the</span>
+<span class="sd">        MODFLOW-2000 U2DREL array reader. The VISC array is read only if</span>
+<span class="sd">        MT3DMUFLG is equal to zero. The VISC array may also be entered in</span>
+<span class="sd">        terms of solute concentration (or any other units) if INVISC is set</span>
+<span class="sd">        to 2, and the simple linear expression in item 3 can be used to</span>
+<span class="sd">        represent the relation to viscosity.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;vsc&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is 38).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.seawat.Seawat()</span>
+<span class="sd">    &gt;&gt;&gt; vsc = flopy.modflow.SeawatVsc(m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">unitnumber</span> <span class="o">=</span> <span class="mi">38</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">mt3dmuflg</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">viscmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">viscmax</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">viscref</span><span class="o">=</span><span class="mf">8.904e-4</span><span class="p">,</span>
+        <span class="n">nsmueos</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">mutempopt</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">mtmuspec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">dmudc</span><span class="o">=</span><span class="mf">1.923e-06</span><span class="p">,</span>
+        <span class="n">cmuref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">mtmutempspec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">amucoeff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">invisc</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">visc</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;vsc&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;VSC error: unrecognized kwargs: &quot;</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">SeawatVsc</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mt3dmuflg</span> <span class="o">=</span> <span class="n">mt3dmuflg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viscmin</span> <span class="o">=</span> <span class="n">viscmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viscmax</span> <span class="o">=</span> <span class="n">viscmax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viscref</span> <span class="o">=</span> <span class="n">viscref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsmueos</span> <span class="o">=</span> <span class="n">nsmueos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutempopt</span> <span class="o">=</span> <span class="n">mutempopt</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mtmuspec</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">mtmuspec</span> <span class="o">=</span> <span class="p">[</span><span class="n">mtmuspec</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtmuspec</span> <span class="o">=</span> <span class="n">mtmuspec</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dmudc</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">dmudc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dmudc</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dmudc</span> <span class="o">=</span> <span class="n">dmudc</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmuref</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">cmuref</span> <span class="o">=</span> <span class="p">[</span><span class="n">cmuref</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmuref</span> <span class="o">=</span> <span class="n">cmuref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtmutempspec</span> <span class="o">=</span> <span class="n">mtmutempspec</span>
+        <span class="k">if</span> <span class="n">amucoeff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">amucoeff</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.015512</span><span class="p">,</span> <span class="o">-</span><span class="mf">20.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.572</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amucoeff</span> <span class="o">=</span> <span class="n">amucoeff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invisc</span> <span class="o">=</span> <span class="n">invisc</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt3dmuflg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">visc</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">visc</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;visc_&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># visc not needed for most cases so setting to None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">visc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="SeawatVsc.write_file"><a class="viewcode-back" href="../../../source/flopy.seawat.swtvsc.html#flopy.seawat.swtvsc.SeawatVsc.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f_vsc</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 1</span>
+        <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mt3dmuflg</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 2</span>
+        <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">viscmin</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">viscmax</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 3</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt3dmuflg</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">viscref</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dmudc</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cmuref</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 3a-d</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt3dmuflg</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">viscref</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmueos</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mutempopt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># if self.nsmueos == 1:</span>
+            <span class="c1">#     f_vsc.write(&#39;{} {} {}\n&#39;.format(self.mtmuspec, self.dmudc,</span>
+            <span class="c1">#                                   self.cmuref))</span>
+            <span class="c1"># else:</span>
+            <span class="c1">#     for iwr in range(self.nsmueos):</span>
+            <span class="c1">#         f_vsc.write(&#39;{} {} {}\n&#39;.format(self.mtmuspec[iwr],</span>
+            <span class="c1">#                                         self.dmudc[iwr],</span>
+            <span class="c1">#                                         self.cmuref[iwr]))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsmueos</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">iwr</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmueos</span><span class="p">):</span>
+                    <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mtmuspec</span><span class="p">[</span><span class="n">iwr</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dmudc</span><span class="p">[</span><span class="n">iwr</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cmuref</span><span class="p">[</span><span class="n">iwr</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># item 3d</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutempopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mtmutempspec</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">amucoeff</span><span class="p">):</span>
+                    <span class="n">s</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># items 4 and 5, transient visc array</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt3dmuflg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+            <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+                <span class="n">itmp</span><span class="p">,</span> <span class="n">file_entry_visc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">visc</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">kper</span><span class="p">)</span>
+
+                <span class="c1"># item 4 (and possibly 5)</span>
+                <span class="k">if</span> <span class="n">itmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">invisc</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_visc</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f_vsc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">itmp</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">f_vsc</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="SeawatVsc.load"><a class="viewcode-back" href="../../../source/flopy.seawat.swtvsc.html#flopy.seawat.swtvsc.SeawatVsc.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.seawat.swt.Seawat`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vsc : SeawatVsc object</span>
+<span class="sd">            SeawatVsc object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; mf = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(mf)</span>
+<span class="sd">        &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms()</span>
+<span class="sd">        &gt;&gt;&gt; swt = flopy.seawat.Seawat(modflowmodel=mf, mt3dmsmodel=mt)</span>
+<span class="sd">        &gt;&gt;&gt; vdf = flopy.seawat.SeawatVsc.load(&#39;test.vsc&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading vsc package file...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open file, if necessary</span>
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 0 -- comment line</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Determine problem dimensions</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="c1"># Item 1: MT3DMUFLG - line already read above</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading MT3DMUFLG...&quot;</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">mt3dmuflg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MT3DMUFLG </span><span class="si">{</span><span class="n">mt3dmuflg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 2 -- VISCMIN VISCMAX</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading VISCMIN VISCMAX...&quot;</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">viscmin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">viscmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   VISCMIN </span><span class="si">{</span><span class="n">viscmin</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   VISCMAX </span><span class="si">{</span><span class="n">viscmax</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 3 -- VISCREF NSMUEOS MUTEMPOPT MTMUSPEC DMUDC CMUREF</span>
+        <span class="n">nsmueos</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mtmuspec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">cmuref</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">nsmueos</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mutempopt</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mtmutempspec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">amucoeff</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">mt3dmuflg</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading VISCREF DMUDC(1) CMUREF(1)...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">viscref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">dmudc</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">cmuref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">nsmueos</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   VISCREF </span><span class="si">{</span><span class="n">viscref</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   DMUDC </span><span class="si">{</span><span class="n">dmudc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CMUREF </span><span class="si">{</span><span class="n">cmuref</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Item 3a</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading VISCREF...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">viscref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   VISCREF </span><span class="si">{</span><span class="n">viscref</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Item 3b</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading NSMUEOS MUTEMPOPT...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">nsmueos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">mutempopt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">mutempopt</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">muncoeff</span> <span class="o">=</span> <span class="mi">4</span>
+            <span class="k">elif</span> <span class="n">mutempopt</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">muncoeff</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="k">elif</span> <span class="n">mutempopt</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">muncoeff</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">muncoeff</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NSMUEOS </span><span class="si">{</span><span class="n">nsmueos</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MUTEMPOPT </span><span class="si">{</span><span class="n">mutempopt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Item 3c</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    loading MTMUSPEC DMUDC CMUREF...&quot;</span><span class="p">)</span>
+            <span class="n">mtmuspec</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">dmudc</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">cmuref</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsmueos</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">mtmuspec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">dmudc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="n">cmuref</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MTMUSPEC </span><span class="si">{</span><span class="n">mtmuspec</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   DMUDC </span><span class="si">{</span><span class="n">dmudc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CMUREF </span><span class="si">{</span><span class="n">cmuref</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Item 3d</span>
+            <span class="k">if</span> <span class="n">mutempopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    loading MTMUTEMPSPEC AMUCOEFF...&quot;</span><span class="p">)</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">mtmutempspec</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">amucoeff</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">muncoeff</span><span class="p">):</span>
+                    <span class="n">amucoeff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MTMUTEMSPEC </span><span class="si">{</span><span class="n">mtmutempspec</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   AMUCOEFF </span><span class="si">{</span><span class="n">amucoeff</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Items 4 and 5 -- INVISC VISC</span>
+        <span class="n">invisc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">visc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">mt3dmuflg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Create visc as a Transient3D record</span>
+            <span class="n">visc</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading INVISC for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">invisc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">invisc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;VISC_StressPeriod_</span><span class="si">{</span><span class="n">iper</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">invisc</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">array</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">viscref</span> <span class="o">+</span> <span class="n">dmudc</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">cmuref</span><span class="p">)</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                            <span class="n">model</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                            <span class="n">t</span><span class="p">,</span>
+                            <span class="n">name</span><span class="p">,</span>
+                            <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="n">visc</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+
+            <span class="n">visc</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">visc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;visc_&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Set invisc = 1 because all concentrations converted to density</span>
+            <span class="n">invisc</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">SeawatVsc</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Construct and return vsc package</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">mt3dmuflg</span><span class="o">=</span><span class="n">mt3dmuflg</span><span class="p">,</span>
+            <span class="n">viscmin</span><span class="o">=</span><span class="n">viscmin</span><span class="p">,</span>
+            <span class="n">viscmax</span><span class="o">=</span><span class="n">viscmax</span><span class="p">,</span>
+            <span class="n">viscref</span><span class="o">=</span><span class="n">viscref</span><span class="p">,</span>
+            <span class="n">nsmueos</span><span class="o">=</span><span class="n">nsmueos</span><span class="p">,</span>
+            <span class="n">mutempopt</span><span class="o">=</span><span class="n">mutempopt</span><span class="p">,</span>
+            <span class="n">mtmuspec</span><span class="o">=</span><span class="n">mtmuspec</span><span class="p">,</span>
+            <span class="n">dmudc</span><span class="o">=</span><span class="n">dmudc</span><span class="p">,</span>
+            <span class="n">cmuref</span><span class="o">=</span><span class="n">cmuref</span><span class="p">,</span>
+            <span class="n">mtmutempspec</span><span class="o">=</span><span class="n">mtmutempspec</span><span class="p">,</span>
+            <span class="n">amucoeff</span><span class="o">=</span><span class="n">amucoeff</span><span class="p">,</span>
+            <span class="n">invisc</span><span class="o">=</span><span class="n">invisc</span><span class="p">,</span>
+            <span class="n">visc</span><span class="o">=</span><span class="n">visc</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;VSC&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">38</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

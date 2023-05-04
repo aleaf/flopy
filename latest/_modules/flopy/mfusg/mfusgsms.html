@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mfusg.mfusgsms &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mfusg.mfusgsms</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mfusg.mfusgsms</h1><div class="highlight"><pre>
+<span></span><span class="c1"># pylint: disable=too-many-instance-attributes</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfusgsms module.  This is the solver for MODFLOW-USG.</span>
+
+<span class="sd">Contains the MfUsgSms class. Note that the user can access</span>
+<span class="sd">the MfUsgSms class as `flopy.mfusg.MfUsgSms`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span>
+<span class="kn">from</span> <span class="nn">.mfusg</span> <span class="kn">import</span> <span class="n">MfUsg</span>
+
+
+<div class="viewcode-block" id="MfUsgSms"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgsms.html#flopy.mfusg.MfUsgSms">[docs]</a><span class="k">class</span> <span class="nc">MfUsgSms</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Sms Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    hclose : float</span>
+<span class="sd">        is the head change criterion for convergence of the outer (nonlinear)</span>
+<span class="sd">        iterations, in units of length. When the maximum absolute value of the</span>
+<span class="sd">        head change at all nodes during an iteration is less than or equal to</span>
+<span class="sd">        HCLOSE, iteration stops. Commonly, HCLOSE equals 0.01.</span>
+<span class="sd">    hiclose : float</span>
+<span class="sd">        is the head change criterion for convergence of the inner (linear)</span>
+<span class="sd">        iterations, in units of length. When the maximum absolute value of the</span>
+<span class="sd">        head change at all nodes during an iteration is less than or equal to</span>
+<span class="sd">        HICLOSE, the matrix solver assumes convergence. Commonly, HICLOSE is</span>
+<span class="sd">        set an order of magnitude less than HCLOSE.</span>
+<span class="sd">    mxiter : int</span>
+<span class="sd">        is the maximum number of outer (nonlinear) iterations -- that is,</span>
+<span class="sd">        calls to the solution routine. For a linear problem MXITER should be 1.</span>
+<span class="sd">    iter1 : int</span>
+<span class="sd">        is the maximum number of inner (linear) iterations. The number</span>
+<span class="sd">        typically depends on the characteristics of the matrix solution</span>
+<span class="sd">        scheme being used. For nonlinear problems, ITER1 usually ranges</span>
+<span class="sd">        from 60 to 600; a value of 100 will be sufficient for most linear</span>
+<span class="sd">        problems.</span>
+<span class="sd">    iprsms : int</span>
+<span class="sd">        is a flag that controls printing of convergence information from the</span>
+<span class="sd">        solver: 0 is print nothing; 1 is print only the total number of</span>
+<span class="sd">        iterations and nonlinear residual reduction summaries;  2 is print</span>
+<span class="sd">        matrix solver information in addition to above.</span>
+<span class="sd">    nonlinmeth : int</span>
+<span class="sd">        is a flag that controls the nonlinear solution method and under-</span>
+<span class="sd">        relaxation schemes. 0 is Picard iteration scheme is used without any</span>
+<span class="sd">        under-relaxation schemes involved. &gt; 0 is Newton-Raphson iteration</span>
+<span class="sd">        scheme is used with under-relaxation. Note that the Newton-Raphson</span>
+<span class="sd">        linearization scheme is available only for the upstream weighted</span>
+<span class="sd">        solution scheme of the BCF and LPF packages. &lt; 0 is Picard iteration</span>
+<span class="sd">        scheme is used with under-relaxation. The absolute value of NONLINMETH</span>
+<span class="sd">        determines the underrelaxation scheme used. 1 or -1, then</span>
+<span class="sd">        Delta-Bar-Delta under-relaxation is used. 2 or -2 then Cooley</span>
+<span class="sd">        under-relaxation scheme is used.</span>
+<span class="sd">        Note that the under-relaxation schemes are used in conjunction with</span>
+<span class="sd">        gradient based methods, however, experience has indicated that the</span>
+<span class="sd">        Cooley under-relaxation and damping work well also for the Picard</span>
+<span class="sd">        scheme with the wet/dry options of MODFLOW.</span>
+<span class="sd">    linmeth : int</span>
+<span class="sd">        is a flag that controls the matrix solution method. 1 is the XMD</span>
+<span class="sd">        solver of Ibaraki (2005). 2 is the unstructured pre-conditioned</span>
+<span class="sd">        conjugate gradient solver of White and Hughes (2011).</span>
+<span class="sd">    theta : float</span>
+<span class="sd">        is the reduction factor for the learning rate (under-relaxation term)</span>
+<span class="sd">        of the delta-bar-delta algorithm. The value of THETA is between zero</span>
+<span class="sd">        and one. If the change in the variable (head) is of opposite sign to</span>
+<span class="sd">        that of the previous iteration, the under-relaxation term is reduced</span>
+<span class="sd">        by a factor of THETA. The value usually ranges from 0.3 to 0.9; a</span>
+<span class="sd">        value of 0.7 works well for most problems.</span>
+<span class="sd">    akappa : float</span>
+<span class="sd">        is the increment for the learning rate (under-relaxation term) of the</span>
+<span class="sd">        delta-bar-delta algorithm. The value of AKAPPA is between zero and</span>
+<span class="sd">        one. If the change in the variable (head) is of the same sign to that</span>
+<span class="sd">        of the previous iteration, the under-relaxation term is increased by</span>
+<span class="sd">        an increment of AKAPPA. The value usually ranges from 0.03 to 0.3; a</span>
+<span class="sd">        value of 0.1 works well for most problems.</span>
+<span class="sd">    gamma : float</span>
+<span class="sd">        is the history or memory term factor of the delta-bar-delta algorithm.</span>
+<span class="sd">        Gamma is between zero and 1 but cannot be equal to one. When GAMMA is</span>
+<span class="sd">        zero, only the most recent history (previous iteration value) is</span>
+<span class="sd">        maintained. As GAMMA is increased, past history of iteration changes</span>
+<span class="sd">        has greater influence on the memory term.  The memory term is</span>
+<span class="sd">        maintained as an exponential average of past changes. Retaining some</span>
+<span class="sd">        past history can overcome granular behavior in the calculated function</span>
+<span class="sd">        surface and therefore helps to overcome cyclic patterns of</span>
+<span class="sd">        non-convergence. The value usually ranges from 0.1 to 0.3; a value of</span>
+<span class="sd">        0.2 works well for most problems.</span>
+<span class="sd">    amomentum : float</span>
+<span class="sd">        is the fraction of past history changes that is added as a momentum</span>
+<span class="sd">        term to the step change for a nonlinear iteration. The value of</span>
+<span class="sd">        AMOMENTUM is between zero and one. A large momentum term should only</span>
+<span class="sd">        be used when small learning rates are expected. Small amounts of the</span>
+<span class="sd">        momentum term help convergence. The value usually ranges from 0.0001</span>
+<span class="sd">        to 0.1; a value of 0.001 works well for most problems.</span>
+<span class="sd">    numtrack : int</span>
+<span class="sd">        is the maximum number of backtracking iterations allowed for residual</span>
+<span class="sd">        reduction computations. If NUMTRACK = 0 then the backtracking</span>
+<span class="sd">        iterations are omitted. The value usually ranges from 2 to 20; a</span>
+<span class="sd">        value of 10 works well for most problems.</span>
+<span class="sd">    numtrack : int</span>
+<span class="sd">        is the maximum number of backtracking iterations allowed for residual</span>
+<span class="sd">        reduction computations. If NUMTRACK = 0 then the backtracking</span>
+<span class="sd">        iterations are omitted. The value usually ranges from 2 to 20; a</span>
+<span class="sd">        value of 10 works well for most problems.</span>
+<span class="sd">    btol : float</span>
+<span class="sd">        is the tolerance for residual change that is allowed for residual</span>
+<span class="sd">        reduction computations. BTOL should not be less than one to avoid</span>
+<span class="sd">        getting stuck in local minima. A large value serves to check for</span>
+<span class="sd">        extreme residual increases, while a low value serves to control</span>
+<span class="sd">        step size more severely. The value usually ranges from 1.0 to 1e6 ; a</span>
+<span class="sd">        value of 1e4 works well for most problems but lower values like 1.1</span>
+<span class="sd">        may be required for harder problems.</span>
+<span class="sd">    breduce : float</span>
+<span class="sd">        is the reduction in step size used for residual reduction</span>
+<span class="sd">        computations. The value of BREDUC is between zero and one. The value</span>
+<span class="sd">        usually ranges from 0.1 to 0.3; a value of 0.2 works well for most</span>
+<span class="sd">        problems.</span>
+<span class="sd">    reslim : float</span>
+<span class="sd">        is the limit to which the residual is reduced with backtracking.</span>
+<span class="sd">        If the residual is smaller than RESLIM, then further backtracking is</span>
+<span class="sd">        not performed. A value of 100 is suitable for large problems and</span>
+<span class="sd">        residual reduction to smaller values may only slow down computations.</span>
+<span class="sd">    iacl : int</span>
+<span class="sd">        is the flag for choosing the acceleration method. 0 is Conjugate</span>
+<span class="sd">        Gradient; select this option if the matrix is symmetric. 1 is</span>
+<span class="sd">        ORTHOMIN. 2 is BiCGSTAB.</span>
+<span class="sd">    norder : int</span>
+<span class="sd">        is the flag for choosing the ordering scheme.</span>
+<span class="sd">        0 is original ordering</span>
+<span class="sd">        1 is reverse Cuthill McKee ordering</span>
+<span class="sd">        2 is Minimum degree ordering</span>
+<span class="sd">    level : int</span>
+<span class="sd">        is the level of fill for ILU decomposition. Higher levels of fill</span>
+<span class="sd">        provide more robustness but also require more memory. For optimal</span>
+<span class="sd">        performance, it is suggested that a large level of fill be applied</span>
+<span class="sd">        (7 or 8) with use of drop tolerance.</span>
+<span class="sd">    north : int</span>
+<span class="sd">        is the number of orthogonalizations for the ORTHOMIN acceleration</span>
+<span class="sd">        scheme. A number between 4 and 10 is appropriate. Small values require</span>
+<span class="sd">        less storage but more iteration may be required. This number should</span>
+<span class="sd">        equal 2 for the other acceleration methods.</span>
+<span class="sd">    iredsys : int</span>
+<span class="sd">        is the index for creating a reduced system of equations using the</span>
+<span class="sd">        red-black ordering scheme.</span>
+<span class="sd">        0 is do not create reduced system</span>
+<span class="sd">        1 is create reduced system using red-black ordering</span>
+<span class="sd">    rrctol : float</span>
+<span class="sd">        is a residual tolerance criterion for convergence. The root mean</span>
+<span class="sd">        squared residual of the matrix solution is evaluated against this</span>
+<span class="sd">        number to determine convergence. The solver assumes convergence if</span>
+<span class="sd">        either HICLOSE (the absolute head tolerance value for the solver) or</span>
+<span class="sd">        RRCTOL is achieved. Note that a value of zero ignores residual</span>
+<span class="sd">        tolerance in favor of the absolute tolerance (HICLOSE) for closure of</span>
+<span class="sd">        the matrix solver.</span>
+<span class="sd">    idroptol : int</span>
+<span class="sd">        is the flag to perform drop tolerance.</span>
+<span class="sd">        0 is do not perform drop tolerance</span>
+<span class="sd">        1 is perform drop tolerance</span>
+<span class="sd">    epsrn : float</span>
+<span class="sd">        is the drop tolerance value. A value of 1e-3 works well for most</span>
+<span class="sd">        problems.</span>
+<span class="sd">    clin : string</span>
+<span class="sd">        an option keyword that defines the linear acceleration method used by</span>
+<span class="sd">        the PCGU solver.</span>
+<span class="sd">        CLIN is &quot;CG&quot;, then preconditioned conjugate gradient method.</span>
+<span class="sd">        CLIN is &quot;BCGS&quot;, then preconditioned bi-conjugate gradient stabilized</span>
+<span class="sd">        method.</span>
+<span class="sd">    ipc : int</span>
+<span class="sd">        an integer value that defines the preconditioner.</span>
+<span class="sd">        IPC = 0, No preconditioning.</span>
+<span class="sd">        IPC = 1, Jacobi preconditioning.</span>
+<span class="sd">        IPC = 2, ILU(0) preconditioning.</span>
+<span class="sd">        IPC = 3, MILU(0) preconditioning (default).</span>
+<span class="sd">    iscl : int</span>
+<span class="sd">        is the flag for choosing the matrix scaling approach used.</span>
+<span class="sd">        0 is no matrix scaling applied</span>
+<span class="sd">        1 is symmetric matrix scaling using the scaling method by the POLCG</span>
+<span class="sd">        preconditioner in Hill (1992).</span>
+<span class="sd">        2 is symmetric matrix scaling using the l2 norm of each row of</span>
+<span class="sd">        A (DR) and the l2 norm of each row of DRA.</span>
+<span class="sd">    iord : int</span>
+<span class="sd">        is the flag for choosing the matrix reordering approach used.</span>
+<span class="sd">        0 = original ordering</span>
+<span class="sd">        1 = reverse Cuthill McKee ordering</span>
+<span class="sd">        2 = minimum degree ordering</span>
+<span class="sd">    rclosepcgu : float</span>
+<span class="sd">        a real value that defines the flow residual tolerance for convergence</span>
+<span class="sd">        of the PCGU linear solver. This value represents the maximum allowable</span>
+<span class="sd">        residual at any single node. Value is in units of length cubed per</span>
+<span class="sd">        time, and must be consistent with MODFLOW-USG length and time units.</span>
+<span class="sd">        Usually a value of 1.0x10-1 is sufficient for the flow-residual</span>
+<span class="sd">        criteria when meters and seconds are the defined MODFLOW-USG length</span>
+<span class="sd">        and time.</span>
+<span class="sd">    relaxpcgu : float</span>
+<span class="sd">        a real value that defines the relaxation factor used by the MILU(0)</span>
+<span class="sd">        preconditioner. RELAXPCGU is unitless and should be greater than or</span>
+<span class="sd">        equal to 0.0 and less than or equal to 1.0. RELAXPCGU values of about</span>
+<span class="sd">        1.0 are commonly used, and experience suggests that convergence can</span>
+<span class="sd">        be optimized in some cases with RELAXPCGU values of 0.97. A RELAXPCGU</span>
+<span class="sd">        value of 0.0 will result in ILU(0) preconditioning. RELAXPCGU is only</span>
+<span class="sd">        specified if IPC=3. If RELAXPCGU is not specified and IPC=3, then a</span>
+<span class="sd">        default value of 0.97 will be assigned to RELAXPCGU.</span>
+<span class="sd">    extension : str, optional</span>
+<span class="sd">        File extension (default is &#39;sms&#39;.</span>
+<span class="sd">    unitnumber : int, optional</span>
+<span class="sd">        FORTRAN unit number for this package (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package. If filenames=None the package name</span>
+<span class="sd">        will be created using the model name and package extension. If a</span>
+<span class="sd">        single string is passed the package will be set to the string.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; sms = flopy.mfusg.MfUsgSms(m)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">hclose</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">hiclose</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">mxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">iter1</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">iprsms</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">nonlinmeth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">linmeth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">theta</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+        <span class="n">akappa</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">amomentum</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+        <span class="n">numtrack</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">btol</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span>
+        <span class="n">breduc</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">reslim</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+        <span class="n">iacl</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">norder</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">north</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">iredsys</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">rrctol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">idroptol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">epsrn</span><span class="o">=</span><span class="mf">1.0e-3</span><span class="p">,</span>
+        <span class="n">clin</span><span class="o">=</span><span class="s2">&quot;bcgs&quot;</span><span class="p">,</span>
+        <span class="n">ipc</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">iscl</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">iord</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">rclosepcgu</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">relaxpcgu</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;sms&quot;</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hclose</span> <span class="o">=</span> <span class="n">hclose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hiclose</span> <span class="o">=</span> <span class="n">hiclose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mxiter</span> <span class="o">=</span> <span class="n">mxiter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter1</span> <span class="o">=</span> <span class="n">iter1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iprsms</span> <span class="o">=</span> <span class="n">iprsms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinmeth</span> <span class="o">=</span> <span class="n">nonlinmeth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linmeth</span> <span class="o">=</span> <span class="n">linmeth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">akappa</span> <span class="o">=</span> <span class="n">akappa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amomentum</span> <span class="o">=</span> <span class="n">amomentum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numtrack</span> <span class="o">=</span> <span class="n">numtrack</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">btol</span> <span class="o">=</span> <span class="n">btol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">breduc</span> <span class="o">=</span> <span class="n">breduc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reslim</span> <span class="o">=</span> <span class="n">reslim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iacl</span> <span class="o">=</span> <span class="n">iacl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">=</span> <span class="n">norder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">level</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">north</span> <span class="o">=</span> <span class="n">north</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iredsys</span> <span class="o">=</span> <span class="n">iredsys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rrctol</span> <span class="o">=</span> <span class="n">rrctol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idroptol</span> <span class="o">=</span> <span class="n">idroptol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epsrn</span> <span class="o">=</span> <span class="n">epsrn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clin</span> <span class="o">=</span> <span class="n">clin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipc</span> <span class="o">=</span> <span class="n">ipc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iscl</span> <span class="o">=</span> <span class="n">iscl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iord</span> <span class="o">=</span> <span class="n">iord</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rclosepcgu</span> <span class="o">=</span> <span class="n">rclosepcgu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relaxpcgu</span> <span class="o">=</span> <span class="n">relaxpcgu</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="n">options</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="MfUsgSms.write_file"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgsms.html#flopy.mfusg.MfUsgSms.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">nopt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hclose</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hiclose</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mxiter</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iter1</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iprsms</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nonlinmeth</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">linmeth</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonlinmeth</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">nopt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">akappa</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">amomentum</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">numtrack</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">btol</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">breduc</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reslim</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linmeth</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">nopt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iacl</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">norder</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">north</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iredsys</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rrctol</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">idroptol</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">epsrn</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linmeth</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">nopt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">clin</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ipc</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iscl</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iord</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rclosepcgu</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">relaxpcgu</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MfUsgSms.load"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgsms.html#flopy.mfusg.MfUsgSms.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sms : MfUsgSms object</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; sms = flopy.modflow.ModflowPcg.load(&#39;test.sms&#39;, m)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading sms package file...&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">!=</span> <span class="s2">&quot;mfusg&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Warning: model version was reset from &#39;</span><span class="si">{}</span><span class="s2">&#39; to &#39;mfusg&#39; &quot;</span>
+                <span class="s2">&quot;in order to load a SMS file&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mfusg&quot;</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Record 1a</span>
+        <span class="n">opts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;simple&quot;</span><span class="p">,</span> <span class="s2">&quot;moderate&quot;</span><span class="p">,</span> <span class="s2">&quot;complex&quot;</span><span class="p">]</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">firstentry</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">firstentry</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">firstentry</span><span class="p">)</span>
+        <span class="n">nopt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+        <span class="c1"># Record 1b -- line will have already been read</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;   loading HCLOSE HICLOSE MXITER ITER1 &quot;</span>
+                <span class="s2">&quot;IPRSMS NONLINMETH LINMETH...&quot;</span>
+            <span class="p">)</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">hclose</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">hiclose</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">mxiter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">iter1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">iprsms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">nonlinmeth</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">linmeth</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   HCLOSE </span><span class="si">{</span><span class="n">hclose</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   HICLOSE </span><span class="si">{</span><span class="n">hiclose</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MXITER </span><span class="si">{</span><span class="n">mxiter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ITER1 </span><span class="si">{</span><span class="n">iter1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IPRSMS </span><span class="si">{</span><span class="n">iprsms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NONLINMETH </span><span class="si">{</span><span class="n">nonlinmeth</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   LINMETH </span><span class="si">{</span><span class="n">linmeth</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Record 2</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">akappa</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">amomentum</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">numtrack</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">btol</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">breduc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">reslim</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">nonlinmeth</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">nopt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   loading THETA AKAPPA GAMMA AMOMENTUM &quot;</span>
+                    <span class="s2">&quot;NUMTRACK BTOL BREDUC RESLIM...&quot;</span>
+                <span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">akappa</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">amomentum</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">numtrack</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">btol</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">breduc</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">reslim</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   THETA </span><span class="si">{</span><span class="n">theta</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   AKAPPA </span><span class="si">{</span><span class="n">akappa</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   GAMMA </span><span class="si">{</span><span class="n">gamma</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   AMOMENTUM </span><span class="si">{</span><span class="n">amomentum</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NUMTRACK </span><span class="si">{</span><span class="n">numtrack</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   BTOL </span><span class="si">{</span><span class="n">btol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   BREDUC </span><span class="si">{</span><span class="n">breduc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RESLIM </span><span class="si">{</span><span class="n">reslim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">iacl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">norder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">north</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">iredsys</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">rrctol</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">idroptol</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">epsrn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">linmeth</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">nopt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   loading IACL NORDER LEVEL NORTH &quot;</span>
+                    <span class="s2">&quot;IREDSYS RRCTOL IDROPTOL EPSRN&quot;</span>
+                <span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">iacl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">norder</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">level</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">north</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">iredsys</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">rrctol</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">idroptol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">epsrn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IACL </span><span class="si">{</span><span class="n">iacl</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NORDER </span><span class="si">{</span><span class="n">norder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   LEVEL </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NORTH </span><span class="si">{</span><span class="n">north</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IREDSYS </span><span class="si">{</span><span class="n">iredsys</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RRCTOL </span><span class="si">{</span><span class="n">rrctol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IDROPTOL </span><span class="si">{</span><span class="n">idroptol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   EPSRN </span><span class="si">{</span><span class="n">epsrn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">clin</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ipc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">iscl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">iord</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">rclosepcgu</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">relaxpcgu</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">linmeth</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">nopt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading [CLIN] IPC ISCL IORD RCLOSEPCGU [RELAXPCGU]&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;cg&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>  <span class="c1"># this will get cg or bcgs</span>
+                <span class="n">clin</span> <span class="o">=</span> <span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ipc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">iscl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">iord</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">rclosepcgu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">relaxpcgu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CLIN </span><span class="si">{</span><span class="n">clin</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IPC </span><span class="si">{</span><span class="n">ipc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ISCL </span><span class="si">{</span><span class="n">iscl</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IORD </span><span class="si">{</span><span class="n">iord</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RCLOSEPCGU </span><span class="si">{</span><span class="n">rclosepcgu</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RELAXPCGU </span><span class="si">{</span><span class="n">relaxpcgu</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">hclose</span><span class="o">=</span><span class="n">hclose</span><span class="p">,</span>
+            <span class="n">hiclose</span><span class="o">=</span><span class="n">hiclose</span><span class="p">,</span>
+            <span class="n">mxiter</span><span class="o">=</span><span class="n">mxiter</span><span class="p">,</span>
+            <span class="n">iter1</span><span class="o">=</span><span class="n">iter1</span><span class="p">,</span>
+            <span class="n">iprsms</span><span class="o">=</span><span class="n">iprsms</span><span class="p">,</span>
+            <span class="n">nonlinmeth</span><span class="o">=</span><span class="n">nonlinmeth</span><span class="p">,</span>
+            <span class="n">linmeth</span><span class="o">=</span><span class="n">linmeth</span><span class="p">,</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">akappa</span><span class="o">=</span><span class="n">akappa</span><span class="p">,</span>
+            <span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">,</span>
+            <span class="n">amomentum</span><span class="o">=</span><span class="n">amomentum</span><span class="p">,</span>
+            <span class="n">numtrack</span><span class="o">=</span><span class="n">numtrack</span><span class="p">,</span>
+            <span class="n">btol</span><span class="o">=</span><span class="n">btol</span><span class="p">,</span>
+            <span class="n">breduc</span><span class="o">=</span><span class="n">breduc</span><span class="p">,</span>
+            <span class="n">reslim</span><span class="o">=</span><span class="n">reslim</span><span class="p">,</span>
+            <span class="n">iacl</span><span class="o">=</span><span class="n">iacl</span><span class="p">,</span>
+            <span class="n">norder</span><span class="o">=</span><span class="n">norder</span><span class="p">,</span>
+            <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span>
+            <span class="n">north</span><span class="o">=</span><span class="n">north</span><span class="p">,</span>
+            <span class="n">iredsys</span><span class="o">=</span><span class="n">iredsys</span><span class="p">,</span>
+            <span class="n">rrctol</span><span class="o">=</span><span class="n">rrctol</span><span class="p">,</span>
+            <span class="n">idroptol</span><span class="o">=</span><span class="n">idroptol</span><span class="p">,</span>
+            <span class="n">epsrn</span><span class="o">=</span><span class="n">epsrn</span><span class="p">,</span>
+            <span class="n">clin</span><span class="o">=</span><span class="n">clin</span><span class="p">,</span>
+            <span class="n">ipc</span><span class="o">=</span><span class="n">ipc</span><span class="p">,</span>
+            <span class="n">iscl</span><span class="o">=</span><span class="n">iscl</span><span class="p">,</span>
+            <span class="n">iord</span><span class="o">=</span><span class="n">iord</span><span class="p">,</span>
+            <span class="n">rclosepcgu</span><span class="o">=</span><span class="n">rclosepcgu</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">relaxpcgu</span><span class="o">=</span><span class="n">relaxpcgu</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;SMS&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">32</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

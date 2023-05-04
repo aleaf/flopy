@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.coordinates.modelgrid &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.coordinates.modelgrid</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.coordinates.modelgrid</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..data.mfstructure</span> <span class="kn">import</span> <span class="n">MFStructure</span>
+<span class="kn">from</span> <span class="nn">..utils.mfenums</span> <span class="kn">import</span> <span class="n">DiscretizationType</span>
+
+
+<div class="viewcode-block" id="MFGridException"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.MFGridException">[docs]</a><span class="k">class</span> <span class="nc">MFGridException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Model grid related exception</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ModelCell"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelCell">[docs]</a><span class="k">class</span> <span class="nc">ModelCell</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a model cell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cellid : str</span>
+<span class="sd">        id of model cell</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cellid</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">=</span> <span class="n">cellid</span></div>
+
+
+<div class="viewcode-block" id="UnstructuredModelCell"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell">[docs]</a><span class="k">class</span> <span class="nc">UnstructuredModelCell</span><span class="p">(</span><span class="n">ModelCell</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents an unstructured model cell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cellid : str</span>
+<span class="sd">        id of model cell</span>
+<span class="sd">    simulation_data : object</span>
+<span class="sd">        contains all simulation related data</span>
+<span class="sd">    model_name : str</span>
+<span class="sd">        name of the model</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+<span class="sd">    get_cellid : ()</span>
+<span class="sd">        returns the cellid</span>
+<span class="sd">    get_top : ()</span>
+<span class="sd">        returns the top elevation of the model cell</span>
+<span class="sd">    get_bot : ()</span>
+<span class="sd">        returns the bottom elevation of the model cell</span>
+<span class="sd">    get_area: ()</span>
+<span class="sd">        returns the area of the model cell</span>
+<span class="sd">    get_num_connections_iac : ()</span>
+<span class="sd">        returns the number of connections to/from the model cell</span>
+<span class="sd">    get_connecting_cells_ja : ()</span>
+<span class="sd">        returns the cellids of cells connected to this cell</span>
+<span class="sd">    get_connection_direction_ihc : ()</span>
+<span class="sd">        returns the connection directions for all connections to this cell</span>
+<span class="sd">    get_connection_length_cl12 : ()</span>
+<span class="sd">        returns the connection lengths for all connections to this cell</span>
+<span class="sd">    get_connection_area_fahl : ()</span>
+<span class="sd">        returns the connection areas for all connections to this cell</span>
+<span class="sd">    get_connection_anglex : ()</span>
+<span class="sd">        returns the connection angles for all connections to this cell</span>
+<span class="sd">    set_top : (top_elv : float, update_connections : bool)</span>
+<span class="sd">        sets the top elevation of the model cell and updates the connection</span>
+<span class="sd">        properties if update_connections is true</span>
+<span class="sd">    set_bot : (bot_elv : float, update_connections : bool)</span>
+<span class="sd">        sets the bottom elevation of the model cell and updates the connection</span>
+<span class="sd">        properties if update_connections is true</span>
+<span class="sd">    set_area : (area : float)</span>
+<span class="sd">        sets the area of the model cell</span>
+<span class="sd">    add_connection : (to_cellid, ihc_direction, connection_length,</span>
+<span class="sd">      connection_area, connection_angle=0)</span>
+<span class="sd">        adds a connection from this cell to the cell with ID to_cellid</span>
+<span class="sd">        connection properties ihc_direction, connection_length,</span>
+<span class="sd">          connection_area, and connection_angle</span>
+<span class="sd">        are set for the new connection</span>
+<span class="sd">    remove_connection : (to_cellid)</span>
+<span class="sd">        removes an existing connection between this cell and the cell with ID</span>
+<span class="sd">        to_cellid</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cellid</span><span class="p">,</span> <span class="n">simulation_data</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+        <span class="c1"># init</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">=</span> <span class="n">cellid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span> <span class="o">=</span> <span class="n">simulation_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_cellid"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_cellid">[docs]</a>    <span class="k">def</span> <span class="nf">get_cellid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_top"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_top">[docs]</a>    <span class="k">def</span> <span class="nf">get_top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;DISDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">tops</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_bot"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_bot">[docs]</a>    <span class="k">def</span> <span class="nf">get_bot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;DISDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;bot&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">bots</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_area"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_area">[docs]</a>    <span class="k">def</span> <span class="nf">get_area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">areas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;DISDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;area&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">areas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_num_connections_iac"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_num_connections_iac">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_connections_iac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">iacs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;iac&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">iacs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_connecting_cells_ja"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_connecting_cells_ja">[docs]</a>    <span class="k">def</span> <span class="nf">get_connecting_cells_ja</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">jas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">jas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_connection_direction_ihc"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_connection_direction_ihc">[docs]</a>    <span class="k">def</span> <span class="nf">get_connection_direction_ihc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ihc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;ihc&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">ihc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_connection_length_cl12"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_connection_length_cl12">[docs]</a>    <span class="k">def</span> <span class="nf">get_connection_length_cl12</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cl12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;cl12&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">cl12</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_connection_area_fahl"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_connection_area_fahl">[docs]</a>    <span class="k">def</span> <span class="nf">get_connection_area_fahl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fahl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;fahl&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">fahl</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.get_connection_anglex"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.get_connection_anglex">[docs]</a>    <span class="k">def</span> <span class="nf">get_connection_anglex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">anglex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;anglex&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">anglex</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.set_top"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.set_top">[docs]</a>    <span class="k">def</span> <span class="nf">set_top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">top_elv</span><span class="p">,</span> <span class="n">update_connections</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">tops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;DISDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">update_connections</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_connections</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_top</span><span class="p">(),</span> <span class="n">top_elv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bot</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bot</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="n">tops</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">top_elv</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.set_bot"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.set_bot">[docs]</a>    <span class="k">def</span> <span class="nf">set_bot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bot_elv</span><span class="p">,</span> <span class="n">update_connections</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">bots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;DISDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;bot&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">update_connections</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_connections</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_top</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_top</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bot</span><span class="p">(),</span> <span class="n">bot_elv</span>
+            <span class="p">)</span>
+        <span class="n">bots</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bot_elv</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.set_area"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.set_area">[docs]</a>    <span class="k">def</span> <span class="nf">set_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="p">):</span>
+        <span class="c1"># TODO: Update vertical connection areas</span>
+        <span class="c1"># TODO: Options for updating horizontal connection lengths???</span>
+        <span class="n">areas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;DISDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;area&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">areas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">area</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.add_connection"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.add_connection">[docs]</a>    <span class="k">def</span> <span class="nf">add_connection</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">to_cellid</span><span class="p">,</span>
+        <span class="n">ihc_direction</span><span class="p">,</span>
+        <span class="n">connection_length</span><span class="p">,</span>
+        <span class="n">connection_area</span><span class="p">,</span>
+        <span class="n">connection_angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">iacs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;iac&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">jas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">ihc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;ihc&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">cl12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;cl12&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">fahl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;fahl&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">anglex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;anglex&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">iacs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">iacs</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">jas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to_cellid</span><span class="p">)</span>
+        <span class="n">jas</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span><span class="p">)</span>
+        <span class="n">ihc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ihc_direction</span><span class="p">)</span>
+        <span class="n">ihc</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ihc_direction</span><span class="p">)</span>
+        <span class="n">cl12</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection_length</span><span class="p">)</span>
+        <span class="n">cl12</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection_length</span><span class="p">)</span>
+        <span class="n">fahl</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection_area</span><span class="p">)</span>
+        <span class="n">fahl</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection_area</span><span class="p">)</span>
+        <span class="n">anglex</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection_angle</span><span class="p">)</span>
+        <span class="n">anglex</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection_angle</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="UnstructuredModelCell.remove_connection"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelCell.remove_connection">[docs]</a>    <span class="k">def</span> <span class="nf">remove_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">to_cellid</span><span class="p">):</span>
+        <span class="n">iacs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;iac&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">jas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">ihc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;ihc&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">cl12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;cl12&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">fahl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;fahl&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">anglex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;DISU8&quot;</span><span class="p">,</span> <span class="s2">&quot;CONNECTIONDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;anglex&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">iacs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="n">iacs</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># find connection number</span>
+        <span class="n">forward_con_number</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_connection_number</span><span class="p">(</span><span class="n">to_cellid</span><span class="p">)</span>
+        <span class="n">reverse_con_number</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_connection_number</span><span class="p">(</span><span class="n">to_cellid</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># update arrays</span>
+        <span class="k">del</span> <span class="n">jas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">forward_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">jas</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">reverse_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">ihc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">forward_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">ihc</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">reverse_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">cl12</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">forward_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">cl12</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">reverse_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">fahl</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">forward_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">fahl</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">reverse_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">anglex</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">forward_con_number</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">anglex</span><span class="p">[</span><span class="n">to_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">reverse_con_number</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_connection_number</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cellid</span><span class="p">,</span> <span class="n">reverse_connection</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># init</span>
+        <span class="n">jas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu8&quot;</span><span class="p">,</span> <span class="s2">&quot;connectiondata&quot;</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">reverse_connection</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">connection_list</span> <span class="o">=</span> <span class="n">jas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">connecting_cellid</span> <span class="o">=</span> <span class="n">cellid</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">connection_list</span> <span class="o">=</span> <span class="n">jas</span><span class="p">[</span><span class="n">cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">connecting_cellid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span>
+
+        <span class="c1"># search</span>
+        <span class="k">for</span> <span class="n">connection_number</span><span class="p">,</span> <span class="n">list_cellid</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection_list</span><span class="p">)),</span> <span class="n">connection_list</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">list_cellid</span> <span class="o">==</span> <span class="n">connecting_cellid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">connection_number</span>
+
+    <span class="k">def</span> <span class="nf">_update_connections</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">old_top_elv</span><span class="p">,</span> <span class="n">new_top_elv</span><span class="p">,</span> <span class="n">old_bot_elv</span><span class="p">,</span> <span class="n">new_bot_elv</span>
+    <span class="p">):</span>
+        <span class="c1"># TODO: Support connection angles</span>
+        <span class="c1"># TODO: Support vertically staggered connections</span>
+        <span class="n">old_thickness</span> <span class="o">=</span> <span class="n">old_top_elv</span> <span class="o">-</span> <span class="n">old_bot_elv</span>
+        <span class="n">new_thickness</span> <span class="o">=</span> <span class="n">new_top_elv</span> <span class="o">-</span> <span class="n">new_bot_elv</span>
+        <span class="n">vert_con_diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_thickness</span> <span class="o">-</span> <span class="n">old_thickness</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">con_area_mult</span> <span class="o">=</span> <span class="n">new_thickness</span> <span class="o">/</span> <span class="n">old_thickness</span>
+
+        <span class="n">jas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu8&quot;</span><span class="p">,</span> <span class="s2">&quot;connectiondata&quot;</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">ihc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu8&quot;</span><span class="p">,</span> <span class="s2">&quot;connectiondata&quot;</span><span class="p">,</span> <span class="s2">&quot;ihc&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">cl12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu8&quot;</span><span class="p">,</span> <span class="s2">&quot;connectiondata&quot;</span><span class="p">,</span> <span class="s2">&quot;cl12&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">fahl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu8&quot;</span><span class="p">,</span> <span class="s2">&quot;connectiondata&quot;</span><span class="p">,</span> <span class="s2">&quot;fahl&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># loop through connecting cells</span>
+        <span class="k">for</span> <span class="n">con_number</span><span class="p">,</span> <span class="n">connecting_cell</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">jas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span><span class="p">])),</span> <span class="n">jas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">rev_con_number</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_connection_number</span><span class="p">(</span><span class="n">connecting_cell</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ihc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">con_number</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># vertical connection, update connection length</span>
+                <span class="n">cl12</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">con_number</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vert_con_diff</span>
+                <span class="n">cl12</span><span class="p">[</span><span class="n">connecting_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">rev_con_number</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vert_con_diff</span>
+            <span class="k">elif</span> <span class="n">ihc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">con_number</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># horizontal connection, update connection area</span>
+                <span class="n">fahl</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cellid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">con_number</span><span class="p">]</span> <span class="o">*=</span> <span class="n">con_area_mult</span>
+                <span class="n">fahl</span><span class="p">[</span><span class="n">connecting_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">rev_con_number</span><span class="p">]</span> <span class="o">*=</span> <span class="n">con_area_mult</span></div>
+
+
+<div class="viewcode-block" id="ModelGrid"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid">[docs]</a><span class="k">class</span> <span class="nc">ModelGrid</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for a structured or unstructured model grid</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model_name : str</span>
+<span class="sd">        name of the model</span>
+<span class="sd">    simulation_data : object</span>
+<span class="sd">        contains all simulation related data</span>
+<span class="sd">    grid_type : enumeration</span>
+<span class="sd">        type of model grid (DiscretizationType.DIS, DiscretizationType.DISV,</span>
+<span class="sd">        DiscretizationType.DISU)</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+<span class="sd">    grid_type : ()</span>
+<span class="sd">        returns the grid type</span>
+<span class="sd">    grid_type_consistent : ()</span>
+<span class="sd">        returns True if the grid type is consistent with the current</span>
+<span class="sd">        simulation data</span>
+<span class="sd">    grid_connections_array : ()</span>
+<span class="sd">        for DiscretizationType.DISU grids, returns an array containing the</span>
+<span class="sd">        number of connections of it cell</span>
+<span class="sd">    get_horizontal_cross_section_dim_arrays : ()</span>
+<span class="sd">        returns a list of numpy ndarrays sized to the horizontal cross section</span>
+<span class="sd">        of the model grid</span>
+<span class="sd">    get_model_dim : ()</span>
+<span class="sd">        returns the dimensions of the model</span>
+<span class="sd">    get_model_dim_arrays : ()</span>
+<span class="sd">        returns a list of numpy ndarrays sized to the model grid</span>
+<span class="sd">    get_row_array : ()</span>
+<span class="sd">        returns a numpy ndarray sized to a model row</span>
+<span class="sd">    get_column_array : ()</span>
+<span class="sd">        returns a numpy ndarray sized to a model column</span>
+<span class="sd">    get_layer_array : ()</span>
+<span class="sd">        returns a numpy ndarray sized to a model layer</span>
+<span class="sd">    get_horizontal_cross_section_dim_names : ()</span>
+<span class="sd">        returns the appropriate dimension axis for a horizontal cross section</span>
+<span class="sd">        based on the model discretization type</span>
+<span class="sd">    get_model_dim_names : ()</span>
+<span class="sd">        returns the names of the model dimensions based on the model</span>
+<span class="sd">        discretization type</span>
+<span class="sd">    get_num_spatial_coordinates : ()</span>
+<span class="sd">        returns the number of spatial coordinates based on the model</span>
+<span class="sd">        discretization type</span>
+<span class="sd">    num_rows</span>
+<span class="sd">        returns the number of model rows.  model discretization type must be</span>
+<span class="sd">        DIS</span>
+<span class="sd">    num_columns</span>
+<span class="sd">        returns the number of model columns.  model discretization type must</span>
+<span class="sd">        be DIS</span>
+<span class="sd">    num_connections</span>
+<span class="sd">        returns the number of model connections.  model discretization type</span>
+<span class="sd">        must be DIS</span>
+<span class="sd">    num_cells_per_layer</span>
+<span class="sd">        returns the number of cells per model layer.  model discretization</span>
+<span class="sd">        type must be DIS or DISV</span>
+<span class="sd">    num_layers</span>
+<span class="sd">        returns the number of layers in the model</span>
+<span class="sd">    num_cells</span>
+<span class="sd">        returns the total number of cells in the model</span>
+<span class="sd">    get_all_model_cells</span>
+<span class="sd">        returns a list of all model cells, represented as a layer/row/column</span>
+<span class="sd">        tuple, a layer/cellid tuple, or a cellid for the DIS, DISV, and DISU</span>
+<span class="sd">        discretizations, respectively</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">simulation_data</span><span class="p">,</span> <span class="n">grid_type</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span> <span class="o">=</span> <span class="n">simulation_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">=</span> <span class="n">grid_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freeze_grid</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="ModelGrid.get_grid_type"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_grid_type">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_grid_type</span><span class="p">(</span><span class="n">simulation_data</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the type of grid used by model &#39;model_name&#39; in simulation</span>
+<span class="sd">        containing simulation data &#39;simulation_data&#39;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        simulation_data : MFSimulationData</span>
+<span class="sd">            object containing simulation data for a simulation</span>
+<span class="sd">        model_name : str</span>
+<span class="sd">            name of a model in the simulation</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        grid type : DiscretizationType</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">package_recarray</span> <span class="o">=</span> <span class="n">simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s2">&quot;nam&quot;</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">structure</span> <span class="o">=</span> <span class="n">MFStructure</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">package_recarray</span><span class="o">.</span><span class="n">search_data</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;dis</span><span class="si">{</span><span class="n">structure</span><span class="o">.</span><span class="n">get_version_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">package_recarray</span><span class="o">.</span><span class="n">search_data</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;disv</span><span class="si">{</span><span class="n">structure</span><span class="o">.</span><span class="n">get_version_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">package_recarray</span><span class="o">.</span><span class="n">search_data</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;disu</span><span class="si">{</span><span class="n">structure</span><span class="o">.</span><span class="n">get_version_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">package_recarray</span><span class="o">.</span><span class="n">search_data</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;disl</span><span class="si">{</span><span class="n">structure</span><span class="o">.</span><span class="n">get_version_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+
+        <span class="k">return</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">UNDEFINED</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_idomain"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_idomain">[docs]</a>    <span class="k">def</span> <span class="nf">get_idomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;dis&quot;</span><span class="p">,</span> <span class="s2">&quot;griddata&quot;</span><span class="p">,</span> <span class="s2">&quot;idomain&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disv&quot;</span><span class="p">,</span> <span class="s2">&quot;griddata&quot;</span><span class="p">,</span> <span class="s2">&quot;idomain&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disl&quot;</span><span class="p">,</span> <span class="s2">&quot;griddata&quot;</span><span class="p">,</span> <span class="s2">&quot;idomain&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu&quot;</span><span class="p">,</span> <span class="s2">&quot;griddata&quot;</span><span class="p">,</span> <span class="s2">&quot;idomain&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;ERROR: Grid type </span><span class="si">{}</span><span class="s2"> for model </span><span class="si">{}</span><span class="s2"> not &quot;</span>
+            <span class="s2">&quot;recognized.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.grid_type"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.grid_type">[docs]</a>    <span class="k">def</span> <span class="nf">grid_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">freeze_grid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_grid_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.grid_type_consistent"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.grid_type_consistent">[docs]</a>    <span class="k">def</span> <span class="nf">grid_type_consistent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_connections_array"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_connections_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_connections_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_connections</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;ERROR: Can not get connections arrays for model &quot;</span>
+                <span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot; Only DISU (unstructured) grids &#39;</span>
+                <span class="s2">&quot;support connections.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_horizontal_cross_section_dim_arrays"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_horizontal_cross_section_dim_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">get_horizontal_cross_section_dim_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cells_per_layer</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;ERROR: Can not get horizontal plane arrays for &quot;</span>
+                <span class="s1">&#39;model &quot;</span><span class="si">{}</span><span class="s1">&quot; grid.  DISU and DISL grids do not &#39;</span>
+                <span class="s2">&quot;support individual layers.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_model_dim"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_model_dim">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cells_per_layer</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_cells</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_model_dim_arrays"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_model_dim_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_dim_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cells_per_layer</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cells</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_row_array"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_row_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_row_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_column_array"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_column_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_column_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_layer_array"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_layer_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_layer_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_horizontal_cross_section_dim_names"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_horizontal_cross_section_dim_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_horizontal_cross_section_dim_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;row&quot;</span><span class="p">,</span> <span class="s2">&quot;column&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;layer_cell_num&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;ERROR: Can not get layer dimension name for model &quot;</span>
+                <span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot; DISU grid. DISU grids do not support &#39;</span>
+                <span class="s2">&quot;layers.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_model_dim_names"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_model_dim_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_dim_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">,</span> <span class="s2">&quot;row&quot;</span><span class="p">,</span> <span class="s2">&quot;column&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">,</span> <span class="s2">&quot;layer_cell_num&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_num_spatial_coordinates"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_num_spatial_coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_spatial_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">grid_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">3</span>
+        <span class="k">elif</span> <span class="n">grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="n">grid_type</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="ModelGrid.num_rows"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.num_rows">[docs]</a>    <span class="k">def</span> <span class="nf">num_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">!=</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;ERROR: Model &quot;</span><span class="si">{}</span><span class="s1">&quot; does not have rows.  Can not &#39;</span>
+                <span class="s2">&quot;return number of rows.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;dis&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nrow&quot;</span><span class="p">)</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModelGrid.num_columns"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.num_columns">[docs]</a>    <span class="k">def</span> <span class="nf">num_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">!=</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;ERROR: Model &quot;</span><span class="si">{}</span><span class="s1">&quot; does not have columns.  Can not &#39;</span>
+                <span class="s2">&quot;return number of columns.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;dis&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;ncol&quot;</span><span class="p">)</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModelGrid.num_connections"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.num_connections">[docs]</a>    <span class="k">def</span> <span class="nf">num_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nja&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">except_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;ERROR: Can not get number of connections for &quot;</span>
+                <span class="s1">&#39;model &quot;</span><span class="si">{}</span><span class="s1">&quot; Only DISU (unstructured) grids support &#39;</span>
+                <span class="s2">&quot;connections.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MFGridException</span><span class="p">(</span><span class="n">except_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelGrid.num_cells_per_layer"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.num_cells_per_layer">[docs]</a>    <span class="k">def</span> <span class="nf">num_cells_per_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disv&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;ncpl&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nodes&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModelGrid.num_layers"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.num_layers">[docs]</a>    <span class="k">def</span> <span class="nf">num_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;dis&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nlay&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disv&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nlay&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ModelGrid.num_cells"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.num_cells">[docs]</a>    <span class="k">def</span> <span class="nf">num_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cells_per_layer</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disu&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nodes&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s2">&quot;disl&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nodes&quot;</span><span class="p">)</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModelGrid.get_all_model_cells"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.ModelGrid.get_all_model_cells">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_model_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">model_cells</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DIS</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()):</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()):</span>
+                    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_columns</span><span class="p">()):</span>
+                        <span class="n">model_cells</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">row</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">column</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">model_cells</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISV</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()):</span>
+                <span class="k">for</span> <span class="n">layer_cellid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span><span class="p">()):</span>
+                    <span class="n">model_cells</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">layer_cellid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">model_cells</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISL</span>
+        <span class="p">):</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cells</span><span class="p">()):</span>
+                <span class="n">model_cells</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">model_cells</span></div></div>
+
+
+<div class="viewcode-block" id="UnstructuredModelGrid"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelGrid">[docs]</a><span class="k">class</span> <span class="nc">UnstructuredModelGrid</span><span class="p">(</span><span class="n">ModelGrid</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for an unstructured model grid</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model_name : str</span>
+<span class="sd">        name of the model</span>
+<span class="sd">    simulation_data : object</span>
+<span class="sd">        contains all simulation related data</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+<span class="sd">    get_unstruct_jagged_array_list : {}</span>
+<span class="sd">        returns a dictionary of jagged arrays used in the unstructured grid</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">simulation_data</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">simulation_data</span><span class="p">,</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">UnstructuredModelCell</span><span class="p">(</span>
+            <span class="n">index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="UnstructuredModelGrid.get_unstruct_jagged_array_list"><a class="viewcode-back" href="../../../../source/flopy.mf6.coordinates.modelgrid.html#flopy.mf6.coordinates.modelgrid.UnstructuredModelGrid.get_unstruct_jagged_array_list">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_unstruct_jagged_array_list</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ihc&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;cl12&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;fahl&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;anglex&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

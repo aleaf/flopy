@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mt3d.mtrct &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mt3d.mtrct</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mt3d.mtrct</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util3d</span>
+
+
+<div class="viewcode-block" id="Mt3dRct"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtrct.html#flopy.mt3d.mtrct.Mt3dRct">[docs]</a><span class="k">class</span> <span class="nc">Mt3dRct</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Chemical reaction package class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.mt3dms.mt.Mt3dms`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    isothm : int</span>
+<span class="sd">        isothm is a flag indicating which type of sorption (or dual-domain mass</span>
+<span class="sd">        transfer) is simulated: isothm = 0, no sorption is simulated;</span>
+<span class="sd">        isothm = 1, linear isotherm (equilibrium-controlled); isothm = 2,</span>
+<span class="sd">        Freundlich isotherm (equilibrium-controlled); isothm = 3, Langmuir</span>
+<span class="sd">        isotherm (equilibrium-controlled); isothm = 4, first-order kinetic</span>
+<span class="sd">        sorption (nonequilibrium); isothm = 5, dual-domain mass transfer</span>
+<span class="sd">        (without sorption); isothm = 6, dual-domain mass transfer</span>
+<span class="sd">        (with sorption). (default is 0).</span>
+<span class="sd">    ireact : int</span>
+<span class="sd">        ireact is a flag indicating which type of kinetic rate reaction is</span>
+<span class="sd">        simulated: ireact = 0, no kinetic rate reaction is simulated;</span>
+<span class="sd">        ireact = 1, first-order irreversible reaction, ireact = 100,</span>
+<span class="sd">        zero-order reactions (decay or production). Note that this reaction</span>
+<span class="sd">        package is not intended for modeling chemical reactions between</span>
+<span class="sd">        species. An add-on reaction package developed specifically for that</span>
+<span class="sd">        purpose may be used. (default is 0).</span>
+<span class="sd">    igetsc : int</span>
+<span class="sd">        igetsc is an integer flag indicating whether the initial concentration</span>
+<span class="sd">        for the nonequilibrium sorbed or immobile phase of all species should</span>
+<span class="sd">        be read when nonequilibrium sorption (isothm = 4) or dual-domain mass</span>
+<span class="sd">        transfer (isothm = 5 or 6) is simulated: igetsc = 0, the initial</span>
+<span class="sd">        concentration for the sorbed or immobile phase is not read. By default,</span>
+<span class="sd">        the sorbed phase is assumed to be in equilibrium with the dissolved</span>
+<span class="sd">        phase (isothm = 4), and the immobile domain is assumed to have zero</span>
+<span class="sd">        concentration (isothm = 5 or 6). igetsc &gt; 0, the initial concentration</span>
+<span class="sd">        for the sorbed phase or immobile liquid phase of all species will be</span>
+<span class="sd">        read. (default is 1).</span>
+<span class="sd">    rhob : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        rhob is the bulk density of the aquifer medium (unit, ML-3). rhob is</span>
+<span class="sd">        used if isothm = 1, 2, 3, 4, or 6. If rhob is not user-specified and</span>
+<span class="sd">        isothm is not 5 then rhob is set to 1.8e3. (default is None)</span>
+<span class="sd">    prsity2 : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        prsity2 is the porosity of the immobile domain (the ratio of pore</span>
+<span class="sd">        spaces filled with immobile fluids over the bulk volume of the aquifer</span>
+<span class="sd">        medium) when the simulation is intended to represent a dual-domain</span>
+<span class="sd">        system. prsity2 is used if isothm = 5 or 6. If prsity2 is not user-</span>
+<span class="sd">        specified and isothm = 5 or 6 then prsity2 is set to 0.1.</span>
+<span class="sd">        (default is None)</span>
+<span class="sd">    srconc : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        srconc is the user-specified initial concentration for the sorbed phase</span>
+<span class="sd">        of the first species if isothm = 4 (unit, MM-1). Note that for</span>
+<span class="sd">        equilibrium-controlled sorption, the initial concentration for the</span>
+<span class="sd">        sorbed phase cannot be specified. srconc is the user-specified initial</span>
+<span class="sd">        concentration of the first species for the immobile liquid phase if</span>
+<span class="sd">        isothm = 5 or 6 (unit, ML-3). If srconc is not user-specified and</span>
+<span class="sd">        isothm = 4, 5, or 6 then srconc is set to 0. (default is None).</span>
+<span class="sd">    sp1 : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        sp1 is the first sorption parameter for the first species. The use of</span>
+<span class="sd">        sp1 depends on the type of sorption selected (the value of isothm).</span>
+<span class="sd">        For linear sorption (isothm = 1) and nonequilibrium sorption (isothm =</span>
+<span class="sd">        4), sp1 is the distribution coefficient (Kd) (unit, L3M-1). For</span>
+<span class="sd">        Freundlich sorption (isothm = 2), sp1 is the Freundlich equilibrium</span>
+<span class="sd">        constant (Kf) (the unit depends on the Freundlich exponent a). For</span>
+<span class="sd">        Langmuir sorption (isothm = 3), sp1 is the Langmuir equilibrium</span>
+<span class="sd">        constant (Kl) (unit, L3M-1 ). For dual-domain mass transfer without</span>
+<span class="sd">        sorption (isothm = 5), sp1 is not used, but still must be entered. For</span>
+<span class="sd">        dual-domain mass transfer with sorption (isothm = 6), sp1 is also the</span>
+<span class="sd">        distribution coefficient (Kd) (unit, L3M-1). If sp1 is not specified</span>
+<span class="sd">        and isothm &gt; 0 then sp1 is set to 0. (default is None).</span>
+<span class="sd">    sp2 : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        sp2 is the second sorption or dual-domain model parameter for the first</span>
+<span class="sd">        species. The use of sp2 depends on the type of sorption or dual-domain</span>
+<span class="sd">        model selected. For linear sorption (isothm = 1), sp2 is read but not</span>
+<span class="sd">        used. For Freundlich sorption (isothm = 2), sp2 is the Freundlich</span>
+<span class="sd">        exponent a. For Langmuir sorption (isothm = 3), sp2 is the total</span>
+<span class="sd">        concentration of the sorption sites available ( S ) (unit, MM-1). For</span>
+<span class="sd">        nonequilibrium sorption (isothm = 4), sp2 is the first-order mass</span>
+<span class="sd">        transfer rate between the dissolved and sorbed phases (unit, T-1). For</span>
+<span class="sd">        dual-domain mass transfer (isothm = 5 or 6), sp2 is the first-order</span>
+<span class="sd">        mass transfer rate between the two domains (unit, T-1). If sp2 is not</span>
+<span class="sd">        specified and isothm &gt; 0 then sp2 is set to 0. (default is None).</span>
+<span class="sd">    rc1 : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        rc1 is the first-order reaction rate for the dissolved (liquid) phase</span>
+<span class="sd">        for the first species (unit, T-1). rc1 is not used ireact = 0. If a</span>
+<span class="sd">        dual-domain system is simulated, the reaction rates for the liquid</span>
+<span class="sd">        phase in the mobile and immobile domains are assumed to be equal. If</span>
+<span class="sd">        rc1 is not specified and ireact &gt; 0 then rc1 is set to 0.</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    rc2 : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        rc2 is the first-order reaction rate for the sorbed phase for the first</span>
+<span class="sd">        species (unit, T-1). rc2 is not used ireact = 0. If a dual-domain</span>
+<span class="sd">        system is simulated, the reaction rates for the sorbed phase in the</span>
+<span class="sd">        mobile and immobile domains are assumed to be equal. Generally, if the</span>
+<span class="sd">        reaction is radioactive decay, rc2 should be set equal to rc1, while</span>
+<span class="sd">        for biodegradation, rc2 may be different from rc1. Note that rc2 is</span>
+<span class="sd">        read but not used, if no sorption is included in the simulation. If</span>
+<span class="sd">        rc2 is not specified and ireact &gt; 0 then rc2 is set to 0.</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;rct&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number. If file unit number is None then an unused unit</span>
+<span class="sd">         number if used. (default is None).</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    srconcn : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        srconcn is the user-specified initial concentration for the sorbed</span>
+<span class="sd">        phase of species n. If srconcn is not passed as a **kwarg and</span>
+<span class="sd">        isothm = 4, 5, or 6 then srconc for species n is set to 0.</span>
+<span class="sd">        See description of srconc for a more complete description of srconcn.</span>
+<span class="sd">    sp1n : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        sp1n is the first sorption parameter for species n. If sp1n is not</span>
+<span class="sd">        passed as a **kwarg and isothm &gt; 0 then sp1 for species n is set to 0.</span>
+<span class="sd">        See description of sp1 for a more complete description of sp1n.</span>
+<span class="sd">    sp2n : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        sp2n is the second sorption or dual-domain model parameter for species</span>
+<span class="sd">        n. If sp2n is not passed as a **kwarg and isothm &gt; 0 then sp2 for</span>
+<span class="sd">        species n is set to 0. See description of sp2 for a more complete</span>
+<span class="sd">        description of sp2n.</span>
+<span class="sd">    rc1n : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        rc1n is the first-order reaction rate for the dissolved (liquid) phase</span>
+<span class="sd">        for species n. If rc1n is not passed as a **kwarg and ireact &gt; 0 then</span>
+<span class="sd">        rc1 for species n is set to 0. See description of rc1 for a more</span>
+<span class="sd">        complete description of rc1n.</span>
+<span class="sd">    rc2n : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        rc2n is the first-order reaction rate for the sorbed phase for species</span>
+<span class="sd">        n. If rc2n is not passed as a **kwarg and ireact &gt; 0 then rc2 for</span>
+<span class="sd">        species n is set to 0. See description of rc2 for a more complete</span>
+<span class="sd">        description of rc2n.</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; mt = flopy.mt3dms.Mt3dms()</span>
+<span class="sd">    &gt;&gt;&gt; rct = flopy.mt3dms.Mt3dRct(mt)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">isothm</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ireact</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">igetsc</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">rhob</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prsity2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">srconc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sp1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sp2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">rc1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">rc2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;rct&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">Mt3dRct</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">unitnumber</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">Mt3dRct</span><span class="o">.</span><span class="n">_reservedunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">nrow</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+
+        <span class="c1"># Item E1: ISOTHM, IREACT, IRCTOP, IGETSC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isothm</span> <span class="o">=</span> <span class="n">isothm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ireact</span> <span class="o">=</span> <span class="n">ireact</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irctop</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># All RCT vars are specified as 3D arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">igetsc</span> <span class="o">=</span> <span class="n">igetsc</span>
+
+        <span class="c1"># Item E2A: RHOB</span>
+        <span class="k">if</span> <span class="n">rhob</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rhob</span> <span class="o">=</span> <span class="mf">1.8e3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rhob</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">rhob</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;rhob&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Item E2B: PRSITY</span>
+        <span class="k">if</span> <span class="n">prsity2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prsity2</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prsity2</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">prsity2</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;prsity2&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Item E2C: SRCONC</span>
+        <span class="k">if</span> <span class="n">srconc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">srconc</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srconc</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">srconc</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;srconc1&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srconc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;srconc</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;RCT: setting srconc for component </span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> to zero, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;kwarg name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">val</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">srconc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+
+        <span class="c1"># Item E3: SP1</span>
+        <span class="k">if</span> <span class="n">sp1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sp1</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sp1</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">sp1</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;sp11&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sp1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sp1</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;RCT: setting sp1 for component </span><span class="si">{}</span><span class="s2"> to zero, &quot;</span>
+                        <span class="s2">&quot;kwarg name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">icomp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">val</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sp1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+
+        <span class="c1"># Item E4: SP2</span>
+        <span class="k">if</span> <span class="n">sp2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sp2</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sp2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">sp2</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;sp21&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sp2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sp2</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;RCT: setting sp2 for component </span><span class="si">{}</span><span class="s2"> to zero, &quot;</span>
+                        <span class="s2">&quot;kwarg name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">icomp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">val</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sp2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+
+        <span class="c1"># Item E5: RC1</span>
+        <span class="k">if</span> <span class="n">rc1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rc1</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rc1</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">rc1</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;rc11&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rc1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;rc1</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;RCT: setting rc1 for component </span><span class="si">{}</span><span class="s2"> to zero, &quot;</span>
+                        <span class="s2">&quot;kwarg name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">icomp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">val</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rc1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+
+        <span class="c1"># Item E4: RC2</span>
+        <span class="k">if</span> <span class="n">rc2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rc2</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rc2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">rc2</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;rc21&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rc2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;rc2</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;RCT: setting rc2 for component </span><span class="si">{}</span><span class="s2"> to zero, &quot;</span>
+                        <span class="s2">&quot;kwarg name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">icomp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">val</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rc2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u3d</span><span class="p">)</span>
+
+        <span class="c1"># Check to make sure that all kwargs have been consumed</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;RCT error: unrecognized kwargs: &quot;</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Chemical reaction package class&quot;</span>
+
+<div class="viewcode-block" id="Mt3dRct.write_file"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtrct.html#flopy.mt3d.mtrct.Mt3dRct.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Open file for writing</span>
+        <span class="n">f_rct</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%10i%10i%10i%10i</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">isothm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ireact</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">irctop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">igetsc</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isothm</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">]:</span>
+            <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rhob</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isothm</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]:</span>
+            <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prsity2</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">igetsc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srconc</span><span class="p">)):</span>
+                <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srconc</span><span class="p">[</span><span class="n">icomp</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isothm</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp1</span><span class="p">)):</span>
+                <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp1</span><span class="p">[</span><span class="n">icomp</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isothm</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp2</span><span class="p">)):</span>
+                <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp2</span><span class="p">[</span><span class="n">icomp</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ireact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rc1</span><span class="p">)):</span>
+                <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rc1</span><span class="p">[</span><span class="n">icomp</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ireact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rc2</span><span class="p">)):</span>
+                <span class="n">f_rct</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rc2</span><span class="p">[</span><span class="n">icomp</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="n">f_rct</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Mt3dRct.load"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtrct.html#flopy.mt3d.mtrct.Mt3dRct.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">f</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nlay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">nrow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ncol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ncomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.mt3d.mt.Mt3dms`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nlay : int</span>
+<span class="sd">            Number of model layers in the reaction package. If nlay is not</span>
+<span class="sd">            specified, the number of layers in the passed model object is</span>
+<span class="sd">            used. (default is None).</span>
+<span class="sd">        nrow : int</span>
+<span class="sd">            Number of model rows in the reaction package. If nrow is not</span>
+<span class="sd">            specified, the number of rows in the passed model object is</span>
+<span class="sd">            used. (default is None).</span>
+<span class="sd">        ncol : int</span>
+<span class="sd">            Number of model columns in the reaction package. If nlay is not</span>
+<span class="sd">            specified, the number of columns in the passed model object is</span>
+<span class="sd">            used. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        rct :  Mt3dRct object</span>
+<span class="sd">            Mt3dRct object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms()</span>
+<span class="sd">        &gt;&gt;&gt; rct = flopy.mt3d.Mt3dRct.load(&#39;test.rct&#39;, mt)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading rct package file...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open file, if necessary</span>
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set dimensions if necessary</span>
+        <span class="k">if</span> <span class="n">nlay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">if</span> <span class="n">nrow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="k">if</span> <span class="n">ncol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+
+        <span class="c1"># Setup kwargs to store multispecies information</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Item E1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading ISOTHM, IREACT, IRCTOP, IGETSC...&quot;</span><span class="p">)</span>
+        <span class="n">isothm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">])</span>
+        <span class="n">ireact</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">20</span><span class="p">])</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">irctop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">30</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">irctop</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">igetsc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">40</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">igetsc</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ISOTHM </span><span class="si">{</span><span class="n">isothm</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IREACT </span><span class="si">{</span><span class="n">ireact</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IRCTOP </span><span class="si">{</span><span class="n">irctop</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IGETSC </span><span class="si">{</span><span class="n">igetsc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E2A: RHOB</span>
+        <span class="n">rhob</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading RHOB...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isothm</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">]:</span>
+            <span class="n">rhob</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;rhob&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RHOB </span><span class="si">{</span><span class="n">rhob</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E2A: PRSITY2</span>
+        <span class="n">prsity2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading PRSITY2...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isothm</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]:</span>
+            <span class="n">prsity2</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;prsity2&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   PRSITY2 </span><span class="si">{</span><span class="n">prsity2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E2C: SRCONC</span>
+        <span class="n">srconc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading SRCONC...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">igetsc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">srconc</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;srconc1&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SRCONC </span><span class="si">{</span><span class="n">srconc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;srconc</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u3d</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SRCONC</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">u3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E3: SP1</span>
+        <span class="n">sp1</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading SP1...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isothm</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sp1</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;sp11&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SP1 </span><span class="si">{</span><span class="n">sp1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sp1</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u3d</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SP1</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">u3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E4: SP2</span>
+        <span class="n">sp2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading SP2...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isothm</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sp2</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;sp21&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SP2 </span><span class="si">{</span><span class="n">sp2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sp2</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u3d</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SP2</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">u3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E5: RC1</span>
+        <span class="n">rc1</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading RC1...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ireact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">rc1</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;rc11&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RC1 </span><span class="si">{</span><span class="n">rc1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;rc1</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u3d</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RC1</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">u3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item E6: RC2</span>
+        <span class="n">rc2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading RC2...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ireact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">rc2</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="s2">&quot;rc21&quot;</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RC2 </span><span class="si">{</span><span class="n">rc2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;rc2</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="n">u3d</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="n">array_format</span><span class="o">=</span><span class="s2">&quot;mt3d&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u3d</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   RC2</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">u3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">Mt3dRct</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Construct and return rct package</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">isothm</span><span class="o">=</span><span class="n">isothm</span><span class="p">,</span>
+            <span class="n">ireact</span><span class="o">=</span><span class="n">ireact</span><span class="p">,</span>
+            <span class="n">igetsc</span><span class="o">=</span><span class="n">igetsc</span><span class="p">,</span>
+            <span class="n">rhob</span><span class="o">=</span><span class="n">rhob</span><span class="p">,</span>
+            <span class="n">prsity2</span><span class="o">=</span><span class="n">prsity2</span><span class="p">,</span>
+            <span class="n">srconc</span><span class="o">=</span><span class="n">srconc</span><span class="p">,</span>
+            <span class="n">sp1</span><span class="o">=</span><span class="n">sp1</span><span class="p">,</span>
+            <span class="n">sp2</span><span class="o">=</span><span class="n">sp2</span><span class="p">,</span>
+            <span class="n">rc1</span><span class="o">=</span><span class="n">rc1</span><span class="p">,</span>
+            <span class="n">rc2</span><span class="o">=</span><span class="n">rc2</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;RCT&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">36</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_reservedunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">8</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

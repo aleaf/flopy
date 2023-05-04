@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voronoi Grid and MODFLOW 6 Flow and Transport Example &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Making Cross Sections of Your Model" href="flopy3.3_PlotCrossSection.html" />
+    <link rel="prev" title="Triangular mesh example" href="flopy3_triangle.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../notebooks.html">Examples Gallery</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../notebooks.html#preprocessing-and-discretization">Preprocessing and Discretization</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="flopy3_demo_of_modelgrid_classes.html">ModelGrid classes demo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flopy3_grid_intersection_demo.html">Intersecting model grids with shapes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flopy3_raster_intersection.html">Intersecting rasters with modelgrids using FloPy’s Raster class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flopy3_raster_intersection.html#Sampling-points,-Cropping,-and-performing-intersections-using-raster-data">Sampling points, Cropping, and performing intersections using raster data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flopy3_gridgen.html">Creating Layered Quadtree Grids with GRIDGEN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flopy3_triangle.html">Triangular mesh example</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Voronoi Grid and MODFLOW 6 Flow and Transport Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Use-Triangle-to-Generate-Points-for-Voronoi-Grid">Use Triangle to Generate Points for Voronoi Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Create-and-Plot-FloPy-Voronoi-Grid">Create and Plot FloPy Voronoi Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Use-the-VertexGrid-Representation-to-Identify-Boundary-Cells">Use the VertexGrid Representation to Identify Boundary Cells</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Create-Run-and-Post-Process-a-MODFLOW-6-Flow-Model">Create Run and Post Process a MODFLOW 6 Flow Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Create-Run-and-Post-Process-a-MODFLOW-6-Transport-Model">Create Run and Post Process a MODFLOW 6 Transport Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Irregular-Domain-Boundary">Irregular Domain Boundary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Simple-Rectangular-Domain">Simple Rectangular Domain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Circular-Grid">Circular Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Circular-Grid-with-Hole">Circular Grid with Hole</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Regions-with-Different-Refinement">Regions with Different Refinement</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Regions-with-Different-Refinement-and-Hole">Regions with Different Refinement and Hole</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#postprocessing-and-visualization">Postprocessing and Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#exporting-data">Exporting data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#modflow-6-examples">MODFLOW 6 examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#modflow-usg-examples">MODFLOW USG examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#modflow-2005-modflow-nwt-examples">MODFLOW-2005/MODFLOW-NWT examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#modpath-examples">MODPATH examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#mt3d-and-seawat">MT3D and SEAWAT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#pest-support">PEST support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#other-flopy-features">Other Flopy features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../notebooks.html#examples-from-bakker-and-others-2016">Examples from Bakker and others (2016)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../notebooks.html">Examples Gallery</a></li>
+      <li class="breadcrumb-item active">Voronoi Grid and MODFLOW 6 Flow and Transport Example</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="admonition note">
+<p class="admonition-title">Note</p>
+<div class="line-block">
+<div class="line">This page was generated from <a class="reference external" href="https://github.com/modflowpy/flopy/blob/develop/.docs/Notebooks/flopy3_voronoi.ipynb">Notebooks/flopy3_voronoi.ipynb</a>.</div>
+<div class="line">Interactive online version: <span class="raw-html"><a href="https://mybinder.org/v2/gh/modflowpy/flopy.git/develop?urlpath=lab/tree/.docs/Notebooks/flopy3_voronoi.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a></span></div>
+</div>
+</div>
+<section id="Voronoi-Grid-and-MODFLOW-6-Flow-and-Transport-Example">
+<h1>Voronoi Grid and MODFLOW 6 Flow and Transport Example<a class="headerlink" href="#Voronoi-Grid-and-MODFLOW-6-Flow-and-Transport-Example" title="Permalink to this heading"></a></h1>
+<p>First set the path and import the required packages. The flopy path doesn’t have to be set if you install flopy from a binary installer. If you want to run this notebook, you have to set the path to your own flopy path.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">shapely.geometry</span> <span class="kn">import</span> <span class="n">LineString</span><span class="p">,</span> <span class="n">Point</span>
+
+<span class="n">proj_root</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+
+<span class="c1"># run installed version of flopy or add local path</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">flopy</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj_root</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">flopy</span>
+
+<span class="kn">from</span> <span class="nn">flopy.utils.triangle</span> <span class="kn">import</span> <span class="n">Triangle</span> <span class="k">as</span> <span class="n">Triangle</span>
+<span class="kn">from</span> <span class="nn">flopy.utils.voronoi</span> <span class="kn">import</span> <span class="n">VoronoiGrid</span>
+<span class="kn">from</span> <span class="nn">flopy.discretization</span> <span class="kn">import</span> <span class="n">VertexGrid</span>
+
+<span class="n">temp_dir</span> <span class="o">=</span> <span class="n">TemporaryDirectory</span><span class="p">()</span>
+<span class="n">workspace</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">temp_dir</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;numpy version: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">__version__</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;matplotlib version: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mpl</span><span class="o">.</span><span class="n">__version__</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;flopy version: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">flopy</span><span class="o">.</span><span class="n">__version__</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+3.10.10 | packaged by conda-forge | (main, Mar 24 2023, 20:08:06) [GCC 11.3.0]
+numpy version: 1.24.3
+matplotlib version: 3.7.1
+flopy version: 3.3.7
+</pre></div></div>
+</div>
+<section id="Use-Triangle-to-Generate-Points-for-Voronoi-Grid">
+<h2>Use Triangle to Generate Points for Voronoi Grid<a class="headerlink" href="#Use-Triangle-to-Generate-Points-for-Voronoi-Grid" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># set domain extents</span>
+<span class="n">xmin</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">xmax</span> <span class="o">=</span> <span class="mf">2000.0</span>
+<span class="n">ymin</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">ymax</span> <span class="o">=</span> <span class="mf">1000.0</span>
+
+<span class="c1"># set minimum angle</span>
+<span class="n">angle_min</span> <span class="o">=</span> <span class="mi">30</span>
+
+<span class="c1"># set maximum area</span>
+<span class="n">area_max</span> <span class="o">=</span> <span class="mf">1000.0</span>
+
+<span class="n">delr</span> <span class="o">=</span> <span class="n">area_max</span><span class="o">**</span><span class="mf">0.5</span>
+<span class="n">ncol</span> <span class="o">=</span> <span class="n">xmax</span> <span class="o">/</span> <span class="n">delr</span>
+<span class="n">nrow</span> <span class="o">=</span> <span class="n">ymax</span> <span class="o">/</span> <span class="n">delr</span>
+<span class="n">nodes</span> <span class="o">=</span> <span class="n">ncol</span> <span class="o">*</span> <span class="n">nrow</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;equivalent delr: &quot;</span><span class="p">,</span> <span class="n">delr</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;equivalent nodes, ncol, nrow: &quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nrow</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+equivalent delr:  31.622776601683793
+equivalent nodes, ncol, nrow:  2000 63.245553203367585 31.622776601683793
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">maximum_area</span><span class="o">=</span><span class="n">area_max</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">angle_min</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+<span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(((</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span> <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span> <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">),</span> <span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)))</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">pc</span> <span class="o">=</span> <span class="n">tri</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_4_0.png" src="../_images/Notebooks_flopy3_voronoi_4_0.png" />
+</div>
+</div>
+</section>
+<section id="Create-and-Plot-FloPy-Voronoi-Grid">
+<h2>Create and Plot FloPy Voronoi Grid<a class="headerlink" href="#Create-and-Plot-FloPy-Voronoi-Grid" title="Permalink to this heading"></a></h2>
+<p>The Flopy VoronoiGrid class can be used to generate voronoi grids using the scipy.spatial.Voronoi class. The VoronoiGrid class is a thin wrapper that makes sure edge cells are closed and provides methods for obtaining the information needed to make FloPy MODFLOW models. It works by passing in the flopy Triangle object generated in the previous cell.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_6_0.png" src="../_images/Notebooks_flopy3_voronoi_6_0.png" />
+</div>
+</div>
+</section>
+<section id="Use-the-VertexGrid-Representation-to-Identify-Boundary-Cells">
+<h2>Use the VertexGrid Representation to Identify Boundary Cells<a class="headerlink" href="#Use-the-VertexGrid-Representation-to-Identify-Boundary-Cells" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gridprops</span> <span class="o">=</span> <span class="n">voronoi_grid</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">vgrid</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">discretization</span><span class="o">.</span><span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ibd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">vgrid</span><span class="o">.</span><span class="n">ncpl</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">gi</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">GridIntersect</span><span class="p">(</span><span class="n">vgrid</span><span class="p">)</span>
+
+<span class="c1"># identify cells on left edge</span>
+<span class="n">line</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">([(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span> <span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)])</span>
+<span class="n">cells0</span> <span class="o">=</span> <span class="n">gi</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">line</span><span class="p">)[</span><span class="s2">&quot;cellids&quot;</span><span class="p">]</span>
+<span class="n">cells0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cells0</span><span class="p">))</span>
+<span class="n">ibd</span><span class="p">[</span><span class="n">cells0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="c1"># identify cells on right edge</span>
+<span class="n">line</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">([(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span> <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)])</span>
+<span class="n">cells1</span> <span class="o">=</span> <span class="n">gi</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">line</span><span class="p">)[</span><span class="s2">&quot;cellids&quot;</span><span class="p">]</span>
+<span class="n">cells1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cells1</span><span class="p">))</span>
+<span class="n">ibd</span><span class="p">[</span><span class="n">cells1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+<span class="c1"># identify cell for a constant concentration condition</span>
+<span class="n">point</span> <span class="o">=</span> <span class="n">Point</span><span class="p">((</span><span class="mi">500</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span>
+<span class="n">cells2</span> <span class="o">=</span> <span class="n">gi</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">point</span><span class="p">)[</span><span class="s2">&quot;cellids&quot;</span><span class="p">]</span>
+<span class="n">cells2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cells2</span><span class="p">))</span>
+<span class="n">ibd</span><span class="p">[</span><span class="n">cells2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="k">if</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+    <span class="n">pmv</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">PlotMapView</span><span class="p">(</span><span class="n">modelgrid</span><span class="o">=</span><span class="n">vgrid</span><span class="p">)</span>
+    <span class="n">pmv</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">ibd</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_8_0.png" src="../_images/Notebooks_flopy3_voronoi_8_0.png" />
+</div>
+</div>
+</section>
+<section id="Create-Run-and-Post-Process-a-MODFLOW-6-Flow-Model">
+<h2>Create Run and Post Process a MODFLOW 6 Flow Model<a class="headerlink" href="#Create-Run-and-Post-Process-a-MODFLOW-6-Flow-Model" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;mf&quot;</span>
+<span class="n">sim_ws</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workspace</span><span class="p">,</span> <span class="s2">&quot;flow&quot;</span><span class="p">)</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">MFSimulation</span><span class="p">(</span>
+    <span class="n">sim_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;mf6&quot;</span><span class="p">,</span> <span class="n">exe_name</span><span class="o">=</span><span class="s2">&quot;mf6&quot;</span><span class="p">,</span> <span class="n">sim_ws</span><span class="o">=</span><span class="n">sim_ws</span>
+<span class="p">)</span>
+<span class="n">tdis</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowTdis</span><span class="p">(</span>
+    <span class="n">sim</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;DAYS&quot;</span><span class="p">,</span> <span class="n">perioddata</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]]</span>
+<span class="p">)</span>
+<span class="n">gwf</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwf</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">modelname</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">save_flows</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ims</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowIms</span><span class="p">(</span>
+    <span class="n">sim</span><span class="p">,</span>
+    <span class="n">print_option</span><span class="o">=</span><span class="s2">&quot;SUMMARY&quot;</span><span class="p">,</span>
+    <span class="n">complexity</span><span class="o">=</span><span class="s2">&quot;complex&quot;</span><span class="p">,</span>
+    <span class="n">outer_dvclose</span><span class="o">=</span><span class="mf">1.0e-8</span><span class="p">,</span>
+    <span class="n">inner_dvclose</span><span class="o">=</span><span class="mf">1.0e-8</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">disv_gridprops</span> <span class="o">=</span> <span class="n">voronoi_grid</span><span class="o">.</span><span class="n">get_disv_gridprops</span><span class="p">()</span>
+<span class="n">nlay</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">top</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">botm</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+<span class="n">disv</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwfdisv</span><span class="p">(</span>
+    <span class="n">gwf</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="n">nlay</span><span class="p">,</span> <span class="o">**</span><span class="n">disv_gridprops</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span> <span class="n">botm</span><span class="o">=</span><span class="n">botm</span>
+<span class="p">)</span>
+<span class="n">npf</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwfnpf</span><span class="p">(</span>
+    <span class="n">gwf</span><span class="p">,</span>
+    <span class="n">xt3doptions</span><span class="o">=</span><span class="p">[(</span><span class="kc">True</span><span class="p">)],</span>
+    <span class="n">k</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">save_saturation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_specific_discharge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ic</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwfic</span><span class="p">(</span><span class="n">gwf</span><span class="p">)</span>
+
+<span class="n">chdlist</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">icpl</span> <span class="ow">in</span> <span class="n">cells0</span><span class="p">:</span>
+    <span class="n">chdlist</span><span class="o">.</span><span class="n">append</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="n">icpl</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">icpl</span> <span class="ow">in</span> <span class="n">cells1</span><span class="p">:</span>
+    <span class="n">chdlist</span><span class="o">.</span><span class="n">append</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="n">icpl</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">])</span>
+<span class="n">chd</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwfchd</span><span class="p">(</span><span class="n">gwf</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="o">=</span><span class="n">chdlist</span><span class="p">)</span>
+<span class="n">oc</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwfoc</span><span class="p">(</span>
+    <span class="n">gwf</span><span class="p">,</span>
+    <span class="n">budget_filerecord</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.bud&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+    <span class="n">head_filerecord</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.hds&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+    <span class="n">saverecord</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;HEAD&quot;</span><span class="p">,</span> <span class="s2">&quot;ALL&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;BUDGET&quot;</span><span class="p">,</span> <span class="s2">&quot;ALL&quot;</span><span class="p">)],</span>
+    <span class="n">printrecord</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;HEAD&quot;</span><span class="p">,</span> <span class="s2">&quot;LAST&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;BUDGET&quot;</span><span class="p">,</span> <span class="s2">&quot;LAST&quot;</span><span class="p">)],</span>
+<span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">write_simulation</span><span class="p">()</span>
+<span class="n">success</span><span class="p">,</span> <span class="n">buff</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span><span class="n">report</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">head</span> <span class="o">=</span> <span class="n">gwf</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+<span class="n">bdobj</span> <span class="o">=</span> <span class="n">gwf</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">budget</span><span class="p">()</span>
+<span class="n">spdis</span> <span class="o">=</span> <span class="n">bdobj</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;DATA-SPDIS&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">pmv</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">PlotMapView</span><span class="p">(</span><span class="n">gwf</span><span class="p">)</span>
+<span class="n">pmv</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;jet&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">pmv</span><span class="o">.</span><span class="n">plot_vector</span><span class="p">(</span><span class="n">spdis</span><span class="p">[</span><span class="s2">&quot;qx&quot;</span><span class="p">],</span> <span class="n">spdis</span><span class="p">[</span><span class="s2">&quot;qy&quot;</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING: Unable to resolve dimension of (&#39;gwf6&#39;, &#39;disv&#39;, &#39;cell2d&#39;, &#39;cell2d&#39;, &#39;icvert&#39;) based on shape &#34;ncvert&#34;.
+writing simulation...
+  writing simulation name file...
+  writing simulation tdis package...
+  writing solution package ims_-1...
+  writing model mf...
+    writing model name file...
+    writing package disv...
+    writing package npf...
+    writing package ic...
+    writing package chd_0...
+INFORMATION: maxbound in (&#39;gwf6&#39;, &#39;chd&#39;, &#39;dimensions&#39;) changed to 62 based on size of stress_period_data
+    writing package oc...
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_10_1.png" src="../_images/Notebooks_flopy3_voronoi_10_1.png" />
+</div>
+</div>
+</section>
+<section id="Create-Run-and-Post-Process-a-MODFLOW-6-Transport-Model">
+<h2>Create Run and Post Process a MODFLOW 6 Transport Model<a class="headerlink" href="#Create-Run-and-Post-Process-a-MODFLOW-6-Transport-Model" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;mf&quot;</span>
+<span class="n">sim_ws</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workspace</span><span class="p">,</span> <span class="s2">&quot;transport&quot;</span><span class="p">)</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">MFSimulation</span><span class="p">(</span>
+    <span class="n">sim_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;mf6&quot;</span><span class="p">,</span> <span class="n">exe_name</span><span class="o">=</span><span class="s2">&quot;mf6&quot;</span><span class="p">,</span> <span class="n">sim_ws</span><span class="o">=</span><span class="n">sim_ws</span>
+<span class="p">)</span>
+<span class="n">tdis</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowTdis</span><span class="p">(</span>
+    <span class="n">sim</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;DAYS&quot;</span><span class="p">,</span> <span class="n">perioddata</span><span class="o">=</span><span class="p">[[</span><span class="mi">100</span> <span class="o">*</span> <span class="mf">365.0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]]</span>
+<span class="p">)</span>
+<span class="n">gwt</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwt</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">modelname</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">save_flows</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ims</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowIms</span><span class="p">(</span>
+    <span class="n">sim</span><span class="p">,</span>
+    <span class="n">print_option</span><span class="o">=</span><span class="s2">&quot;SUMMARY&quot;</span><span class="p">,</span>
+    <span class="n">complexity</span><span class="o">=</span><span class="s2">&quot;simple&quot;</span><span class="p">,</span>
+    <span class="n">linear_acceleration</span><span class="o">=</span><span class="s2">&quot;bicgstab&quot;</span><span class="p">,</span>
+    <span class="n">outer_dvclose</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">,</span>
+    <span class="n">inner_dvclose</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">disv_gridprops</span> <span class="o">=</span> <span class="n">voronoi_grid</span><span class="o">.</span><span class="n">get_disv_gridprops</span><span class="p">()</span>
+<span class="n">nlay</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">top</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">botm</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+<span class="n">disv</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtdisv</span><span class="p">(</span>
+    <span class="n">gwt</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="n">nlay</span><span class="p">,</span> <span class="o">**</span><span class="n">disv_gridprops</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span> <span class="n">botm</span><span class="o">=</span><span class="n">botm</span>
+<span class="p">)</span>
+<span class="n">ic</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtic</span><span class="p">(</span><span class="n">gwt</span><span class="p">,</span> <span class="n">strt</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">sto</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtmst</span><span class="p">(</span><span class="n">gwt</span><span class="p">,</span> <span class="n">porosity</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">adv</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtadv</span><span class="p">(</span><span class="n">gwt</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s2">&quot;TVD&quot;</span><span class="p">)</span>
+<span class="n">dsp</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtdsp</span><span class="p">(</span><span class="n">gwt</span><span class="p">,</span> <span class="n">alh</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">ath1</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">sourcerecarray</span> <span class="o">=</span> <span class="p">[()]</span>
+<span class="n">ssm</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtssm</span><span class="p">(</span><span class="n">gwt</span><span class="p">,</span> <span class="n">sources</span><span class="o">=</span><span class="n">sourcerecarray</span><span class="p">)</span>
+<span class="n">cnclist</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">cells2</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mf">1.0</span><span class="p">],</span>
+<span class="p">]</span>
+<span class="n">cnc</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtcnc</span><span class="p">(</span>
+    <span class="n">gwt</span><span class="p">,</span> <span class="n">maxbound</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">cnclist</span><span class="p">),</span> <span class="n">stress_period_data</span><span class="o">=</span><span class="n">cnclist</span><span class="p">,</span> <span class="n">pname</span><span class="o">=</span><span class="s2">&quot;CNC-1&quot;</span>
+<span class="p">)</span>
+<span class="n">pd</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;GWFHEAD&quot;</span><span class="p">,</span> <span class="s2">&quot;../flow/mf.hds&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;GWFBUDGET&quot;</span><span class="p">,</span> <span class="s2">&quot;../flow/mf.bud&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">fmi</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtfmi</span><span class="p">(</span><span class="n">gwt</span><span class="p">,</span> <span class="n">packagedata</span><span class="o">=</span><span class="n">pd</span><span class="p">)</span>
+<span class="n">oc</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">mf6</span><span class="o">.</span><span class="n">ModflowGwtoc</span><span class="p">(</span>
+    <span class="n">gwt</span><span class="p">,</span>
+    <span class="n">budget_filerecord</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.cbc&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+    <span class="n">concentration_filerecord</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.ucn&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+    <span class="n">saverecord</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;CONCENTRATION&quot;</span><span class="p">,</span> <span class="s2">&quot;ALL&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;BUDGET&quot;</span><span class="p">,</span> <span class="s2">&quot;ALL&quot;</span><span class="p">)],</span>
+<span class="p">)</span>
+
+<span class="n">sim</span><span class="o">.</span><span class="n">write_simulation</span><span class="p">()</span>
+<span class="n">success</span><span class="p">,</span> <span class="n">buff</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span><span class="n">report</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">conc</span> <span class="o">=</span> <span class="n">gwt</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">concentration</span><span class="p">()</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">pmv</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">PlotMapView</span><span class="p">(</span><span class="n">gwf</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">pmv</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">conc</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;jet&quot;</span><span class="p">)</span>
+<span class="n">pmv</span><span class="o">.</span><span class="n">contour_array</span><span class="p">(</span><span class="n">conc</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span> <span class="n">colors</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING: Unable to resolve dimension of (&#39;gwt6&#39;, &#39;disv&#39;, &#39;cell2d&#39;, &#39;cell2d&#39;, &#39;icvert&#39;) based on shape &#34;ncvert&#34;.
+writing simulation...
+  writing simulation name file...
+  writing simulation tdis package...
+  writing solution package ims_-1...
+  writing model mf...
+    writing model name file...
+    writing package disv...
+    writing package ic...
+    writing package mst...
+    writing package adv...
+    writing package dsp...
+    writing package ssm...
+    writing package cnc-1...
+    writing package fmi...
+    writing package oc...
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_12_1.png" src="../_images/Notebooks_flopy3_voronoi_12_1.png" />
+</div>
+</div>
+<section id="Building-Voronoi-Grid-Examples">
+<h3>Building Voronoi Grid Examples<a class="headerlink" href="#Building-Voronoi-Grid-Examples" title="Permalink to this heading"></a></h3>
+</section>
+</section>
+<section id="Irregular-Domain-Boundary">
+<h2>Irregular Domain Boundary<a class="headerlink" href="#Irregular-Domain-Boundary" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">domain</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mf">1831.381546</span><span class="p">,</span> <span class="mf">6335.543757</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">4337.733475</span><span class="p">,</span> <span class="mf">6851.136153</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">6428.747084</span><span class="p">,</span> <span class="mf">6707.916043</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">8662.980804</span><span class="p">,</span> <span class="mf">6493.085878</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">9350.437333</span><span class="p">,</span> <span class="mf">5891.561415</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">9235.861245</span><span class="p">,</span> <span class="mf">4717.156511</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">8963.743036</span><span class="p">,</span> <span class="mf">3685.971717</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">8691.624826</span><span class="p">,</span> <span class="mf">2783.685023</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">8047.13433</span><span class="p">,</span> <span class="mf">2038.94045</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">7416.965845</span><span class="p">,</span> <span class="mf">578.0953252</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">6414.425073</span><span class="p">,</span> <span class="mf">105.4689614</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">5354.596258</span><span class="p">,</span> <span class="mf">205.7230386</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">4624.173696</span><span class="p">,</span> <span class="mf">363.2651598</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">3363.836725</span><span class="p">,</span> <span class="mf">563.7733141</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">1330.11116</span><span class="p">,</span> <span class="mf">1809.788273</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">399.1804436</span><span class="p">,</span> <span class="mf">2998.515188</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">914.7728404</span><span class="p">,</span> <span class="mf">5132.494831</span><span class="p">],</span>
+<span class="p">]</span>
+<span class="n">area_max</span> <span class="o">=</span> <span class="mf">100.0</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">maximum_area</span><span class="o">=</span><span class="n">area_max</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+<span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">vor</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">gridprops</span> <span class="o">=</span> <span class="n">vor</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.LineCollection at 0x7f7537094c40&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_15_1.png" src="../_images/Notebooks_flopy3_voronoi_15_1.png" />
+</div>
+</div>
+</section>
+<section id="Simple-Rectangular-Domain">
+<h2>Simple Rectangular Domain<a class="headerlink" href="#Simple-Rectangular-Domain" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xmin</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">xmax</span> <span class="o">=</span> <span class="mf">2.0</span>
+<span class="n">ymin</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">ymax</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">area_max</span> <span class="o">=</span> <span class="mf">0.001</span>
+<span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">maximum_area</span><span class="o">=</span><span class="n">area_max</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+<span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(((</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span> <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span> <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">),</span> <span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)))</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">vor</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">gridprops</span> <span class="o">=</span> <span class="n">vor</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.LineCollection at 0x7f753725c760&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_17_1.png" src="../_images/Notebooks_flopy3_voronoi_17_1.png" />
+</div>
+</div>
+</section>
+<section id="Circular-Grid">
+<h2>Circular Grid<a class="headerlink" href="#Circular-Grid" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">radius</span> <span class="o">=</span> <span class="mf">100.0</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+<span class="n">circle_poly</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+<span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">maximum_area</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">circle_poly</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">vor</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">gridprops</span> <span class="o">=</span> <span class="n">vor</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.LineCollection at 0x7f75366fbe80&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_19_1.png" src="../_images/Notebooks_flopy3_voronoi_19_1.png" />
+</div>
+</div>
+</section>
+<section id="Circular-Grid-with-Hole">
+<h2>Circular Grid with Hole<a class="headerlink" href="#Circular-Grid-with-Hole" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">radius</span> <span class="o">=</span> <span class="mf">30.0</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="mf">25.0</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="mf">25.0</span>
+<span class="n">inner_circle_poly</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+
+<span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">maximum_area</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">circle_poly</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">inner_circle_poly</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_hole</span><span class="p">((</span><span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">))</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">vor</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">gridprops</span> <span class="o">=</span> <span class="n">vor</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.LineCollection at 0x7f753631b040&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_21_1.png" src="../_images/Notebooks_flopy3_voronoi_21_1.png" />
+</div>
+</div>
+</section>
+<section id="Regions-with-Different-Refinement">
+<h2>Regions with Different Refinement<a class="headerlink" href="#Regions-with-Different-Refinement" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">active_domain</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)]</span>
+<span class="n">area1</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">)]</span>
+<span class="n">area2</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span> <span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]</span>
+<span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">active_domain</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">area1</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">area2</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_region</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>  <span class="c1"># point inside active domain</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_region</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>  <span class="c1"># point inside area1</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_region</span><span class="p">((</span><span class="mi">61</span><span class="p">,</span> <span class="mi">61</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># point inside area2</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">vor</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">gridprops</span> <span class="o">=</span> <span class="n">vor</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.LineCollection at 0x7f7536277790&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_23_1.png" src="../_images/Notebooks_flopy3_voronoi_23_1.png" />
+</div>
+</div>
+</section>
+<section id="Regions-with-Different-Refinement-and-Hole">
+<h2>Regions with Different Refinement and Hole<a class="headerlink" href="#Regions-with-Different-Refinement-and-Hole" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">active_domain</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)]</span>
+<span class="n">area1</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">)]</span>
+<span class="n">area2</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">70</span><span class="p">,</span> <span class="mi">70</span><span class="p">),</span> <span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">70</span><span class="p">),</span> <span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">90</span><span class="p">),</span> <span class="p">(</span><span class="mi">70</span><span class="p">,</span> <span class="mi">90</span><span class="p">)]</span>
+
+<span class="n">tri</span> <span class="o">=</span> <span class="n">Triangle</span><span class="p">(</span><span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">model_ws</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+
+<span class="c1"># requirement that active_domain is first polygon to be added</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">active_domain</span><span class="p">)</span>
+
+<span class="c1"># requirement that any holes be added next</span>
+<span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">radius</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="mf">50.0</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="mf">70.0</span>
+<span class="n">circle_poly0</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">circle_poly0</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_hole</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">))</span>
+
+<span class="c1"># Add a polygon to force cells to conform to it</span>
+<span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">radius</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="mf">70.0</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="mf">20.0</span>
+<span class="n">circle_poly1</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">circle_poly1</span><span class="p">)</span>
+<span class="c1"># tri.add_hole((70, 20))</span>
+
+<span class="c1"># add line through domain to force conforming cells</span>
+<span class="n">line</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">89</span><span class="p">,</span> <span class="mi">100</span><span class="p">)]</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+
+<span class="c1"># then regions and other polygons should follow</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">area1</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_polygon</span><span class="p">(</span><span class="n">area2</span><span class="p">)</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_region</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>  <span class="c1"># point inside active domain</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_region</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>  <span class="c1"># point inside area1</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">add_region</span><span class="p">((</span><span class="mi">70</span><span class="p">,</span> <span class="mi">70</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># point inside area2</span>
+
+<span class="n">tri</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">vor</span> <span class="o">=</span> <span class="n">VoronoiGrid</span><span class="p">(</span><span class="n">tri</span><span class="p">)</span>
+<span class="n">gridprops</span> <span class="o">=</span> <span class="n">vor</span><span class="o">.</span><span class="n">get_gridprops_vertexgrid</span><span class="p">()</span>
+<span class="n">voronoi_grid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span><span class="o">**</span><span class="n">gridprops</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">voronoi_grid</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.LineCollection at 0x7f7536451600&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/Notebooks_flopy3_voronoi_25_1.png" src="../_images/Notebooks_flopy3_voronoi_25_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="c1"># ignore PermissionError on Windows</span>
+    <span class="n">temp_dir</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="flopy3_triangle.html" class="btn btn-neutral float-left" title="Triangular mesh example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="flopy3.3_PlotCrossSection.html" class="btn btn-neutral float-right" title="Making Cross Sections of Your Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

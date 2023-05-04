@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.data.mfdata &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.data.mfdata</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.data.mfdata</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
+
+<span class="kn">from</span> <span class="nn">...datbase</span> <span class="kn">import</span> <span class="n">DataInterface</span><span class="p">,</span> <span class="n">DataType</span>
+<span class="kn">from</span> <span class="nn">...mbase</span> <span class="kn">import</span> <span class="n">ModelInterface</span>
+<span class="kn">from</span> <span class="nn">...utils</span> <span class="kn">import</span> <span class="n">datautil</span>
+<span class="kn">from</span> <span class="nn">..coordinates.modeldimensions</span> <span class="kn">import</span> <span class="n">DataDimensions</span><span class="p">,</span> <span class="n">DiscretizationType</span>
+<span class="kn">from</span> <span class="nn">..data.mfstructure</span> <span class="kn">import</span> <span class="n">DatumType</span>
+<span class="kn">from</span> <span class="nn">..mfbase</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FlopyException</span><span class="p">,</span>
+    <span class="n">MFDataException</span><span class="p">,</span>
+    <span class="n">MFInvalidTransientBlockHeaderException</span><span class="p">,</span>
+    <span class="n">VerbosityLevel</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.mfdatastorage</span> <span class="kn">import</span> <span class="n">DataStructureType</span>
+<span class="kn">from</span> <span class="nn">.mfdatautil</span> <span class="kn">import</span> <span class="n">to_string</span>
+
+
+<div class="viewcode-block" id="MFTransient"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient">[docs]</a><span class="k">class</span> <span class="nc">MFTransient</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent class for transient data.  This class contains internal objects and</span>
+<span class="sd">    methods that most end users will not need to access directly.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">        *args, **kwargs</span>
+<span class="sd">            Parameters present to support multiple child class interfaces</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _current_key : str</span>
+<span class="sd">        current key defining specific transient dataset to be accessed</span>
+<span class="sd">    _data_storage : dict</span>
+<span class="sd">        dictionary of DataStorage objects</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    add_transient_key(transient_key)</span>
+<span class="sd">        verifies the validity of the transient key about to be added</span>
+<span class="sd">    get_data_prep(transient_key)</span>
+<span class="sd">        called prior to the child class getting data.  ensures that the data</span>
+<span class="sd">        retrieved will come from the dataset of a specific transient_key</span>
+<span class="sd">    _set_data_prep(transient_key)</span>
+<span class="sd">        called prior to the child class setting data.  ensures that the data</span>
+<span class="sd">        set will go to the dataset of a specific transient_key</span>
+<span class="sd">    _get_file_entry_prep(transient_key)</span>
+<span class="sd">        called prior to the child class getting the file entry.  ensures that</span>
+<span class="sd">        the file entry only reflects the data from a specific transient_key</span>
+<span class="sd">    _load_prep(first_line, file_handle, block_header, pre_data_comments)</span>
+<span class="sd">        called prior to the child class loading data from a file.  figures out</span>
+<span class="sd">        what transient_key to store the data under</span>
+<span class="sd">    _append_list_as_record_prep(record, transient_key)</span>
+<span class="sd">        called prior to the child class appending a list to a record.  ensures</span>
+<span class="sd">        that the list gets appended to the record associated with the key</span>
+<span class="sd">        transient_key</span>
+<span class="sd">    _update_record_prep(transient_key)</span>
+<span class="sd">        called prior to the child class updating a record.  ensures that the</span>
+<span class="sd">        record being updated is the one associated with the key transient_key</span>
+<span class="sd">    get_active_key_list() : list</span>
+<span class="sd">        returns a list of the active transient keys</span>
+<span class="sd">    _verify_sp(sp_num) : bool</span>
+<span class="sd">        returns true of the stress period sp_num is within the expected range</span>
+<span class="sd">        of stress periods for this model</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="MFTransient.add_transient_key"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient.add_transient_key">[docs]</a>    <span class="k">def</span> <span class="nf">add_transient_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transient_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFTransient.update_transient_key"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient.update_transient_key">[docs]</a>    <span class="k">def</span> <span class="nf">update_transient_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_transient_key</span><span class="p">,</span> <span class="n">new_transient_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">old_transient_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">:</span>
+            <span class="c1"># replace dictionary key</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">[</span><span class="n">new_transient_key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">[</span>
+                <span class="n">old_transient_key</span>
+            <span class="p">]</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">[</span><span class="n">old_transient_key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">==</span> <span class="n">old_transient_key</span><span class="p">:</span>
+                <span class="c1"># update current key</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">new_transient_key</span></div>
+
+    <span class="k">def</span> <span class="nf">_transient_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_storage</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span> <span class="o">=</span> <span class="n">data_storage</span>
+
+<div class="viewcode-block" id="MFTransient.get_data_prep"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient.get_data_prep">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_prep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transient_key</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span>
+        <span class="k">if</span> <span class="n">transient_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">transient_key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_transient_key</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFTransient._set_data_prep"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient._set_data_prep">[docs]</a>    <span class="k">def</span> <span class="nf">_set_data_prep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transient_key</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_transient_key</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFTransient._get_file_entry_prep"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient._get_file_entry_prep">[docs]</a>    <span class="k">def</span> <span class="nf">_get_file_entry_prep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transient_key</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span></div>
+
+<div class="viewcode-block" id="MFTransient._load_prep"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient._load_prep">[docs]</a>    <span class="k">def</span> <span class="nf">_load_prep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_header</span><span class="p">):</span>
+        <span class="c1"># transient key is first non-keyword block variable</span>
+        <span class="n">transient_key</span> <span class="o">=</span> <span class="n">block_header</span><span class="o">.</span><span class="n">get_transient_key</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">MFInvalidTransientBlockHeaderException</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Invalid transient key &quot;</span><span class="si">{</span><span class="n">transient_key</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;in block &quot;</span><span class="si">{</span><span class="n">block_header</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">transient_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_transient_key</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span></div>
+
+<div class="viewcode-block" id="MFTransient._append_list_as_record_prep"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient._append_list_as_record_prep">[docs]</a>    <span class="k">def</span> <span class="nf">_append_list_as_record_prep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">transient_key</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span>
+        <span class="k">if</span> <span class="n">transient_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_transient_key</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFTransient._update_record_prep"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient._update_record_prep">[docs]</a>    <span class="k">def</span> <span class="nf">_update_record_prep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transient_key</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transient_key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verify_sp</span><span class="p">(</span><span class="n">transient_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="n">transient_key</span></div>
+
+<div class="viewcode-block" id="MFTransient.get_active_key_list"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient.get_active_key_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_active_key_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MFTransient.get_active_key_dict"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFTransient.get_active_key_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_active_key_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">key_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">key_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">key_dict</span></div>
+
+    <span class="k">def</span> <span class="nf">_verify_sp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sp_num</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;nam&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="s2">&quot;tdis&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nper&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">FlopyException</span><span class="p">(</span>
+                <span class="s2">&quot;Could not find number of stress periods (nper).&quot;</span>
+            <span class="p">)</span>
+        <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[(</span><span class="s2">&quot;tdis&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nper&quot;</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">sp_num</span> <span class="o">&lt;=</span> <span class="n">nper</span><span class="o">.</span><span class="n">get_data</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">verbosity_level</span><span class="o">.</span><span class="n">value</span>
+                <span class="o">&gt;=</span> <span class="n">VerbosityLevel</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;WARNING: Stress period value </span><span class="si">{}</span><span class="s2"> in package </span><span class="si">{}</span><span class="s2"> is &quot;</span>
+                    <span class="s2">&quot;greater than the number of stress periods defined &quot;</span>
+                    <span class="s2">&quot;in nper.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sp_num</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">())</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="MFData"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData">[docs]</a><span class="k">class</span> <span class="nc">MFData</span><span class="p">(</span><span class="n">DataInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for all data.  This class contains internal objects and methods</span>
+<span class="sd">    that most end users will not need to access directly.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sim_data : MFSimulationData</span>
+<span class="sd">        container class for all data for a MF6 simulation</span>
+<span class="sd">    structure : MFDataStructure</span>
+<span class="sd">        defines the structure of the data</span>
+<span class="sd">    enable : bool</span>
+<span class="sd">        whether this data is currently being used</span>
+<span class="sd">    path : tuple</span>
+<span class="sd">        tuple describing path to the data generally in the format (&lt;model&gt;,</span>
+<span class="sd">        &lt;package&gt;, &lt;block&gt;, &lt;data&gt;)</span>
+<span class="sd">    dimensions : DataDimensions</span>
+<span class="sd">        object used to retrieve dimension information about data</span>
+<span class="sd">    *args, **kwargs : exists to support different child class parameter sets</span>
+<span class="sd">        with extra init parameters</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _current_key : str</span>
+<span class="sd">        current key defining specific transient dataset to be accessed</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    new_simulation(sim_data)</span>
+<span class="sd">        points data object to a new simulation</span>
+<span class="sd">    layer_shape() : tuple</span>
+<span class="sd">        returns the shape of the layered dimensions</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sim_data</span><span class="p">,</span>
+        <span class="n">model_or_sim</span><span class="p">,</span>
+        <span class="n">structure</span><span class="p">,</span>
+        <span class="n">enable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># initialize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span> <span class="o">=</span> <span class="n">sim_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span> <span class="o">=</span> <span class="n">model_or_sim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">enable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repeating</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_path</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_name</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_type</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_keyword</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_dimensions</span> <span class="o">=</span> <span class="n">DataDimensions</span><span class="p">(</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">structure</span><span class="p">)</span>
+            <span class="c1"># build a unique path in the simulation dictionary</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_org_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_org_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_org_path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_structure_init</span><span class="p">()</span>
+        <span class="c1"># tie this to the simulation dictionary</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="c1"># set up model grid caching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_cached</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_model_grid</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_storage_obj</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_storage_obj</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;array&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">apply_mult</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;Model&quot;</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define dat_type in child class to use this base class&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define dtype in child class to use this base class&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">plottable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define plottable in child class to use this base class&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_cache_model_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span>
+
+    <span class="nd">@_cache_model_grid</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_cache_model_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_model_grid</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">cache_model_grid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grid_cached</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grid_cached</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cached_model_grid</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_resync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">_mg_resync</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_tas_info</span><span class="p">(</span><span class="n">tas_str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tas_str</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">lst_str</span> <span class="o">=</span> <span class="n">tas_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst_str</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">lst_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;timearrayseries&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">lst_str</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lst_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="MFData.export"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">...export</span> <span class="kn">import</span> <span class="n">utils</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">array2d</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">array2d_export</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">array3d</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">array3d_export</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">transient2d</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">transient2d_export</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">transientlist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">mflist_export</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">transient2d_export</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFData.new_simulation"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.new_simulation">[docs]</a>    <span class="k">def</span> <span class="nf">new_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span> <span class="o">=</span> <span class="n">sim_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="MFData.find_dimension_size"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.find_dimension_size">[docs]</a>    <span class="k">def</span> <span class="nf">find_dimension_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dimension_name</span><span class="p">):</span>
+        <span class="n">parent_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="o">.</span><span class="n">find_in_path</span><span class="p">(</span>
+            <span class="n">parent_path</span><span class="p">,</span> <span class="n">dimension_name</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">()]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="MFData.aux_var_names"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.aux_var_names">[docs]</a>    <span class="k">def</span> <span class="nf">aux_var_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_dimension_size</span><span class="p">(</span><span class="s2">&quot;auxnames&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFData.layer_shape"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.layer_shape">[docs]</a>    <span class="k">def</span> <span class="nf">layer_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">layer_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">data_item_structures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">layer_dims</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_dims</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data_dimensions</span><span class="o">.</span><span class="n">get_model_grid</span><span class="p">()</span><span class="o">.</span><span class="n">num_layers</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layer_dims</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">layer</span> <span class="o">==</span> <span class="s2">&quot;nlay&quot;</span><span class="p">:</span>
+                    <span class="c1"># get the layer size from the model grid</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">model_grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_dimensions</span><span class="o">.</span><span class="n">get_model_grid</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                        <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                        <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                            <span class="s2">&quot;getting model grid&quot;</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                            <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                            <span class="n">type_</span><span class="p">,</span>
+                            <span class="n">value_</span><span class="p">,</span>
+                            <span class="n">traceback_</span><span class="p">,</span>
+                            <span class="kc">None</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                            <span class="n">ex</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">model_grid</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()</span> <span class="o">==</span> <span class="n">DiscretizationType</span><span class="o">.</span><span class="n">DISU</span><span class="p">:</span>
+                        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">num_layers</span> <span class="o">=</span> <span class="n">model_grid</span><span class="o">.</span><span class="n">num_layers</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">num_layers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># search data dictionary for layer size</span>
+                    <span class="n">layer_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_dimension_size</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="s2">&quot;Unable to find the size of expected layer &quot;</span>
+                            <span class="s2">&quot;dimension </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                        <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                            <span class="s2">&quot;resolving layer dimensions&quot;</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                            <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                            <span class="n">type_</span><span class="p">,</span>
+                            <span class="n">value_</span><span class="p">,</span>
+                            <span class="n">traceback_</span><span class="p">,</span>
+                            <span class="n">message</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFData.get_description"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.get_description">[docs]</a>    <span class="k">def</span> <span class="nf">get_description</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_set</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data_set</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span>
+        <span class="k">for</span> <span class="n">data_item</span> <span class="ow">in</span> <span class="n">data_set</span><span class="o">.</span><span class="n">data_items</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">data_item</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">record</span><span class="p">:</span>
+                <span class="c1"># record within a record, recurse</span>
+                <span class="n">description</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_description</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="n">data_item</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data_item</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">description</span><span class="p">:</span>
+                        <span class="n">description</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">description</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">data_item</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">description</span> <span class="o">=</span> <span class="n">data_item</span><span class="o">.</span><span class="n">description</span>
+        <span class="k">return</span> <span class="n">description</span></div>
+
+<div class="viewcode-block" id="MFData.load"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">first_line</span><span class="p">,</span>
+        <span class="n">file_handle</span><span class="p">,</span>
+        <span class="n">block_header</span><span class="p">,</span>
+        <span class="n">pre_data_comments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">external_file_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="MFData.is_valid"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFData.is_valid">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># TODO: Implement for each data type</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_model_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_cached</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_model_grid</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="c1"># construct a new model grid</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span><span class="p">,</span> <span class="n">ModelInterface</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span><span class="p">,</span> <span class="s2">&quot;modelgrid&quot;</span>
+            <span class="p">):</span>
+                <span class="c1"># get model grid info</span>
+                <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_or_sim</span><span class="o">.</span><span class="n">modelgrid</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_cached</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_model_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># get the model grid from cache</span>
+            <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_model_grid</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span><span class="p">:</span>
+            <span class="c1"># cache the existing model grid</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cached_model_grid</span> <span class="o">=</span> <span class="n">mg</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grid_cached</span> <span class="o">=</span> <span class="n">mg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_next_grid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">mg</span>
+
+    <span class="k">def</span> <span class="nf">_structure_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_set</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data_set</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Initialize variables</span>
+            <span class="n">data_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span>
+        <span class="k">for</span> <span class="n">data_item_struct</span> <span class="ow">in</span> <span class="n">data_set</span><span class="o">.</span><span class="n">data_item_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data_item_struct</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">record</span><span class="p">:</span>
+                <span class="c1"># this is a record within a record, recurse</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_structure_init</span><span class="p">(</span><span class="n">data_item_struct</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">data_item_structures</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># data item name is a keyword to look for</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_keyword</span> <span class="o">=</span> <span class="n">data_item_struct</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">_get_constant_formatting_string</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">const_val</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">data_item_structures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">numeric_index</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">data_item_structures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">is_cellid</span>
+        <span class="p">):</span>
+            <span class="c1"># for cellid and numeric indices convert from 0 base to 1 based</span>
+            <span class="n">const_val</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">const_val</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span>
+        <span class="n">const_format</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">constant_formatting</span><span class="p">)</span>
+        <span class="n">const_format</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_string</span><span class="p">(</span>
+            <span class="n">const_val</span><span class="p">,</span>
+            <span class="n">data_type</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_dimensions</span><span class="p">,</span>
+            <span class="n">verify_data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">verify_data</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sim_data</span><span class="o">.</span><span class="n">indent_string</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">const_format</span><span class="p">)</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_get_aux_var_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aux_var_index</span><span class="p">):</span>
+        <span class="n">aux_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_dimensions</span><span class="o">.</span><span class="n">package_dim</span><span class="o">.</span><span class="n">get_aux_variables</span><span class="p">()</span>
+        <span class="c1"># TODO: Verify that this works for multi-dimensional layering</span>
+        <span class="k">return</span> <span class="n">aux_var_names</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">aux_var_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_storage_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_storage</span></div>
+
+
+<div class="viewcode-block" id="MFMultiDimVar"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdata.html#flopy.mf6.data.mfdata.MFMultiDimVar">[docs]</a><span class="k">class</span> <span class="nc">MFMultiDimVar</span><span class="p">(</span><span class="n">MFData</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sim_data</span><span class="p">,</span>
+        <span class="n">model_or_sim</span><span class="p">,</span>
+        <span class="n">structure</span><span class="p">,</span>
+        <span class="n">enable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">sim_data</span><span class="p">,</span> <span class="n">model_or_sim</span><span class="p">,</span> <span class="n">structure</span><span class="p">,</span> <span class="n">enable</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dimensions</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define dat_type in child class to use this base class&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">plottable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define plottable in child class to use this base class&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_internal_formatting_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="n">storage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_storage_obj</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">layer_storage</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">first_item</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">layer_storage</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">layer_storage</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+        <span class="n">int_format</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;INTERNAL&quot;</span><span class="p">]</span>
+        <span class="n">data_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_datum_type</span><span class="p">(</span><span class="n">return_enum_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">storage</span><span class="o">.</span><span class="n">data_structure_type</span> <span class="o">!=</span> <span class="n">DataStructureType</span><span class="o">.</span><span class="n">recarray</span><span class="p">:</span>
+            <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;FACTOR&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">layer_storage</span><span class="o">.</span><span class="n">factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">integer</span><span class="p">:</span>
+                    <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">factor</span><span class="p">)))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">factor</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">double_precision</span><span class="p">:</span>
+                    <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;1.0&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layer_storage</span><span class="o">.</span><span class="n">iprn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;IPRN&quot;</span><span class="p">)</span>
+            <span class="n">int_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">iprn</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">indent_string</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">int_format</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_external_formatting_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">ext_file_action</span><span class="p">):</span>
+        <span class="n">storage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_storage_obj</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">layer_storage</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">first_item</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">layer_storage</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">layer_storage</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+        <span class="c1"># resolve external file path</span>
+        <span class="n">file_mgmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfpath</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_dimensions</span><span class="o">.</span><span class="n">package_dim</span><span class="o">.</span><span class="n">model_dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">model_name</span>
+        <span class="n">ext_file_path</span> <span class="o">=</span> <span class="n">file_mgmt</span><span class="o">.</span><span class="n">get_updated_path</span><span class="p">(</span>
+            <span class="n">layer_storage</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">ext_file_action</span>
+        <span class="p">)</span>
+        <span class="n">layer_storage</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">datautil</span><span class="o">.</span><span class="n">clean_filename</span><span class="p">(</span><span class="n">ext_file_path</span><span class="p">)</span>
+        <span class="n">ext_format</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;OPEN/CLOSE&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">ext_file_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">storage</span><span class="o">.</span><span class="n">data_structure_type</span> <span class="o">!=</span> <span class="n">DataStructureType</span><span class="o">.</span><span class="n">recarray</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">layer_storage</span><span class="o">.</span><span class="n">factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">data_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_datum_type</span><span class="p">(</span>
+                    <span class="n">return_enum_type</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+                <span class="n">ext_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;FACTOR&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">integer</span><span class="p">:</span>
+                    <span class="n">ext_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">factor</span><span class="p">)))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ext_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">factor</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">layer_storage</span><span class="o">.</span><span class="n">binary</span><span class="p">:</span>
+            <span class="n">ext_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;(BINARY)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layer_storage</span><span class="o">.</span><span class="n">iprn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ext_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;IPRN&quot;</span><span class="p">)</span>
+            <span class="n">ext_format</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">layer_storage</span><span class="o">.</span><span class="n">iprn</span><span class="p">))</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">indent_string</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ext_format</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

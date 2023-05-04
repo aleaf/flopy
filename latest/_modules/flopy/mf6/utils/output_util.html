@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.utils.output_util &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.utils.output_util</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.utils.output_util</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">...mbase</span> <span class="kn">import</span> <span class="n">ModelInterface</span>
+<span class="kn">from</span> <span class="nn">...pakbase</span> <span class="kn">import</span> <span class="n">PackageInterface</span>
+<span class="kn">from</span> <span class="nn">...utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CellBudgetFile</span><span class="p">,</span>
+    <span class="n">HeadFile</span><span class="p">,</span>
+    <span class="n">Mf6ListBudget</span><span class="p">,</span>
+    <span class="n">Mf6Obs</span><span class="p">,</span>
+    <span class="n">ZoneBudget6</span><span class="p">,</span>
+    <span class="n">ZoneFile6</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">...utils.observationfile</span> <span class="kn">import</span> <span class="n">CsvFile</span>
+
+
+<div class="viewcode-block" id="MF6Output"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.output_util.html#flopy.mf6.utils.output_util.MF6Output">[docs]</a><span class="k">class</span> <span class="nc">MF6Output</span><span class="p">:</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class that uses meta programming to get output</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj : PackageInterface object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..modflow</span> <span class="kn">import</span> <span class="n">ModflowGwfoc</span><span class="p">,</span> <span class="n">ModflowGwtoc</span><span class="p">,</span> <span class="n">ModflowUtlobs</span>
+
+        <span class="c1"># set initial observation definitions</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;budget&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__budget</span><span class="p">,</span>
+            <span class="s2">&quot;budgetcsv&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__budgetcsv</span><span class="p">,</span>
+            <span class="s2">&quot;zonebudget&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__zonebudget</span><span class="p">,</span>
+            <span class="s2">&quot;obs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__obs</span><span class="p">,</span>
+            <span class="s2">&quot;csv&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__csv</span><span class="p">,</span>
+            <span class="s2">&quot;package_convergence&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__csv</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">delist</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;ts&quot;</span><span class="p">,</span> <span class="s2">&quot;wc&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_obj</span> <span class="o">=</span> <span class="n">obj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">simulation_data</span><span class="o">.</span><span class="n">mfpath</span><span class="o">.</span><span class="n">get_sim_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__budgetcsv</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">PackageInterface</span><span class="p">,</span> <span class="n">ModelInterface</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only mf6 PackageInterface types can be used&quot;</span><span class="p">)</span>
+
+        <span class="c1"># capture the list file for Models and for OC packages</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">ModelInterface</span><span class="p">,</span> <span class="n">ModflowGwfoc</span><span class="p">,</span> <span class="n">ModflowGwtoc</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ModelInterface</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">obj</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">model_or_sim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model_type</span>
+            <span class="n">nam_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model_nam_file</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lst</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">name_file</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="s2">&quot;options&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="s2">&quot;list&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lst</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_lst</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nam_file</span><span class="si">}</span><span class="s2">.lst&quot;</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__list</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;list()&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ModelInterface</span><span class="p">):</span>
+                <span class="k">return</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">model_or_sim</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;Model&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">model_or_sim</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">obspkg</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ModflowUtlobs</span><span class="p">):</span>
+            <span class="c1"># this is a package</span>
+            <span class="n">obspkg</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">rectype</span> <span class="o">=</span> <span class="s2">&quot;obs&quot;</span>
+
+        <span class="n">layerfiles</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">obspkg</span><span class="p">:</span>
+            <span class="c1"># skim through the dfn file</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">datasets</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="s2">&quot;options&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">datasets</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">return</span>
+
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">datasets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="s2">&quot;_filerecord&quot;</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+                        <span class="n">rectype</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">rectype</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">array</span>
+                    <span class="k">if</span> <span class="n">rectype</span> <span class="ow">in</span> <span class="n">delist</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">rectype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+                            <span class="n">layerfiles</span><span class="p">[</span><span class="n">rectype</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rectype</span><span class="p">,</span> <span class="n">methods</span><span class="p">[</span><span class="n">rectype</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="n">rectype</span> <span class="o">==</span> <span class="s2">&quot;budget&quot;</span><span class="p">:</span>
+                                <span class="nb">setattr</span><span class="p">(</span>
+                                    <span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;zonebudget&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="p">[</span><span class="s2">&quot;zonebudget&quot;</span><span class="p">]</span>
+                                <span class="p">)</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;zonebudget()&quot;</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">rectype</span> <span class="o">==</span> <span class="s2">&quot;budgetcsv&quot;</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">__budgetcsv</span> <span class="o">=</span> <span class="kc">True</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rectype</span><span class="si">}</span><span class="s2">()&quot;</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">rectype</span> <span class="o">==</span> <span class="s2">&quot;obs&quot;</span><span class="p">:</span>
+                                <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+                                <span class="k">for</span> <span class="n">ky</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="p">(</span><span class="n">ky</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]):</span>
+                                        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">ky</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;fileout&quot;</span><span class="p">:</span>
+                                            <span class="n">data</span> <span class="o">=</span> <span class="p">[[</span><span class="n">ky</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]]</span>
+                                            <span class="k">break</span>
+                                        <span class="k">elif</span> <span class="p">(</span>
+                                            <span class="nb">str</span><span class="p">(</span><span class="n">ky</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span> <span class="o">==</span> <span class="s2">&quot;continuous&quot;</span>
+                                            <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">ky</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="s2">&quot;output&quot;</span>
+                                        <span class="p">):</span>
+                                            <span class="k">if</span> <span class="p">(</span>
+                                                <span class="n">obj</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                                                    <span class="n">ky</span>
+                                                <span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                                                <span class="o">==</span> <span class="s2">&quot;fileout&quot;</span>
+                                            <span class="p">):</span>
+                                                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+                                                    <span class="p">[</span>
+                                                        <span class="n">obj</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span>
+                                                            <span class="n">ky</span>
+                                                        <span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">[</span>
+                                                            <span class="mi">0</span>
+                                                        <span class="p">][</span>
+                                                            <span class="o">-</span><span class="mi">2</span>
+                                                        <span class="p">]</span>
+                                                    <span class="p">]</span>
+                                                <span class="p">]</span>
+                                                <span class="k">break</span>
+
+                            <span class="k">if</span> <span class="n">rectype</span> <span class="o">==</span> <span class="s2">&quot;package_convergence&quot;</span><span class="p">:</span>
+                                <span class="n">rectype</span> <span class="o">=</span> <span class="s2">&quot;csv&quot;</span>
+                            <span class="n">attr_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">rectype</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="c1"># need a check for obs....</span>
+                            <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">):</span>
+                                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
+                                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                        <span class="n">attr</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="n">attr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+                                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rectype</span><span class="p">,</span> <span class="n">methods</span><span class="p">[</span><span class="n">rectype</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rectype</span><span class="si">}</span><span class="s2">()&quot;</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">data_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">attr_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">rectype</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">):</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="p">[</span><span class="n">f</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">attr</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">attr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">layerfiles</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rectype</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">layerfiles</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="k">def</span> <span class="nf">get_layerfile_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">rectype</span><span class="p">):</span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                    Method to get data from a binary layer file</span>
+
+<span class="sd">                    Parameters</span>
+<span class="sd">                    ----------</span>
+<span class="sd">                    self : MetaMF6Output</span>
+<span class="sd">                        placeholder for the self attr after setting</span>
+<span class="sd">                        as an attribute of the base class.</span>
+<span class="sd">                    f : str</span>
+<span class="sd">                        model head or other layer file</span>
+<span class="sd">                    text : str</span>
+<span class="sd">                        layer file header search string</span>
+
+<span class="sd">                    Returns</span>
+<span class="sd">                    -------</span>
+<span class="sd">                        HeadFile object</span>
+<span class="sd">                    &quot;&quot;&quot;</span>
+                    <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">f</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                            <span class="k">return</span> <span class="n">HeadFile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                            <span class="k">return</span>
+
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">rectype</span><span class="p">,</span> <span class="n">get_layerfile_data</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rectype</span><span class="si">}</span><span class="s2">()&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MF6Output.methods"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.output_util.html#flopy.mf6.utils.output_util.MF6Output.methods">[docs]</a>    <span class="k">def</span> <span class="nf">methods</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method that returns a list of available method calls</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_methods</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">obs_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get obs file names</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obs</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">csv_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get csv file names</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_csv</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">__zonebudget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">izone</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">budget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__budget</span><span class="p">()</span>
+        <span class="n">grb</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">budget</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">zonbud</span> <span class="o">=</span> <span class="n">ZoneBudget6</span><span class="p">(</span><span class="n">model_ws</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">)</span>
+            <span class="n">ZoneFile6</span><span class="p">(</span><span class="n">zonbud</span><span class="p">,</span> <span class="n">izone</span><span class="p">)</span>
+            <span class="n">zonbud</span><span class="o">.</span><span class="n">bud</span> <span class="o">=</span> <span class="n">budget</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="s2">&quot;gwf&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obj</span><span class="o">.</span><span class="n">model_or_sim</span><span class="o">.</span><span class="n">model_type</span>
+                    <span class="ow">or</span> <span class="s2">&quot;gwt&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obj</span><span class="o">.</span><span class="n">model_or_sim</span><span class="o">.</span><span class="n">model_type</span>
+                <span class="p">):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obj</span><span class="o">.</span><span class="n">package_type</span> <span class="o">==</span> <span class="s2">&quot;oc&quot;</span><span class="p">:</span>
+                        <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obj</span><span class="o">.</span><span class="n">model_or_sim</span><span class="o">.</span><span class="n">dis</span>
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="n">dis</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="s2">&quot;options&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="s2">&quot;nogrb&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span>
+                            <span class="ow">is</span> <span class="kc">None</span>
+                        <span class="p">):</span>
+                            <span class="n">grb</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dis</span><span class="o">.</span><span class="n">filename</span><span class="si">}</span><span class="s2">.grb&quot;</span>
+                            <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="n">zonbud</span><span class="o">.</span><span class="n">grb</span> <span class="o">=</span> <span class="n">grb</span>
+            <span class="k">return</span> <span class="n">zonbud</span>
+
+    <span class="k">def</span> <span class="nf">__budgetcsv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convience method to open and return a budget csv object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            flopy.utils.CsvFile object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__csv</span><span class="p">(</span><span class="n">budget</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__budget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience method to open and return a budget object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            flopy.utils.CellBudgetFile object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">budget_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">return</span> <span class="n">CellBudgetFile</span><span class="p">(</span>
+                    <span class="n">budget_file</span><span class="p">,</span>
+                    <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
+                    <span class="n">modelgrid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">modelgrid</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__obs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to read and return obs files</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str, None</span>
+<span class="sd">            observation file name, if None the first observation file</span>
+<span class="sd">            will be returned</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        flopy.utils.Mf6Obs file object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obs_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mulitfile_handler</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obs</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">obs_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">,</span> <span class="n">obs_file</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">Mf6Obs</span><span class="p">(</span><span class="n">obs_file</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">budget</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get csv file outputs</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str</span>
+<span class="sd">            csv file name path</span>
+<span class="sd">        budget : bool</span>
+<span class="sd">            boolean flag to indicate budgetcsv file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        flopy.utils.CsvFile object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">budget</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budgetcsv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">csv_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mulitfile_handler</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budgetcsv</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_csv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">csv_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mulitfile_handler</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_csv</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">csv_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">,</span> <span class="n">csv_file</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">CsvFile</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to read list files</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            Mf6ListBudget object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lst</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">list_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lst</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">Mf6ListBudget</span><span class="p">(</span><span class="n">list_file</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__mulitfile_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">flist</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to parse multiple output files of the same type</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str</span>
+<span class="sd">            file name</span>
+<span class="sd">        flist : list</span>
+<span class="sd">            list of output file names</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            file name string of valid file or first file is f is None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flist</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Multiple csv files exist, selecting first&quot;</span><span class="p">)</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">flist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">flist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">flist</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">err</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;File name not found, available files are </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">flist</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="n">flist</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">filename</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

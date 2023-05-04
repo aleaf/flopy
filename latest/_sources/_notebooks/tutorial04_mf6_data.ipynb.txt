@@ -1,0 +1,520 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "4427ab6d",
+   "metadata": {},
+   "source": [
+    "# MODFLOW 6: Time Array Series Packages\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fa1ba498",
+   "metadata": {},
+   "source": [
+    "## Introduction to Time Array Series\n",
+    "\n",
+    "Time array series can be set for any package through the `package.tas`\n",
+    "object, and each `package.tas` object has several attributes that can be set:\n",
+    "\n",
+    "| Attribute | Type | Description |\n",
+    "| :---      | :---- | :----      |\n",
+    "| package.tas.filename | str | Name of time series file to create. The default is packagename + \".tas\". |\n",
+    "| package.tas.tas_array | {double:[double]} | Array containing the time array series information for specific times. |\n",
+    "| package.tas.time_series_namerecord | str | Name by which a package references a particular time-array series. The name must be unique among all time-array series used in a package. |\n",
+    "| package.tas.interpolation_methodrecord | list (of strings) | List of interpolation methods to use for time array series. Method must be either \"stepwise\" or \"linear\". |\n",
+    "| package.tas.sfacrecord_single | float | Scale factor to multiply the time array series data column. Can only be used if there is one time series data column. |\n",
+    "\n",
+    "The following code sets up a simulation used in the time array series\n",
+    "examples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "a87c0231",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.075277Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.075004Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.082582Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.081996Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# package import\n",
+    "import os\n",
+    "from pathlib import Path\n",
+    "from tempfile import TemporaryDirectory"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "56a0cae2",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.085314Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.084800Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.142478Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.141830Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "eb8673be",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.145613Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.145080Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.840614Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.839902Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import flopy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "f6b5525a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.843811Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.843308Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.847865Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.847144Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# set up where simulation workspace will be stored\n",
+    "temp_dir = TemporaryDirectory()\n",
+    "workspace = temp_dir.name\n",
+    "name = \"tutorial04_mf6_data\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "c0d698f2",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.850607Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.850116Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.917586Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.916840Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create the Flopy simulation and tdis objects\n",
+    "sim = flopy.mf6.MFSimulation(\n",
+    "    sim_name=name, exe_name=\"mf6\", version=\"mf6\", sim_ws=workspace\n",
+    ")\n",
+    "tdis_rc = [(1.0, 1, 1.0), (10.0, 5, 1.0), (10.0, 5, 1.0), (10.0, 1, 1.0)]\n",
+    "tdis_package = flopy.mf6.modflow.mftdis.ModflowTdis(\n",
+    "    sim, time_units=\"DAYS\", nper=4, perioddata=tdis_rc\n",
+    ")\n",
+    "# create the Flopy groundwater flow (gwf) model object\n",
+    "model_nam_file = f\"{name}.nam\"\n",
+    "gwf = flopy.mf6.ModflowGwf(sim, modelname=name, model_nam_file=model_nam_file)\n",
+    "# create the flopy iterative model solver (ims) package object\n",
+    "ims = flopy.mf6.modflow.mfims.ModflowIms(sim, pname=\"ims\", complexity=\"SIMPLE\")\n",
+    "# create the discretization package\n",
+    "bot = np.linspace(-3.0, -50.0 / 3.0, 3)\n",
+    "delrow = delcol = 4.0\n",
+    "dis = flopy.mf6.modflow.mfgwfdis.ModflowGwfdis(\n",
+    "    gwf,\n",
+    "    pname=\"dis\",\n",
+    "    nogrb=True,\n",
+    "    nlay=3,\n",
+    "    nrow=101,\n",
+    "    ncol=101,\n",
+    "    delr=delrow,\n",
+    "    delc=delcol,\n",
+    "    top=0.0,\n",
+    "    botm=bot,\n",
+    ")\n",
+    "# create the initial condition (ic) and node property flow (npf) packages\n",
+    "ic_package = flopy.mf6.modflow.mfgwfic.ModflowGwfic(gwf, strt=50.0)\n",
+    "npf_package = flopy.mf6.modflow.mfgwfnpf.ModflowGwfnpf(\n",
+    "    gwf,\n",
+    "    save_flows=True,\n",
+    "    icelltype=[1, 0, 0],\n",
+    "    k=[5.0, 0.1, 4.0],\n",
+    "    k33=[0.5, 0.005, 0.1],\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "861b7fa0",
+   "metadata": {},
+   "source": [
+    "## Time Array Series Example 1\n",
+    "\n",
+    "Time array series data can be passed into the `timearrayseries` parameter on\n",
+    "construction of any package that supports time array series.  This example\n",
+    "uses the `timearrayseries` parameter to create a time array series and then\n",
+    "uses the package's `tas` property to finish the time array series setup.\n",
+    "\n",
+    "This example uses time array series data in a `RCHA` package.  The time array\n",
+    "series is built as a dictionary with the times as the keys and the recharge\n",
+    "values as the values."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "1a4ed052",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.921057Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.920543Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.924133Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.923426Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "tas = {0.0: 0.000002, 200.0: 0.0000001}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1bfb5206",
+   "metadata": {},
+   "source": [
+    "The time array series data is then passed into the `timearrayseries`\n",
+    "parameter when the `RCHA` package is constructed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "a671af74",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.926836Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.926449Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.936809Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.936084Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "WARNING: Time array series name rcharray_1 not found in any time series file\n"
+     ]
+    }
+   ],
+   "source": [
+    "rcha = flopy.mf6.modflow.mfgwfrcha.ModflowGwfrcha(\n",
+    "    gwf, timearrayseries=tas, recharge=\"TIMEARRAYSERIES rcharray_1\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f049e800",
+   "metadata": {},
+   "source": [
+    "Time array series attributes can be set by access the time array series\n",
+    "package object through the `rcha.tas` attribute."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "4b73b15e",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.939667Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.939277Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.949303Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.948687Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# finish defining the time array series properties\n",
+    "rcha.tas.time_series_namerecord = \"rcharray_1\"\n",
+    "rcha.tas.interpolation_methodrecord = \"LINEAR\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "839c3755",
+   "metadata": {},
+   "source": [
+    "The simulation is then written to files and run."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "8cfdaeca",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.952620Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.951926Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.970998Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.968930Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "writing simulation...\n",
+      "  writing simulation name file...\n",
+      "  writing simulation tdis package...\n",
+      "  writing solution package ims...\n",
+      "  writing model tutorial04_mf6_data...\n",
+      "    writing model name file...\n",
+      "    writing package dis...\n",
+      "    writing package ic...\n",
+      "    writing package npf...\n",
+      "    writing package rcha_0...\n",
+      "    writing package tas_0...\n",
+      "FloPy is using the following executable to run the model: ../../home/runner/.local/bin/modflow/mf6\n",
+      "                                   MODFLOW 6\n",
+      "                U.S. GEOLOGICAL SURVEY MODULAR HYDROLOGIC MODEL\n",
+      "                        VERSION 6.4.1 Release 12/09/2022\n",
+      "\n",
+      "   MODFLOW 6 compiled Apr 12 2023 19:02:29 with Intel(R) Fortran Intel(R) 64\n",
+      "   Compiler Classic for applications running on Intel(R) 64, Version 2021.7.0\n",
+      "                             Build 20220726_000000\n",
+      "\n",
+      "This software has been approved for release by the U.S. Geological \n",
+      "Survey (USGS). Although the software has been subjected to rigorous \n",
+      "review, the USGS reserves the right to update the software as needed \n",
+      "pursuant to further analysis and review. No warranty, expressed or \n",
+      "implied, is made by the USGS or the U.S. Government as to the \n",
+      "functionality of the software and related material nor shall the \n",
+      "fact of release constitute any such warranty. Furthermore, the \n",
+      "software is released on condition that neither the USGS nor the U.S. \n",
+      "Government shall be held liable for any damages resulting from its \n",
+      "authorized or unauthorized use. Also refer to the USGS Water \n",
+      "Resources Software User Rights Notice for complete use, copyright, \n",
+      "and distribution information.\n",
+      "\n",
+      " \n",
+      " Run start date and time (yyyy/mm/dd hh:mm:ss): 2023/05/04 15:51:12\n",
+      " \n",
+      " Writing simulation list file: mfsim.lst\n",
+      " Using Simulation name file: mfsim.nam\n",
+      " \n",
+      "\n",
+      "ERROR REPORT:\n",
+      "\n",
+      "  1.     ERROR. INVALID MODEL NAME: TUTORIAL04_MF6_DATA\n",
+      "  2.     NAME LENGTH OF 19 EXCEEDS MAXIMUM LENGTH OF 16\n",
+      "\n",
+      "UNIT ERROR REPORT:\n",
+      "\n",
+      "  1. ERROR OCCURRED WHILE READING FILE '/tmp/tmplwhn6_d9/mfsim.nam'\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "(False, [])"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sim.write_simulation()\n",
+    "sim.run_simulation()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "15c5a5b8",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.974156Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.973677Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.981701Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.981067Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# clean up for next example\n",
+    "gwf.remove_package(\"rcha\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0e94c63a",
+   "metadata": {},
+   "source": [
+    "## Time Array Series Example 2\n",
+    "\n",
+    "A time array series can be added after a package is created by calling the\n",
+    "package's `tas` attribute's `initialize` method.  Initialize allows you to\n",
+    "define all time array series attributes including file name, the time array\n",
+    "series data, name record, and method record."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "655ccffa",
+   "metadata": {},
+   "source": [
+    "First a recharge package is built."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "706e0190",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.984628Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.984052Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.990842Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.990191Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "WARNING: Time array series name rcharray_1 not found in any time series file\n"
+     ]
+    }
+   ],
+   "source": [
+    "# create recharge package with recharge pointing to a time array series\n",
+    "# not yet defined. FloPy will generate a warning that there is not yet a\n",
+    "# time series name record for recharray_1\n",
+    "rcha = flopy.mf6.modflow.mfgwfrcha.ModflowGwfrcha(\n",
+    "    gwf, recharge=\"TIMEARRAYSERIES rcharray_1\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6853c8cc",
+   "metadata": {},
+   "source": [
+    "Then a time array series dictionary is created as done in example 1."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "4bd2f655",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.993507Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.993269Z",
+     "iopub.status.idle": "2023-05-04T15:51:12.997062Z",
+     "shell.execute_reply": "2023-05-04T15:51:12.996452Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "tas = {0.0: 0.000002, 200.0: 0.0000001}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6faf4075",
+   "metadata": {},
+   "source": [
+    "The time array series data are added by calling the `initialize` method from\n",
+    "the 'RCHA' package's tas attribute.  The time array series file name, name\n",
+    "record, and method record, along with the time series data are set in the\n",
+    "`initialize` method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "ada293d1",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:12.999863Z",
+     "iopub.status.busy": "2023-05-04T15:51:12.999321Z",
+     "iopub.status.idle": "2023-05-04T15:51:13.015021Z",
+     "shell.execute_reply": "2023-05-04T15:51:13.014338Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# initialize the time array series\n",
+    "rcha.tas.initialize(\n",
+    "    filename=\"method2.tas\",\n",
+    "    tas_array=tas,\n",
+    "    time_series_namerecord=\"rcharray_1\",\n",
+    "    interpolation_methodrecord=\"LINEAR\",\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "73960f30",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:13.017978Z",
+     "iopub.status.busy": "2023-05-04T15:51:13.017421Z",
+     "iopub.status.idle": "2023-05-04T15:51:13.021797Z",
+     "shell.execute_reply": "2023-05-04T15:51:13.021168Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    temp_dir.cleanup()\n",
+    "except PermissionError:\n",
+    "    # can occur on windows: https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryDirectory\n",
+    "    pass"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

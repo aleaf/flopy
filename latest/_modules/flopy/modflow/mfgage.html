@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfgage &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfgage</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfgage</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfgage module.  Contains the ModflowGage class. Note that the user can access</span>
+<span class="sd">the ModflowGage class as `flopy.modflow.ModflowGage`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/gage.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">read_fixed_var</span><span class="p">,</span> <span class="n">write_fixed_var</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+
+
+<div class="viewcode-block" id="ModflowGage"><a class="viewcode-back" href="../../../source/flopy.modflow.mfgage.html#flopy.modflow.mfgage.ModflowGage">[docs]</a><span class="k">class</span> <span class="nc">ModflowGage</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Gage Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    numgage : int</span>
+<span class="sd">        The total number of gages included in the gage file (default is 0).</span>
+<span class="sd">    gage_data : list or numpy array</span>
+<span class="sd">        data for dataset 2a and 2b in the gage package. If a list is provided</span>
+<span class="sd">        then the list includes 2 to 3 entries (LAKE UNIT [OUTTYPE]) for each</span>
+<span class="sd">        LAK Package entry and 4 entries (GAGESEG GAGERCH UNIT OUTTYPE) for</span>
+<span class="sd">        each SFR Package entry. If a numpy array it passed each gage location</span>
+<span class="sd">        must have 4 entries, where LAK Package gages can have any value for the</span>
+<span class="sd">        second column. The numpy array can be created using the get_empty()</span>
+<span class="sd">        method available in ModflowGage. Default is None</span>
+<span class="sd">    files : list of strings</span>
+<span class="sd">        Names of gage output files. A file name must be provided for each gage.</span>
+<span class="sd">        If files are not provided and filenames=None then a gage name will be</span>
+<span class="sd">        created using the model name and the gage number (for example,</span>
+<span class="sd">        modflowtest.gage1.go). Default is None.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;gage&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and gage output names will be created using the</span>
+<span class="sd">        model name and the gage number (for example, modflowtest.gage1.go).</span>
+<span class="sd">        If a single string is passed the package will be set to the string</span>
+<span class="sd">        and gage output names will be created using the model name and the</span>
+<span class="sd">        gage number. To define the names for all gage files (input and output)</span>
+<span class="sd">        the length of the list of strings should be numgage + 1.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; gages = [[-1,  -26, 1], [-2,  -27, 1]]</span>
+<span class="sd">    &gt;&gt;&gt; files = [&#39;gage1.go&#39;, &#39;gage2.go&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; gage = flopy.modflow.ModflowGage(m, numgage=2,</span>
+<span class="sd">    &gt;&gt;&gt;                                  gage_data=gages, files=files)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">numgage</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">gage_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;gage&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowGage</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="n">numgage</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># process gage output files</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">numgage</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># check the provided file entries</span>
+            <span class="k">if</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">files</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numgage</span><span class="p">):</span>
+                        <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.gage</span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">.go&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">files</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">files</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">files</span><span class="si">}</span><span class="s2">.go&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">numgage</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="s2">&quot;a filename needs to be provided for </span><span class="si">{}</span><span class="s2"> gages - </span><span class="si">{}</span><span class="s2"> &quot;</span>
+                        <span class="s2">&quot;filenames were provided&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">numgage</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">numgage</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="s2">&quot;filenames must have a length of </span><span class="si">{}</span><span class="s2"> the length &quot;</span>
+                        <span class="s2">&quot;provided is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">numgage</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">filenames</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numgage</span><span class="p">):</span>
+                        <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filenames</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># convert gage_data to a recarray, if necessary</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gage_data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">gage_data</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">dtype</span><span class="p">:</span>
+                    <span class="n">gage_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">records</span><span class="o">.</span><span class="n">fromarrays</span><span class="p">(</span>
+                        <span class="n">gage_data</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+                    <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gage_data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">ModflowGage</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">ncells</span><span class="o">=</span><span class="n">numgage</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gage_data</span><span class="p">)):</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">gage_data</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                    <span class="n">gageloc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">gageloc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">gagerch</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="n">iu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">outtype</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="k">if</span> <span class="n">iu</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">outtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">gagerch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">iu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                        <span class="n">outtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+                    <span class="n">d</span><span class="p">[</span><span class="s2">&quot;gageloc&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">gageloc</span>
+                    <span class="n">d</span><span class="p">[</span><span class="s2">&quot;gagerch&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">gagerch</span>
+                    <span class="n">d</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">iu</span>
+                    <span class="n">d</span><span class="p">[</span><span class="s2">&quot;outtype&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">outtype</span>
+                <span class="n">gage_data</span> <span class="o">=</span> <span class="n">d</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;gage_data must be a numpy record array, numpy array &quot;</span>
+                    <span class="s2">&quot;or a list&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># add gage output files to model</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numgage</span><span class="p">):</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                    <span class="nb">abs</span><span class="p">(</span><span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]),</span>
+                    <span class="n">fname</span><span class="o">=</span><span class="n">files</span><span class="p">[</span><span class="n">n</span><span class="p">],</span>
+                    <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+                <span class="p">)</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># no heading for this format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;gage.html&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">numgage</span> <span class="o">=</span> <span class="n">numgage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">files</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gage_data</span> <span class="o">=</span> <span class="n">gage_data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ModflowGage.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.modflow.mfgage.html#flopy.modflow.mfgage.ModflowGage.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">():</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;gageloc&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;gagerch&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;outtype&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">dtype</span></div>
+
+<div class="viewcode-block" id="ModflowGage.get_empty"><a class="viewcode-back" href="../../../source/flopy.modflow.mfgage.html#flopy.modflow.mfgage.ModflowGage.get_empty">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty</span><span class="p">(</span><span class="n">ncells</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">aux_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># get an empty recarray that corresponds to dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowGage</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">ncells</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mf">1.0e10</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cells that have gages (developed for MT3DMS</span>
+<span class="sd">        SSM package). Return zero because gage is not added to SSM package.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            0</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="ModflowGage.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfgage.html#flopy.modflow.mfgage.ModflowGage.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># no heading for this format</span>
+
+        <span class="c1"># dataset 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">write_fixed_var</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">numgage</span><span class="p">],</span> <span class="n">free</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="c1"># dataset 2</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numgage</span><span class="p">):</span>
+            <span class="n">gageloc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;gageloc&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">gagerch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;gagerch&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">outtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;outtype&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="n">gageloc</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">gageloc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iu</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">iu</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outtype</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gagerch</span><span class="p">)</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iu</span><span class="p">)</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outtype</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">write_fixed_var</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="c1"># close the gage file</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowGage.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfgage.html#flopy.modflow.mfgage.ModflowGage.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str : ModflowStr object</span>
+<span class="sd">            ModflowStr object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; gage = flopy.modflow.ModflowGage.load(&#39;test.gage&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading gage package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+
+        <span class="c1"># no heading for this format</span>
+
+        <span class="c1"># read dataset 1</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   reading gage dataset 1&quot;</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">numgage</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">numgage</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">gage_data</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># read dataset 2</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   reading gage dataset 2&quot;</span><span class="p">)</span>
+
+            <span class="n">gage_data</span> <span class="o">=</span> <span class="n">ModflowGage</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">ncells</span><span class="o">=</span><span class="n">numgage</span><span class="p">)</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numgage</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">gageloc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">gageloc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">gagerch</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">iu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">outtype</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">if</span> <span class="n">iu</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">outtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">gagerch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">iu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="n">outtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;gageloc&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">gageloc</span>
+                <span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;gagerch&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">gagerch</span>
+                <span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">iu</span>
+                <span class="n">gage_data</span><span class="p">[</span><span class="s2">&quot;outtype&quot;</span><span class="p">][</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">outtype</span>
+
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="nb">abs</span><span class="p">(</span><span class="n">iu</span><span class="p">):</span>
+                        <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">iu</span><span class="p">))</span>
+                        <span class="n">relpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span>
+                            <span class="n">value</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">model_ws</span>
+                        <span class="p">)</span>
+                        <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">relpth</span><span class="p">)</span>
+                        <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">filetype</span> <span class="o">==</span> <span class="n">ModflowGage</span><span class="o">.</span><span class="n">_ftype</span><span class="p">():</span>
+                    <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">key</span>
+                    <span class="n">filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">numgage</span><span class="o">=</span><span class="n">numgage</span><span class="p">,</span>
+            <span class="n">gage_data</span><span class="o">=</span><span class="n">gage_data</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;GAGE&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">120</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

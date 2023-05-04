@@ -1,0 +1,930 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "2ec8a910",
+   "metadata": {},
+   "source": [
+    "# MODFLOW 6: Data Storage Information and Performance Optimization\n",
+    "\n",
+    "This tutorial shows the different options for storing MODFLOW data in FloPy.\n",
+    "Interaction with a FloPy MODFLOW 6 model is different from other models,\n",
+    "such as MODFLOW-2005, MT3D, and SEAWAT, for example.\n",
+    "\n",
+    "FloPy stores model data in data objects (`MFDataArray`, `MFDataList`,\n",
+    "`MFDataScalar` objects) that are accessible from packages.  Data can be\n",
+    "added to a package by using the appropriate parameters when the package is\n",
+    "constructed and through package attributes.\n",
+    "\n",
+    "The MODFLOW 6 simulation structure is arranged in the following\n",
+    "generalized way:\n",
+    "\n",
+    ">       Simulation --> Package --> DATA\n",
+    ">\n",
+    ">       Simulation --> Model --> Package (--> Package) --> DATA\n",
+    "\n",
+    "\n",
+    "This tutorial focuses on the different storage options for MODFLOW data and\n",
+    "how to optimize data storage read/write speed."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6274f0ac",
+   "metadata": {},
+   "source": [
+    "## Introduction to Data Storage Information\n",
+    "MODFLOW array and list data can either be stored internally or externally in\n",
+    "text or binary files. Additionally array data can have a factor applied to\n",
+    "them and can have a format flag/code to define how these data will be\n",
+    "formatted. This data storage information is specified within a python\n",
+    "dictionary.  The python dictionary must contain a \"data\" key where the data\n",
+    "is stored and supports several other keys that determine how and where the\n",
+    "data is stored.\n",
+    "\n",
+    "The following code sets up a basic simulation with a groundwater flow model.\n",
+    "for the example below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "f13f2adb",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:23.955094Z",
+     "iopub.status.busy": "2023-05-04T15:51:23.954703Z",
+     "iopub.status.idle": "2023-05-04T15:51:23.962941Z",
+     "shell.execute_reply": "2023-05-04T15:51:23.962278Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# package import\n",
+    "import os\n",
+    "from pathlib import Path\n",
+    "from tempfile import TemporaryDirectory"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "6bc0cf96",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:23.965902Z",
+     "iopub.status.busy": "2023-05-04T15:51:23.965290Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.024563Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.023888Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "a761cc9c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.027763Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.027195Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.746763Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.745947Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import flopy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "7bff70d9",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.749986Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.749408Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.754372Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.753734Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# set up where simulation workspace will be stored\n",
+    "temp_dir = TemporaryDirectory()\n",
+    "workspace = temp_dir.name\n",
+    "name = \"tutorial08_mf6_data\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "f0eca574",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.757115Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.756639Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.821054Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.820279Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create the FloPy simulation and tdis objects\n",
+    "sim = flopy.mf6.MFSimulation(\n",
+    "    sim_name=name, exe_name=\"mf6\", version=\"mf6\", sim_ws=workspace\n",
+    ")\n",
+    "tdis = flopy.mf6.modflow.mftdis.ModflowTdis(\n",
+    "    sim,\n",
+    "    pname=\"tdis\",\n",
+    "    time_units=\"DAYS\",\n",
+    "    nper=2,\n",
+    "    perioddata=[(1.0, 1, 1.0), (1.0, 1, 1.0)],\n",
+    ")\n",
+    "# create the Flopy groundwater flow (gwf) model object\n",
+    "model_nam_file = f\"{name}.nam\"\n",
+    "gwf = flopy.mf6.ModflowGwf(sim, modelname=name, model_nam_file=model_nam_file)\n",
+    "# create the flopy iterative model solver (ims) package object\n",
+    "ims = flopy.mf6.modflow.mfims.ModflowIms(sim, pname=\"ims\", complexity=\"SIMPLE\")\n",
+    "# create the discretization package\n",
+    "bot = np.linspace(-50.0 / 3.0, -3.0, 3)\n",
+    "delrow = delcol = 4.0\n",
+    "dis = flopy.mf6.modflow.mfgwfdis.ModflowGwfdis(\n",
+    "    gwf,\n",
+    "    pname=\"dis\",\n",
+    "    nogrb=True,\n",
+    "    nlay=3,\n",
+    "    nrow=10,\n",
+    "    ncol=10,\n",
+    "    delr=delrow,\n",
+    "    delc=delcol,\n",
+    "    top=0.0,\n",
+    "    botm=bot,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "04263b75",
+   "metadata": {},
+   "source": [
+    "## Setting up a Data Storage Information Dictionary\n",
+    "\n",
+    "To store data externally add a `filename` key to the dictionary whose\n",
+    "value is the file where you want to store the data. Add a `binary` key with\n",
+    "value True to make the file a binary file. Add a `prn` key whose value is\n",
+    "a format code to set the format code for the data. For array data add a\n",
+    "`factor` key whose value is a positive floating point number to add a\n",
+    "factor/multiplier for the array."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9e16c975",
+   "metadata": {},
+   "source": [
+    "Below a dictionary is created that defines how a `k33` array will be stored.\n",
+    "The dictionary specifies that the `k33` array be stored in the binary file\n",
+    "k33.txt with a factor of 1.0 applied to the array and a print code of 1.\n",
+    "The `k33` array data is constructed as a numpy array."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "a3714fa9",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.824674Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.824117Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.829281Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.828593Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "k33_values = np.full((3, 10, 10), 1.1)\n",
+    "k33 = {\n",
+    "    \"filename\": \"k33.txt\",\n",
+    "    \"factor\": 1.0,\n",
+    "    \"data\": k33_values,\n",
+    "    \"iprn\": 1,\n",
+    "    \"binary\": \"True\",\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2c10c10b",
+   "metadata": {},
+   "source": [
+    "The `NPF` package is then created with the `k33` array in an external binary\n",
+    "file.  This binary file is created when the simulation method\n",
+    "`write_simulation` is called."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "e9129d46",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.832201Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.831815Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.844406Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.843541Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<flopy.mf6.data.mfstructure.MFDataItemStructure object at 0x7f936d24baf0>\n",
+      "<flopy.mf6.data.mfstructure.MFDataItemStructure object at 0x7f936d24bb20>\n"
+     ]
+    }
+   ],
+   "source": [
+    "npf = flopy.mf6.ModflowGwfnpf(\n",
+    "    gwf,\n",
+    "    pname=\"npf\",\n",
+    "    save_flows=True,\n",
+    "    icelltype=[1, 1, 1],\n",
+    "    k=10.0,\n",
+    "    k22=5.0,\n",
+    "    k33=k33,\n",
+    "    xt3doptions=\"xt3d rhs\",\n",
+    "    rewet_record=\"REWET WETFCT 1.0 IWETIT 1 IHDWET 0\",\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ef9f5268",
+   "metadata": {},
+   "source": [
+    "External files can be set for specific layers of data.  If we want to store\n",
+    "the bottom elevations for the third model layer to an external file, then\n",
+    "the dictionary that we pass in for the third layer can be given a\n",
+    "\"filename\" key."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "d741868c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.847923Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.847173Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.852253Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.851604Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "a0 = {\"factor\": 0.5, \"iprn\": 1, \"data\": np.ones((10, 10))}\n",
+    "a1 = -100\n",
+    "a2 = {\n",
+    "    \"filename\": \"dis.botm.3.txt\",\n",
+    "    \"factor\": 2.0,\n",
+    "    \"iprn\": 1,\n",
+    "    \"data\": -100 * np.ones((10, 10)),\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a365ad98",
+   "metadata": {},
+   "source": [
+    "A list containing data for the three specified layers is then passed in to\n",
+    "the `botm` object's `set_record` method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "8895885b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.855104Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.854492Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.861393Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.860721Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "  botm  LAYERED\n",
+      "    INTERNAL  FACTOR  0.5  IPRN  1\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "           1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000       1.00000000\n",
+      "    CONSTANT    -100.00000000\n",
+      "    OPEN/CLOSE  'dis.botm.3.txt'  FACTOR  2.0  IPRN  1\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "dis.botm.set_record([a0, a1, a2])\n",
+    "print(dis.botm.get_file_entry())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0c1e234f",
+   "metadata": {},
+   "source": [
+    "The botm data and its attributes (filename, binary, factor, iprn) can be\n",
+    "retrieved as a dictionary of dictionaries using get_record."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "d300d740",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.864177Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.863713Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.872469Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.871763Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "botm layer 1 record:\n",
+      "{'factor': 0.5, 'iprn': 1, 'data': array([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],\n",
+      "       [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]])}\n",
+      "\n",
+      "botm layer 2 record:\n",
+      "{'factor': 1.0, 'iprn': None, 'data': array([[-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.]])}\n",
+      "\n",
+      "botm layer 3 record:\n",
+      "{'filename': 'dis.botm.3.txt', 'binary': False, 'factor': 2.0, 'iprn': 1, 'data': array([[-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.],\n",
+      "       [-100., -100., -100., -100., -100., -100., -100., -100., -100.,\n",
+      "        -100.]])}\n"
+     ]
+    }
+   ],
+   "source": [
+    "botm_record = dis.botm.get_record()\n",
+    "print(\"botm layer 1 record:\")\n",
+    "print(botm_record[0])\n",
+    "print(\"\\nbotm layer 2 record:\")\n",
+    "print(botm_record[1])\n",
+    "print(\"\\nbotm layer 3 record:\")\n",
+    "print(botm_record[2])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "72154dda",
+   "metadata": {},
+   "source": [
+    "The botm record retrieved can be modified and then saved with set_record.\n",
+    "For example, the array data's \"factor\" can be modified and saved."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "2a1a9e6b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.875117Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.874638Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.879771Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.879148Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "botm_record[0][\"factor\"] = 0.6\n",
+    "dis.botm.set_record(botm_record)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "37fa84ce",
+   "metadata": {},
+   "source": [
+    "The updated value can then be retrieved."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "e583fd9b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.882439Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.881980Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.888586Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.887937Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "botm layer 1 factor:  0.6\n"
+     ]
+    }
+   ],
+   "source": [
+    "botm_record = dis.botm.get_record()\n",
+    "print(f\"botm layer 1 factor:  {botm_record[0]['factor']}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "399850b7",
+   "metadata": {},
+   "source": [
+    "The get_record and set_record methods can also be used with list data to get\n",
+    "and set the data and its \"filename\" and \"binary\" attributes. This is\n",
+    "demonstrated with the wel package.  First, a wel package is constructed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "e1ca1f8a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.891323Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.890860Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.907495Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.906798Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "welspdict = {\n",
+    "    0: {\"filename\": \"well_sp1.txt\", \"data\": [[(0, 0, 0), 0.25]]},\n",
+    "    1: [[(0, 0, 0), 0.1]],\n",
+    "}\n",
+    "wel = flopy.mf6.ModflowGwfwel(\n",
+    "    gwf,\n",
+    "    print_input=True,\n",
+    "    print_flows=True,\n",
+    "    stress_period_data=welspdict,\n",
+    "    save_flows=False,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "eaeb7d71",
+   "metadata": {},
+   "source": [
+    "The wel stress period data and associated \"filename\" and \"binary\" attributes\n",
+    "can be retrieved with get_record."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "e87716ac",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.910765Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.910141Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.916683Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.916002Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Stress period 1 record:\n",
+      "{'filename': 'well_sp1.txt', 'binary': False, 'data': rec.array([((0, 0, 0), 0.25)],\n",
+      "          dtype=[('cellid', 'O'), ('q', '<f8')])}\n",
+      "\n",
+      "Stress period 2 record:\n",
+      "{'data': rec.array([((0, 0, 0), 0.1)],\n",
+      "          dtype=[('cellid', 'O'), ('q', '<f8')])}\n"
+     ]
+    }
+   ],
+   "source": [
+    "spd_record = wel.stress_period_data.get_record()\n",
+    "print(\"Stress period 1 record:\")\n",
+    "print(spd_record[0])\n",
+    "print(\"\\nStress period 2 record:\")\n",
+    "print(spd_record[1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8e3f73ad",
+   "metadata": {},
+   "source": [
+    "The wel data and associated attributes can be changed by modifying the\n",
+    "record and then saving it with the set_record method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "9bf0cd5a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.919483Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.919009Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.934521Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.933405Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "spd_record[0][\"filename\"] = \"well_package_sp1.txt\"\n",
+    "spd_record[0][\"binary\"] = True\n",
+    "spd_record[1][\"filename\"] = \"well_package_sp2.bin\"\n",
+    "wel.stress_period_data.set_record(spd_record)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4fa5b6f9",
+   "metadata": {},
+   "source": [
+    "The changes can be verified by calling get_record again."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "12186b8a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.938125Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.937587Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.943419Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.942687Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "New filename for stress period 1:  well_package_sp1.txt\n",
+      "New binary flag for stress period 1:  True\n",
+      "New filename for stress period 2:  well_package_sp2.bin\n"
+     ]
+    }
+   ],
+   "source": [
+    "spd_record = wel.stress_period_data.get_record()\n",
+    "print(f\"New filename for stress period 1:  {spd_record[0]['filename']}\")\n",
+    "print(f\"New binary flag for stress period 1:  {spd_record[0]['binary']}\")\n",
+    "print(f\"New filename for stress period 2:  {spd_record[1]['filename']}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c9f56aa2",
+   "metadata": {},
+   "source": [
+    "## Optimizing FloPy Performance\n",
+    "\n",
+    "By default FloPy will perform a number of verification checks on your data\n",
+    "when FloPy loads or saves that data.  For large datasets turning these\n",
+    "verification checks off can significantly improve FloPy's performance.\n",
+    "Additionally, storing files externally can help minimize the amount of data\n",
+    "FloPy reads/writes when loading and saving a simulation.  The following\n",
+    "steps will help you optimize FloPy's performance for large datasets.\n",
+    "\n",
+    "1) Turn off FloPy verification checks and FloPy's option to automatically\n",
+    "update \"maxbound\".  This can be turned off on an existing\n",
+    "simulation by either individually turning off each of these settings."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "2e4b2768",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.946300Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.945814Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.954245Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.953494Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "writing simulation...\n",
+      "  writing simulation name file...\n",
+      "  writing simulation tdis package...\n",
+      "  writing solution package ims...\n",
+      "  writing model tutorial08_mf6_data...\n",
+      "    writing model name file...\n",
+      "    writing package dis...\n",
+      "    writing package npf...\n",
+      "    writing package wel_0...\n"
+     ]
+    }
+   ],
+   "source": [
+    "sim.simulation_data.auto_set_sizes = False\n",
+    "sim.simulation_data.verify_data = False\n",
+    "sim.write_simulation()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8a7a40db",
+   "metadata": {},
+   "source": [
+    "or by setting lazy_io to True."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "2467d9b8",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.957093Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.956628Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.964654Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.963907Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "writing simulation...\n",
+      "  writing simulation name file...\n",
+      "  writing simulation tdis package...\n",
+      "  writing solution package ims...\n",
+      "  writing model tutorial08_mf6_data...\n",
+      "    writing model name file...\n",
+      "    writing package dis...\n",
+      "    writing package npf...\n",
+      "    writing package wel_0...\n"
+     ]
+    }
+   ],
+   "source": [
+    "sim.simulation_data.lazy_io = True\n",
+    "sim.write_simulation()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4c8dc67b",
+   "metadata": {},
+   "source": [
+    "These options can also be turned off when loading an existing simulation\n",
+    "or creating a new simulation by setting lazy_io to True."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "cd817e70",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.967599Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.967122Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.991471Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.990689Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "loading simulation...\n",
+      "  loading simulation name file...\n",
+      "  loading tdis package...\n",
+      "  loading model gwf6...\n",
+      "    loading package dis...\n",
+      "    loading package npf...\n",
+      "    loading package wel...\n",
+      "  loading solution package tutorial08_mf6_data...\n"
+     ]
+    }
+   ],
+   "source": [
+    "sim2 = flopy.mf6.MFSimulation.load(\n",
+    "    sim_ws=workspace,\n",
+    "    lazy_io=True,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "866f3a36",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:24.994474Z",
+     "iopub.status.busy": "2023-05-04T15:51:24.993954Z",
+     "iopub.status.idle": "2023-05-04T15:51:24.998406Z",
+     "shell.execute_reply": "2023-05-04T15:51:24.997691Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "sim3 = flopy.mf6.MFSimulation(lazy_io=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ed2af9d0",
+   "metadata": {},
+   "source": [
+    "2) Whenever possible save large datasets to external binary files.  Binary\n",
+    "files are more compact and the data will be read and written significantly\n",
+    "faster.  See MODFLOW-6 documentation for which packages and data support\n",
+    "binary files."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "96b24a26",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:25.001227Z",
+     "iopub.status.busy": "2023-05-04T15:51:25.000751Z",
+     "iopub.status.idle": "2023-05-04T15:51:25.005491Z",
+     "shell.execute_reply": "2023-05-04T15:51:25.004785Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# store all well period data in external binary files\n",
+    "spd_record[0][\"binary\"] = True\n",
+    "spd_record[1][\"binary\"] = True\n",
+    "wel.stress_period_data.set_record(spd_record)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c70ddafb",
+   "metadata": {},
+   "source": [
+    "3) For datasets that do not support binary files, save them to\n",
+    "external text files.  When loading a simulation, FloPy will always parse\n",
+    "MODFLOW-6 package files, but will not parse external text files when\n",
+    "auto_set_sizes and verify data are both set to False.  Additionally, if\n",
+    "write_simulation is later called, external files will not be re-written\n",
+    "unless either the data or the file path has changed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "03f2df9d",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:25.007999Z",
+     "iopub.status.busy": "2023-05-04T15:51:25.007755Z",
+     "iopub.status.idle": "2023-05-04T15:51:25.024763Z",
+     "shell.execute_reply": "2023-05-04T15:51:25.024047Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# store lak period data in external text files\n",
+    "period = {\n",
+    "    0: {\"filename\": \"lak_sp1.txt\", \"data\": [(0, \"STAGE\", 10.0)]},\n",
+    "    1: {\"filename\": \"lak_sp2.txt\", \"data\": [(0, \"STAGE\", 15.0)]},\n",
+    "}\n",
+    "lakpd = [(0, -2.0, 1)]\n",
+    "lakecn = [(0, 0, (0, 1, 0), \"HORIZONTAL\", 1.0, -5.0, 0.0, 10.0, 10.0)]\n",
+    "lak = flopy.mf6.ModflowGwflak(\n",
+    "    gwf,\n",
+    "    pname=\"lak-1\",\n",
+    "    nlakes=1,\n",
+    "    noutlets=0,\n",
+    "    ntables=0,\n",
+    "    packagedata=lakpd,\n",
+    "    connectiondata=lakecn,\n",
+    "    perioddata=period,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "a2a8c8dc",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:25.028236Z",
+     "iopub.status.busy": "2023-05-04T15:51:25.027740Z",
+     "iopub.status.idle": "2023-05-04T15:51:25.032565Z",
+     "shell.execute_reply": "2023-05-04T15:51:25.031937Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    temp_dir.cleanup()\n",
+    "except PermissionError:\n",
+    "    # can occur on windows: https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryDirectory\n",
+    "    pass"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.flopy_io &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.flopy_io</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.flopy_io</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module for input/output utilities</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">which</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="k">def</span> <span class="nf">_fmt_string</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    makes a formatting string for a rec-array;</span>
+<span class="sd">    given a desired float_format.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    array : np.recarray</span>
+<span class="sd">    float_format : str</span>
+<span class="sd">        formatter for floating point variable</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fmt_string : str</span>
+<span class="sd">        formatting string for writing output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fmt_string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">descr</span><span class="p">:</span>
+        <span class="n">vtype</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+            <span class="n">fmt_string</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:.0f}</span><span class="s2"> &quot;</span>
+        <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span>
+            <span class="n">fmt_string</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">float_format</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;o&quot;</span><span class="p">:</span>
+            <span class="n">fmt_string</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> &quot;</span>
+        <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;MfList error: &#39;str&#39; type found in dtype. &quot;</span>
+                <span class="s2">&quot;This gives unpredictable results when &quot;</span>
+                <span class="s2">&quot;recarray to file - change to &#39;object&#39; type&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;MfList.fmt_string error: unknown vtype in dtype:</span><span class="si">{</span><span class="n">vtype</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">fmt_string</span>
+
+
+<div class="viewcode-block" id="line_strip"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.line_strip">[docs]</a><span class="k">def</span> <span class="nf">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove comments and replace commas from input text</span>
+<span class="sd">    for a free formatted modflow input file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">        line : str</span>
+<span class="sd">            a line of text from a modflow input file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        str : line with comments removed and commas replaced</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">comment_flag</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;;&quot;</span><span class="p">,</span> <span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;!!&quot;</span><span class="p">]:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">comment_flag</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="multi_line_strip"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.multi_line_strip">[docs]</a><span class="k">def</span> <span class="nf">multi_line_strip</span><span class="p">(</span><span class="n">fobj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get next line that is not blank or is not a comment line</span>
+<span class="sd">    from a free formatted modflow input file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">        fobj : open file object</span>
+<span class="sd">            a line of text from an input file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        str : line with comments removed and commas replaced</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">fobj</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_next_line"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.get_next_line">[docs]</a><span class="k">def</span> <span class="nf">get_next_line</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the next line from a file that is not a blank line</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : filehandle</span>
+<span class="sd">        filehandle to a open file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    line : string</span>
+<span class="sd">        next non-empty line in a open file</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">line</span></div>
+
+
+<div class="viewcode-block" id="line_parse"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.line_parse">[docs]</a><span class="k">def</span> <span class="nf">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a line of text into to a list of values.  This handles the</span>
+<span class="sd">    case where a free formatted MODFLOW input file may have commas in</span>
+<span class="sd">    it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="pop_item"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.pop_item">[docs]</a><span class="k">def</span> <span class="nf">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="c1"># handle strings like this:</span>
+            <span class="c1"># &#39;-10.&#39;</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">dtype</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_fixed_var"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.write_fixed_var">[docs]</a><span class="k">def</span> <span class="nf">write_fixed_var</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ipos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    v : list, int, float, bool, or numpy array</span>
+<span class="sd">        list, int, float, bool, or numpy array containing the data to be</span>
+<span class="sd">        written to a string.</span>
+<span class="sd">    length : int</span>
+<span class="sd">        length of each column for fixed column widths. (default is 10)</span>
+<span class="sd">    ipos : list, int, or numpy array</span>
+<span class="sd">        user-provided column widths. (default is None)</span>
+<span class="sd">    free : bool</span>
+<span class="sd">        boolean indicating if a free format string should be generated.</span>
+<span class="sd">        length and ipos are not used if free is True. (default is False)</span>
+<span class="sd">    comment : str</span>
+<span class="sd">        comment string to add to the end of the string</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : str</span>
+<span class="sd">        fixed or free format string generated using user-provided data</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span>
+    <span class="n">ncol</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="c1"># construct ipos if it was not passed</span>
+    <span class="k">if</span> <span class="n">ipos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ipos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+            <span class="n">ipos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ipos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">ipos</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ipos</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="p">[</span><span class="n">ipos</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">ncol</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;user provided ipos length (</span><span class="si">{}</span><span class="s2">) should be greater than or &quot;</span>
+                <span class="s2">&quot;equal to the length of v (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ipos</span><span class="p">),</span> <span class="n">ncol</span><span class="p">)</span>
+            <span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">free</span><span class="p">:</span>
+            <span class="n">write_fmt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> &quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="n">ipos</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)):</span>
+                <span class="n">decimal</span> <span class="o">=</span> <span class="n">width</span> <span class="o">-</span> <span class="mi">6</span>
+                <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**-</span><span class="n">decimal</span><span class="p">,</span> <span class="mi">10</span><span class="o">**</span><span class="n">decimal</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">vmin</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">vmax</span><span class="p">:</span>
+                    <span class="n">ctype</span> <span class="o">=</span> <span class="s2">&quot;g&quot;</span>  <span class="c1"># default precision is 6 if not specified</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ctype</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">decimal</span><span class="si">}</span><span class="s2">f&quot;</span>
+                    <span class="c1"># evaluate if the fixed format value will exceed width</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="s2">:&gt;</span><span class="si">{</span><span class="n">width</span><span class="si">}{</span><span class="n">ctype</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">n</span><span class="p">]))</span> <span class="o">&gt;</span> <span class="n">width</span><span class="p">:</span>
+                        <span class="n">ctype</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">decimal</span><span class="si">}</span><span class="s2">g&quot;</span>  <span class="c1"># preserve precision</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)):</span>
+                <span class="n">ctype</span> <span class="o">=</span> <span class="s2">&quot;d&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ctype</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">write_fmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="s2">:&gt;</span><span class="si">{</span><span class="n">width</span><span class="si">}{</span><span class="n">ctype</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span>
+        <span class="n">out</span> <span class="o">+=</span> <span class="n">write_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">comment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  # </span><span class="si">{</span><span class="n">comment</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="read_fixed_var"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.read_fixed_var">[docs]</a><span class="k">def</span> <span class="nf">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ipos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a fixed format line using user provided data</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    line : str</span>
+<span class="sd">        text string to parse.</span>
+<span class="sd">    ncol : int</span>
+<span class="sd">        number of columns to parse from line. (default is 1)</span>
+<span class="sd">    length : int</span>
+<span class="sd">        length of each column for fixed column widths. (default is 10)</span>
+<span class="sd">    ipos : list, int, or numpy array</span>
+<span class="sd">        user-provided column widths. (default is None)</span>
+<span class="sd">    free : bool</span>
+<span class="sd">        boolean indicating if sting is free format. ncol, length, and</span>
+<span class="sd">        ipos are not used if free is True. (default is False)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : list</span>
+<span class="sd">        padded list containing data parsed from the passed text string</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">free</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># construct ipos if it was not passed</span>
+        <span class="k">if</span> <span class="n">ipos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+                <span class="n">ipos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ipos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">ipos</span> <span class="o">=</span> <span class="n">ipos</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ipos</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">ipos</span> <span class="o">=</span> <span class="p">[</span><span class="n">ipos</span><span class="p">]</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">istart</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">ivar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+            <span class="n">istop</span> <span class="o">=</span> <span class="n">istart</span> <span class="o">+</span> <span class="n">ipos</span><span class="p">[</span><span class="n">ivar</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">txt</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">istart</span> <span class="o">=</span> <span class="n">istop</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="flux_to_wel"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.flux_to_wel">[docs]</a><span class="k">def</span> <span class="nf">flux_to_wel</span><span class="p">(</span><span class="n">cbc_file</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert flux in a binary cell budget file to a wel instance</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cbc_file : (str) cell budget file name</span>
+<span class="sd">    text : (str) text string of the desired flux type (e.g. &quot;drains&quot;)</span>
+<span class="sd">    precision : (optional str) precision of the cell budget file</span>
+<span class="sd">    model : (optional) BaseModel instance.  If passed, a new ModflowWel</span>
+<span class="sd">        instance will be added to model</span>
+<span class="sd">    verbose : bool flag passed to CellBudgetFile</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    flopy.modflow.ModflowWel instance</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">..modflow</span> <span class="kn">import</span> <span class="n">Modflow</span><span class="p">,</span> <span class="n">ModflowWel</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">CellBudgetFile</span> <span class="k">as</span> <span class="n">CBF</span>
+    <span class="kn">from</span> <span class="nn">.util_list</span> <span class="kn">import</span> <span class="n">MfList</span>
+
+    <span class="n">cbf</span> <span class="o">=</span> <span class="n">CBF</span><span class="p">(</span><span class="n">cbc_file</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+    <span class="c1"># create a empty numpy array of shape (time,layer,row,col)</span>
+    <span class="n">m4d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cbf</span><span class="o">.</span><span class="n">nper</span><span class="p">,</span> <span class="n">cbf</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">cbf</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">cbf</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">m4d</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+    <span class="c1"># process the records in the cell budget file</span>
+    <span class="n">iper</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">kstpkper</span> <span class="ow">in</span> <span class="n">cbf</span><span class="o">.</span><span class="n">kstpkper</span><span class="p">:</span>
+        <span class="n">kstpkper</span> <span class="o">=</span> <span class="p">(</span><span class="n">kstpkper</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">kstpkper</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">kper</span> <span class="o">=</span> <span class="n">kstpkper</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># if we haven&#39;t visited this kper yet</span>
+        <span class="k">if</span> <span class="n">kper</span> <span class="o">!=</span> <span class="n">iper</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">cbf</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">kstpkper</span><span class="o">=</span><span class="n">kstpkper</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">arr</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">arr</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+                <span class="c1"># masked where zero</span>
+                <span class="n">arr</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">arr</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+                <span class="n">m4d</span><span class="p">[</span><span class="n">iper</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+            <span class="n">iper</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># model wasn&#39;t passed, then create a generic model</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Modflow</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
+    <span class="c1"># if model doesn&#39;t have a wel package, then make a generic one...</span>
+    <span class="c1"># need this for the from_m4d method</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">wel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ModflowWel</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="c1"># get the stress_period_data dict {kper:np recarray}</span>
+    <span class="n">sp_data</span> <span class="o">=</span> <span class="n">MfList</span><span class="o">.</span><span class="n">from_4d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;WEL&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="n">m4d</span><span class="p">})</span>
+
+    <span class="n">wel</span> <span class="o">=</span> <span class="n">ModflowWel</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="o">=</span><span class="n">sp_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">wel</span></div>
+
+
+<div class="viewcode-block" id="loadtxt"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.loadtxt">[docs]</a><span class="k">def</span> <span class="nf">loadtxt</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">use_pandas</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use pandas if it is available to load a text file</span>
+<span class="sd">    (significantly faster than n.loadtxt or genfromtxt see</span>
+<span class="sd">    https://stackoverflow.com/q/18259393/)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file : file or str</span>
+<span class="sd">        File, filename, or generator to read.</span>
+<span class="sd">    delimiter : str, optional</span>
+<span class="sd">        The string used to separate values. By default, this is any whitespace.</span>
+<span class="sd">    dtype : data-type, optional</span>
+<span class="sd">        Data-type of the resulting array</span>
+<span class="sd">    skiprows : int, optional</span>
+<span class="sd">        Skip the first skiprows lines; default: 0.</span>
+<span class="sd">    use_pandas : bool</span>
+<span class="sd">        If true, the much faster pandas.read_csv method is used.</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        Keyword arguments passed to numpy.loadtxt or pandas.read_csv.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ra : np.recarray</span>
+<span class="sd">        Numpy record array of file contents.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">import_optional_dependency</span>
+
+    <span class="c1"># test if pandas should be used, if available</span>
+    <span class="k">if</span> <span class="n">use_pandas</span><span class="p">:</span>
+        <span class="n">pd</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;pandas&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">delimiter</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;delim_whitespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;names&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;names&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+
+    <span class="c1"># if use_pandas and pd then use pandas</span>
+    <span class="k">if</span> <span class="n">use_pandas</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="n">skiprows</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">to_records</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># default use of numpy</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="n">skiprows</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_url_text"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.get_url_text">[docs]</a><span class="k">def</span> <span class="nf">get_url_text</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">error_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get text from a url.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">urllib.request</span> <span class="kn">import</span> <span class="n">urlopen</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">urlobj</span> <span class="o">=</span> <span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">urlobj</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">text</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">error_msg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="ulstrd"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.ulstrd">[docs]</a><span class="k">def</span> <span class="nf">ulstrd</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nlist</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">sfac_columns</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a list and allow for open/close, binary, external, sfac, etc.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : file handle</span>
+<span class="sd">        file handle for where the list is being read from</span>
+<span class="sd">    nlist : int</span>
+<span class="sd">        size of the list (number of rows) to read</span>
+<span class="sd">    ra : np.recarray</span>
+<span class="sd">        A record array of the correct size that will be filled with the list</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">        which this package will be added.</span>
+<span class="sd">    sfac_columns : list</span>
+<span class="sd">        A list of strings containing the column names to scale by sfac</span>
+<span class="sd">    ext_unit_dict : dictionary, optional</span>
+<span class="sd">        If the list in the file is specified using EXTERNAL,</span>
+<span class="sd">        then in this case ext_unit_dict is required, which can be</span>
+<span class="sd">        constructed using the function</span>
+<span class="sd">        :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># initialize variables</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="n">sfac</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">ncol</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ra</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+    <span class="n">line_list</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">close_the_file</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">file_handle</span> <span class="o">=</span> <span class="n">f</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span>
+
+    <span class="c1"># check for external</span>
+    <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;external&quot;</span><span class="p">):</span>
+        <span class="n">inunit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line_list</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">errmsg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Could not find a file for unit </span><span class="si">{</span><span class="n">inunit</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">inunit</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="p">:</span>
+                <span class="n">namdata</span> <span class="o">=</span> <span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">inunit</span><span class="p">]</span>
+                <span class="n">file_handle</span> <span class="o">=</span> <span class="n">namdata</span><span class="o">.</span><span class="n">filehandle</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errmsg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errmsg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">namdata</span><span class="o">.</span><span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;DATA(BINARY)&quot;</span><span class="p">:</span>
+            <span class="n">binary</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">binary</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">file_handle</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="c1"># or check for open/close</span>
+    <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;open/close&quot;</span><span class="p">):</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">fname</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">fname</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="o">*</span><span class="n">raw</span><span class="p">)</span>
+        <span class="n">oc_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Package.load() error: open/close filename </span><span class="si">{</span><span class="n">oc_filename</span><span class="si">}</span><span class="s2"> not found&quot;</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">oc_filename</span><span class="p">),</span> <span class="n">msg</span>
+        <span class="k">if</span> <span class="s2">&quot;(binary)&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">binary</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;rb&quot;</span>
+        <span class="n">file_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">oc_filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+        <span class="n">close_the_file</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">binary</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">file_handle</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="c1"># check for scaling factor</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">binary</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;sfac&quot;</span><span class="p">):</span>
+            <span class="n">line_list</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">sfac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line_list</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">file_handle</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="c1"># fast binary read fromfile</span>
+    <span class="k">if</span> <span class="n">binary</span><span class="p">:</span>
+        <span class="n">dtype2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ra</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="n">dtype2</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype2</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">file_handle</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype2</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">nlist</span><span class="p">)</span>
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ra</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">ra</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+
+    <span class="c1"># else, read ascii</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlist</span><span class="p">):</span>
+            <span class="c1"># first line was already read</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">file_handle</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">:</span>
+                <span class="c1"># whitespace separated</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">ncol</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="p">(</span><span class="n">ncol</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="o">*</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[:</span><span class="n">ncol</span><span class="p">]</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">ra</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># fixed format</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="n">ncol</span><span class="p">)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">ra</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+
+    <span class="c1"># scale the data and check</span>
+    <span class="k">for</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">sfac_columns</span><span class="p">:</span>
+        <span class="n">ra</span><span class="p">[</span><span class="n">column_name</span><span class="p">]</span> <span class="o">*=</span> <span class="n">sfac</span>
+        <span class="k">if</span> <span class="s2">&quot;auxsfac&quot;</span> <span class="ow">in</span> <span class="n">ra</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="n">ra</span><span class="p">[</span><span class="n">column_name</span><span class="p">]</span> <span class="o">*=</span> <span class="n">ra</span><span class="p">[</span><span class="s2">&quot;auxsfac&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">close_the_file</span><span class="p">:</span>
+        <span class="n">file_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">ra</span></div>
+
+
+<div class="viewcode-block" id="get_ts_sp"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.get_ts_sp">[docs]</a><span class="k">def</span> <span class="nf">get_ts_sp</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reader method to get time step and stress period numbers from</span>
+<span class="sd">    list files and Modflow other output files</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    line : str</span>
+<span class="sd">        line containing information about the stress period and time step.</span>
+<span class="sd">        The line must contain &quot;STRESS PERIOD   &lt;x&gt; TIME STEP   &lt;y&gt;&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        tuple of stress period and time step numbers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get rid of nasty things</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="n">searchstring</span> <span class="o">=</span> <span class="s2">&quot;TIME STEP&quot;</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">searchstring</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">searchstring</span><span class="p">)</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">idx</span><span class="p">:])</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">searchstring</span> <span class="o">=</span> <span class="s2">&quot;STRESS PERIOD&quot;</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">searchstring</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">searchstring</span><span class="p">)</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">idx</span><span class="p">:])</span>
+    <span class="n">sp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span></div>
+
+
+<div class="viewcode-block" id="relpath_safe"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.relpath_safe">[docs]</a><span class="k">def</span> <span class="nf">relpath_safe</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span>
+    <span class="n">start</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">curdir</span><span class="p">,</span>
+    <span class="n">scrub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a relative version of the path starting at the given start path.</span>
+<span class="sd">    This is impossible on Windows if the paths are on different drives, in</span>
+<span class="sd">    which case the absolute path is returned. The builtin os.path.relpath</span>
+<span class="sd">    raises a ValueError, this method is a workaround to avoid interrupting</span>
+<span class="sd">    normal control flow (background at https://bugs.python.org/issue7195).</span>
+
+<span class="sd">    This method also truncates/obfuscates absolute paths with usernames.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str or PathLike</span>
+<span class="sd">        the path to truncate relative to the start path</span>
+<span class="sd">    start : str or PathLike, default &quot;.&quot;</span>
+<span class="sd">        the starting path, defaults to the current working directory</span>
+<span class="sd">    scrub : bool, default False</span>
+<span class="sd">        whether to remove the current login name from paths</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        str : the relative path, unless the platform is Windows and the `path`</span>
+<span class="sd">        is not on the same drive as `start`, in which case the absolute path,</span>
+<span class="sd">        with elements before and including usernames removed and obfuscated</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">start</span> <span class="o">==</span> <span class="n">os</span><span class="o">.</span><span class="n">curdir</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Windows&quot;</span><span class="p">:</span>
+        <span class="n">pa</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">sa</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">pd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitdrive</span><span class="p">(</span><span class="n">pa</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitdrive</span><span class="p">(</span><span class="n">sa</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">pd</span> <span class="o">!=</span> <span class="n">sd</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">start</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">scrub_login</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">if</span> <span class="n">scrub</span> <span class="k">else</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="scrub_login"><a class="viewcode-back" href="../../../source/flopy.utils.flopy_io.html#flopy.utils.flopy_io.scrub_login">[docs]</a><span class="k">def</span> <span class="nf">scrub_login</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove the current login name from the given string,</span>
+<span class="sd">    replacing any occurences with &quot;***&quot;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    s : str</span>
+<span class="sd">        the input string</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        the string with login name obfuscated</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">login</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getlogin</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">login</span><span class="p">,</span> <span class="s2">&quot;***&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+        <span class="c1"># OSError is possible in CI, e.g. &#39;No such device or address&#39;</span>
+        <span class="k">return</span> <span class="n">s</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

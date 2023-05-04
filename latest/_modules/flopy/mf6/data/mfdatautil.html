@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.data.mfdatautil &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.data.mfdatautil</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.data.mfdatautil</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">...utils.datautil</span> <span class="kn">import</span> <span class="n">DatumUtil</span><span class="p">,</span> <span class="n">PyListUtil</span>
+<span class="kn">from</span> <span class="nn">..mfbase</span> <span class="kn">import</span> <span class="n">FlopyException</span><span class="p">,</span> <span class="n">MFDataException</span>
+<span class="kn">from</span> <span class="nn">.mfstructure</span> <span class="kn">import</span> <span class="n">DatumType</span>
+
+
+<div class="viewcode-block" id="iterable"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.iterable">[docs]</a><span class="k">def</span> <span class="nf">iterable</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">any_iterator</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">any_iterator</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">my_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">te</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_first_val"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.get_first_val">[docs]</a><span class="k">def</span> <span class="nf">get_first_val</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+    <span class="k">while</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">arr</span></div>
+
+
+<div class="viewcode-block" id="cellids_equal"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.cellids_equal">[docs]</a><span class="k">def</span> <span class="nf">cellids_equal</span><span class="p">(</span><span class="n">cellid_1</span><span class="p">,</span> <span class="n">cellid_2</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cellid_1</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cellid_2</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">id1</span><span class="p">,</span> <span class="n">id2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">cellid_1</span><span class="p">,</span> <span class="n">cellid_2</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">id1</span> <span class="o">!=</span> <span class="n">id2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<span class="c1"># convert_data(data, type) : type</span>
+<span class="c1">#    converts data &quot;data&quot; to type &quot;type&quot; and returns the converted data</span>
+<div class="viewcode-block" id="convert_data"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.convert_data">[docs]</a><span class="k">def</span> <span class="nf">convert_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">data_dimensions</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">data_item</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sub_amt</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">double_precision</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data_item</span><span class="o">.</span><span class="n">support_negative_index</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">PyListUtil</span><span class="o">.</span><span class="n">clean_numeric</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="o">-</span><span class="mf">0.0</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mf">0.0</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s1">&#39;Data &quot;</span><span class="si">{}</span><span class="s1">&quot; with value &quot;</span><span class="si">{}</span><span class="s1">&quot; can &#39;</span>
+                    <span class="s2">&quot;not be converted to float&quot;</span>
+                    <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                    <span class="s2">&quot;converting data&quot;</span><span class="p">,</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                    <span class="n">type_</span><span class="p">,</span>
+                    <span class="n">value_</span><span class="p">,</span>
+                    <span class="n">traceback_</span><span class="p">,</span>
+                    <span class="n">message</span><span class="p">,</span>
+                    <span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="c1"># fix any scientific formatting that python can&#39;t handle</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">PyListUtil</span><span class="o">.</span><span class="n">clean_numeric</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s1">&#39;Data &quot;</span><span class="si">{}</span><span class="s1">&quot; with value &quot;</span><span class="si">{}</span><span class="s1">&quot; can &#39;</span>
+                        <span class="s2">&quot;not be converted to float&quot;</span>
+                        <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                    <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                        <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                        <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                        <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                        <span class="s2">&quot;converting data&quot;</span><span class="p">,</span>
+                        <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                        <span class="n">type_</span><span class="p">,</span>
+                        <span class="n">value_</span><span class="p">,</span>
+                        <span class="n">traceback_</span><span class="p">,</span>
+                        <span class="n">message</span><span class="p">,</span>
+                        <span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">integer</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data_item</span><span class="o">.</span><span class="n">numeric_index</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">PyListUtil</span><span class="o">.</span><span class="n">clean_numeric</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="o">-</span> <span class="n">sub_amt</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">PyListUtil</span><span class="o">.</span><span class="n">clean_numeric</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s1">&#39;Data &quot;</span><span class="si">{}</span><span class="s1">&quot; with value &quot;</span><span class="si">{}</span><span class="s1">&quot; can not be &#39;</span>
+                    <span class="s2">&quot;converted to int&quot;</span>
+                    <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                    <span class="s2">&quot;converting data&quot;</span><span class="p">,</span>
+                    <span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                    <span class="n">type_</span><span class="p">,</span>
+                    <span class="n">value_</span><span class="p">,</span>
+                    <span class="n">traceback_</span><span class="p">,</span>
+                    <span class="n">message</span><span class="p">,</span>
+                    <span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">string</span> <span class="ow">and</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">data_item</span><span class="o">.</span><span class="n">preserve_case</span><span class="p">:</span>
+            <span class="c1"># keep strings lower case</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="to_string"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.to_string">[docs]</a><span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span>
+    <span class="n">val</span><span class="p">,</span>
+    <span class="n">data_type</span><span class="p">,</span>
+    <span class="n">sim_data</span><span class="p">,</span>
+    <span class="n">data_dim</span><span class="p">,</span>
+    <span class="n">is_cellid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">possible_cellid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">data_item</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verify_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">double_precision</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data_item</span><span class="o">.</span><span class="n">support_negative_index</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&gt;d&quot;</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                    <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x80\x00\x00\x00\x00\x00\x00\x00</span><span class="s2">&quot;</span>
+                <span class="p">):</span>
+                    <span class="c1"># value is negative zero</span>
+                    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># value is positive zero</span>
+                    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">abs_val</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">abs_val</span> <span class="o">&gt;</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">_sci_note_upper_thres</span>
+                <span class="ow">or</span> <span class="n">abs_val</span> <span class="o">&lt;</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">_sci_note_lower_thres</span>
+            <span class="p">)</span> <span class="ow">and</span> <span class="n">abs_val</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">reg_format_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">sci_format_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">is_cellid</span> <span class="ow">or</span> <span class="p">(</span><span class="n">possible_cellid</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">DatumUtil</span><span class="o">.</span><span class="n">is_int</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+            <span class="c1"># handle case that cellid is &#39;none&#39;</span>
+            <span class="k">return</span> <span class="n">val</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">verify_data</span>
+            <span class="ow">and</span> <span class="n">is_cellid</span>
+            <span class="ow">and</span> <span class="n">data_dim</span><span class="o">.</span><span class="n">get_model_dim</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">model_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">model_grid</span> <span class="o">=</span> <span class="n">data_dim</span><span class="o">.</span><span class="n">get_model_grid</span><span class="p">()</span>
+            <span class="n">cellid_size</span> <span class="o">=</span> <span class="n">model_grid</span><span class="o">.</span><span class="n">get_num_spatial_coordinates</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">!=</span> <span class="n">cellid_size</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s1">&#39;Cellid &quot;</span><span class="si">{}</span><span class="s1">&quot; contains </span><span class="si">{}</span><span class="s1"> integer(s). Expected a&#39;</span>
+                    <span class="s2">&quot; cellid containing </span><span class="si">{}</span><span class="s2"> integer(s) for grid type&quot;</span>
+                    <span class="s2">&quot; </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">val</span><span class="p">,</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">),</span>
+                        <span class="n">cellid_size</span><span class="p">,</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">model_grid</span><span class="o">.</span><span class="n">grid_type</span><span class="p">()),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                    <span class="n">data_dim</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                    <span class="n">data_dim</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                    <span class="n">data_dim</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                    <span class="s2">&quot;converting cellid to string&quot;</span><span class="p">,</span>
+                    <span class="n">data_dim</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                    <span class="n">type_</span><span class="p">,</span>
+                    <span class="n">value_</span><span class="p">,</span>
+                    <span class="n">traceback_</span><span class="p">,</span>
+                    <span class="n">message</span><span class="p">,</span>
+                    <span class="n">sim_data</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="n">string_val</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">string_val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                <span class="n">string_val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">string_val</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">integer</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data_item</span><span class="o">.</span><span class="n">numeric_index</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">DatumType</span><span class="o">.</span><span class="n">string</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">arr_val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr_val</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># quote any string with spaces</span>
+            <span class="n">string_val</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data_item</span><span class="o">.</span><span class="n">ucase</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">string_val</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">string_val</span>
+    <span class="k">if</span> <span class="n">data_item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data_item</span><span class="o">.</span><span class="n">ucase</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataSearchOutput"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.DataSearchOutput">[docs]</a><span class="k">class</span> <span class="nc">DataSearchOutput</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_header</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_to_data</span> <span class="o">=</span> <span class="n">path_to_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_header</span> <span class="o">=</span> <span class="n">data_header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_entry_ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_entry_cellids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_entry_stress_period</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_entries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">transient</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_entry_stress_period</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_entry_stress_period</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="MFComment"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFComment">[docs]</a><span class="k">class</span> <span class="nc">MFComment</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a variable in a MF6 input file</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    comment : string or list</span>
+<span class="sd">        comment to be displayed in output file</span>
+<span class="sd">    path : string</span>
+<span class="sd">        tuple representing location in the output file</span>
+<span class="sd">    line_number : integer</span>
+<span class="sd">        line number to display comment in output file</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    comment : string or list</span>
+<span class="sd">        comment to be displayed in output file</span>
+<span class="sd">    path : string</span>
+<span class="sd">        tuple representing location in the output file</span>
+<span class="sd">    line_number : integer</span>
+<span class="sd">        line number to display comment in output file</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    write : (file)</span>
+<span class="sd">        writes the comment to file</span>
+<span class="sd">    add_text(additional_text)</span>
+<span class="sd">        adds text to the comment</span>
+<span class="sd">    get_file_entry(eoln_suffix=True)</span>
+<span class="sd">        returns the comment text in the format to write to package files</span>
+<span class="sd">    is_empty(include_whitespace=True)</span>
+<span class="sd">        checks to see if comment is just an empty string &#39;&#39;.  if</span>
+<span class="sd">        include_whitespace is set to false a string with only whitespace is</span>
+<span class="sd">        considered empty</span>
+<span class="sd">    is_comment(text, include_empty_line=False) : bool</span>
+<span class="sd">        returns true if text is a comment.  an empty line is considered a</span>
+<span class="sd">        comment if include_empty_line is true.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comment</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">sim_data</span><span class="p">,</span> <span class="n">line_number</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">comment</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">comment</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">comment</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">FlopyException</span><span class="p">(</span>
+                <span class="s1">&#39;Comment &quot;</span><span class="si">{}</span><span class="s1">&quot; not valid.  Comment must be &#39;</span>
+                <span class="s2">&quot;of type str of list.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">comment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line_number</span> <span class="o">=</span> <span class="n">line_number</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span> <span class="o">=</span> <span class="n">sim_data</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add text to the comment string.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    additional_text: string</span>
+<span class="sd">        text to add</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MFComment.add_text"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFComment.add_text">[docs]</a>    <span class="k">def</span> <span class="nf">add_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">additional_text</span><span class="p">,</span> <span class="n">new_line</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">additional_text</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">additional_text</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">new_line</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="si">}{</span><span class="n">additional_text</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">additional_text</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the comment text in the format to write to package files.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eoln_suffix: boolean</span>
+<span class="sd">        have comment text end with end of line character</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    string : comment text</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MFComment.get_file_entry"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFComment.get_file_entry">[docs]</a>    <span class="k">def</span> <span class="nf">get_file_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eoln_suffix</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">file_entry</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">comments_on</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">file_entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursive_get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                    <span class="n">file_entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span>
+            <span class="k">if</span> <span class="n">eoln_suffix</span><span class="p">:</span>
+                <span class="n">file_entry</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_entry</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">file_entry</span></div>
+
+    <span class="k">def</span> <span class="nf">_recursive_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_list</span><span class="p">):</span>
+        <span class="n">file_entry</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">base_list</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">comments_on</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">base_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">file_entry</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_entry</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recursive_get</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">file_entry</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_entry</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">file_entry</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the comment text to a file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fd : file</span>
+<span class="sd">        file to write to</span>
+<span class="sd">    eoln_suffix: boolean</span>
+<span class="sd">        have comment text end with end of line character</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MFComment.write"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFComment.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">eoln_suffix</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">comments_on</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_recursive_write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                    <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">eoln_suffix</span><span class="p">:</span>
+                <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check for comment text</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    include_whitespace : boolean</span>
+<span class="sd">        include whitespace as text</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    boolean : True if comment text exists</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MFComment.is_empty"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFComment.is_empty">[docs]</a>    <span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">include_whitespace</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">():</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check text to see if it is valid comment text</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text : string</span>
+<span class="sd">        potential comment text</span>
+<span class="sd">    include_empty_line : boolean</span>
+<span class="sd">        allow empty line to be valid</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    boolean : True if text is valid comment text</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MFComment.is_comment"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFComment.is_comment">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_comment</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">include_empty_line</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">include_empty_line</span>
+        <span class="k">if</span> <span class="n">text</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># look for comment mark in first item of list</span>
+            <span class="n">text_clean</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">text_clean</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">include_empty_line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">text_clean</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">text_clean</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">text_clean</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span>
+            <span class="ow">or</span> <span class="n">text_clean</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;!&quot;</span>
+            <span class="ow">or</span> <span class="n">text_clean</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;//&quot;</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="c1"># recursively writes a nested list to a file</span>
+    <span class="k">def</span> <span class="nf">_recursive_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">base_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">base_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">base_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_recursive_write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TemplateGenerator"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.TemplateGenerator">[docs]</a><span class="k">class</span> <span class="nc">TemplateGenerator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for building a data template for different data types.</span>
+<span class="sd">    This is a generic class that is initialized with a path that identifies</span>
+<span class="sd">    the data to be built.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : string</span>
+<span class="sd">        tuple containing path of data is described in dfn files</span>
+<span class="sd">        (&lt;model&gt;,&lt;package&gt;,&lt;block&gt;,&lt;data name&gt;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_get_data_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..coordinates</span> <span class="kn">import</span> <span class="n">modeldimensions</span>
+        <span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">mfstructure</span>
+
+        <span class="c1"># get structure info</span>
+        <span class="n">sim_struct</span> <span class="o">=</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">MFStructure</span><span class="p">()</span><span class="o">.</span><span class="n">sim_struct</span>
+        <span class="n">package_struct</span> <span class="o">=</span> <span class="n">sim_struct</span><span class="o">.</span><span class="n">get_data_structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># get dimension info</span>
+        <span class="n">data_struct</span> <span class="o">=</span> <span class="n">sim_struct</span><span class="o">.</span><span class="n">get_data_structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">package_dim</span> <span class="o">=</span> <span class="n">modeldimensions</span><span class="o">.</span><span class="n">PackageDimensions</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">dimensions</span><span class="p">],</span> <span class="n">package_struct</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">data_struct</span><span class="p">,</span>
+            <span class="n">modeldimensions</span><span class="o">.</span><span class="n">DataDimensions</span><span class="p">(</span><span class="n">package_dim</span><span class="p">,</span> <span class="n">data_struct</span><span class="p">),</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="TemplateGenerator.build_type_header"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.TemplateGenerator.build_type_header">[docs]</a>    <span class="k">def</span> <span class="nf">build_type_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ds_type</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..data.mfdatastorage</span> <span class="kn">import</span> <span class="n">DataStorageType</span>
+
+        <span class="k">if</span> <span class="n">ds_type</span> <span class="o">==</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ArrayTemplateGenerator</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;factor&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;iprn&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">ds_type</span> <span class="o">==</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_constant</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">elif</span> <span class="n">ds_type</span> <span class="o">==</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">external_file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;factor&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;iprn&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="ArrayTemplateGenerator"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.ArrayTemplateGenerator">[docs]</a><span class="k">class</span> <span class="nc">ArrayTemplateGenerator</span><span class="p">(</span><span class="n">TemplateGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class that builds a data template for MFArrays.  This is a generic class</span>
+<span class="sd">    that is initialized with a path that identifies the data to be built.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : string</span>
+<span class="sd">        tuple containing path of data is described in dfn files</span>
+<span class="sd">        (&lt;model&gt;,&lt;package&gt;,&lt;block&gt;,&lt;data name&gt;)</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    empty: (model: MFModel, layered: bool, data_storage_type_list: bool,</span>
+<span class="sd">            default_value: int/float) : variable</span>
+<span class="sd">        Builds a template for the data you need to specify for a specific data</span>
+<span class="sd">        type (ie. &quot;hk&quot;) in a specific model.  The data type and dimensions</span>
+<span class="sd">        is determined by &quot;path&quot; during initialization of this class and the</span>
+<span class="sd">        model is passed in to this method as the &quot;model&quot; parameter.  If the</span>
+<span class="sd">        data is transient a dictionary containing a single stress period</span>
+<span class="sd">        will be returned.  If &quot;layered&quot; is set to true, data will be returned</span>
+<span class="sd">        as a list ndarrays, one for each layer.  data_storage_type_list is a</span>
+<span class="sd">        list of DataStorageType, one type for each layer.  If &quot;default_value&quot;</span>
+<span class="sd">        is specified the data template will be populated with that value,</span>
+<span class="sd">        otherwise each ndarray in the data template will be populated with</span>
+<span class="sd">        np.empty (0 or 0.0 if the DataStorageType is a constant).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ArrayTemplateGenerator.empty"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.ArrayTemplateGenerator.empty">[docs]</a>    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">layered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">data_storage_type_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">mfdatastorage</span><span class="p">,</span> <span class="n">mfstructure</span>
+        <span class="kn">from</span> <span class="nn">..data.mfdatastorage</span> <span class="kn">import</span> <span class="n">DataStorageType</span><span class="p">,</span> <span class="n">DataStructureType</span>
+
+        <span class="c1"># get the expected dimensions of the data</span>
+        <span class="n">data_struct</span><span class="p">,</span> <span class="n">data_dimensions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_dimensions</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">datum_type</span> <span class="o">=</span> <span class="n">data_struct</span><span class="o">.</span><span class="n">get_datum_type</span><span class="p">()</span>
+        <span class="n">data_type</span> <span class="o">=</span> <span class="n">data_struct</span><span class="o">.</span><span class="n">get_datatype</span><span class="p">()</span>
+        <span class="c1"># build a temporary data storage object</span>
+        <span class="n">data_storage</span> <span class="o">=</span> <span class="n">mfdatastorage</span><span class="o">.</span><span class="n">DataStorage</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">simulation_data</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">data_dimensions</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span><span class="p">,</span>
+            <span class="n">DataStructureType</span><span class="o">.</span><span class="n">recarray</span><span class="p">,</span>
+            <span class="n">data_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">dimension_list</span> <span class="o">=</span> <span class="n">data_storage</span><span class="o">.</span><span class="n">get_data_dimensions</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># if layered data</span>
+        <span class="k">if</span> <span class="n">layered</span> <span class="ow">and</span> <span class="n">dimension_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">data_storage_type_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_storage_type_list</span><span class="p">)</span> <span class="o">!=</span> <span class="n">dimension_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">comment</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;data_storage_type_list specified with the &quot;</span>
+                    <span class="s2">&quot;wrong size.  Size </span><span class="si">{}</span><span class="s2"> but expected to be &quot;</span>
+                    <span class="s2">&quot;the same as the number of layers, &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">data_storage_type_list</span><span class="p">),</span> <span class="n">dimension_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+
+                <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                    <span class="n">data_struct</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                    <span class="n">data_struct</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                    <span class="n">data_struct</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                    <span class="s2">&quot;generating array template&quot;</span><span class="p">,</span>
+                    <span class="n">data_struct</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                    <span class="n">type_</span><span class="p">,</span>
+                    <span class="n">value_</span><span class="p">,</span>
+                    <span class="n">traceback_</span><span class="p">,</span>
+                    <span class="n">comment</span><span class="p">,</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">simulation_data</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="c1"># build each layer</span>
+            <span class="n">data_with_header</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dimension_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="c1"># determine storage type</span>
+                <span class="k">if</span> <span class="n">data_storage_type_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">data_storage_type</span> <span class="o">=</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data_storage_type</span> <span class="o">=</span> <span class="n">data_storage_type_list</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+                <span class="c1"># build data type header</span>
+                <span class="n">data_with_header</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_build_layer</span><span class="p">(</span>
+                        <span class="n">datum_type</span><span class="p">,</span>
+                        <span class="n">data_storage_type</span><span class="p">,</span>
+                        <span class="n">default_value</span><span class="p">,</span>
+                        <span class="n">dimension_list</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">data_storage_type_list</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="ow">or</span> <span class="n">data_storage_type_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span>
+            <span class="p">):</span>
+                <span class="n">data_storage_type</span> <span class="o">=</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data_storage_type</span> <span class="o">=</span> <span class="n">data_storage_type_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># build data type header</span>
+            <span class="n">data_with_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_layer</span><span class="p">(</span>
+                <span class="n">datum_type</span><span class="p">,</span>
+                <span class="n">data_storage_type</span><span class="p">,</span>
+                <span class="n">default_value</span><span class="p">,</span>
+                <span class="n">dimension_list</span><span class="p">,</span>
+                <span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># if transient/multiple list</span>
+        <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">array_transient</span><span class="p">:</span>
+            <span class="c1"># Return as dictionary</span>
+            <span class="k">return</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">data_with_header</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data_with_header</span></div>
+
+    <span class="k">def</span> <span class="nf">_build_layer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_type</span><span class="p">,</span>
+        <span class="n">data_storage_type</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="p">,</span>
+        <span class="n">dimension_list</span><span class="p">,</span>
+        <span class="n">all_layers</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..data.mfdatastorage</span> <span class="kn">import</span> <span class="n">DataStorageType</span>
+
+        <span class="c1"># build data</span>
+        <span class="k">if</span> <span class="n">data_storage_type</span> <span class="o">==</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">all_layers</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">,</span> <span class="n">data_type</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">data_type</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">all_layers</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                        <span class="n">dimension_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">data_type</span>
+                    <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_storage_type</span> <span class="o">==</span> <span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_constant</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">default_value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># build data type header</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_type_header</span><span class="p">(</span><span class="n">data_storage_type</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ListTemplateGenerator"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.ListTemplateGenerator">[docs]</a><span class="k">class</span> <span class="nc">ListTemplateGenerator</span><span class="p">(</span><span class="n">TemplateGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class that builds a data template for MFLists.  This is a generic class</span>
+<span class="sd">    that is initialized with a path that identifies the data to be built.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : string</span>
+<span class="sd">        tuple containing path of data is described in dfn files</span>
+<span class="sd">        (&lt;model&gt;,&lt;package&gt;,&lt;block&gt;,&lt;data name&gt;)</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    empty: (maxbound: int, aux_vars: list, boundnames: bool, nseg: int) :</span>
+<span class="sd">            dictionary</span>
+<span class="sd">        Builds a template for the data you need to specify for a specific data</span>
+<span class="sd">        type (ie. &quot;stress_period_data&quot;) in a specific model.  The data type is</span>
+<span class="sd">        determined by &quot;path&quot; during initialization of this class.  If the data</span>
+<span class="sd">        is transient a dictionary containing a single stress period will be</span>
+<span class="sd">        returned.  The number of entries in the recarray are determined by</span>
+<span class="sd">        the &quot;maxbound&quot; parameter.  The &quot;aux_vars&quot; parameter is a list of aux</span>
+<span class="sd">        var names to be used in this data list.  If boundnames is set to</span>
+<span class="sd">        true and boundname field will be included in the recarray.  nseg is</span>
+<span class="sd">        only used on list data that contains segments.  If timeseries is true,</span>
+<span class="sd">        a template that is compatible with time series data is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_build_template_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_list</span><span class="p">):</span>
+        <span class="n">template_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="nb">type</span> <span class="ow">in</span> <span class="n">type_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                <span class="n">template_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+                <span class="n">template_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">template_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">template_data</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ListTemplateGenerator.dtype"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.ListTemplateGenerator.dtype">[docs]</a>    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">aux_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">boundnames</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">nseg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeseries</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">cellid_expanded</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">mfdatastorage</span>
+
+        <span class="c1"># get data storage</span>
+        <span class="n">data_struct</span><span class="p">,</span> <span class="n">data_dimensions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_dimensions</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="c1"># build a temporary data storage object</span>
+        <span class="n">data_storage</span> <span class="o">=</span> <span class="n">mfdatastorage</span><span class="o">.</span><span class="n">DataStorage</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">simulation_data</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">data_dimensions</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="n">mfdatastorage</span><span class="o">.</span><span class="n">DataStorageType</span><span class="o">.</span><span class="n">internal_array</span><span class="p">,</span>
+            <span class="n">mfdatastorage</span><span class="o">.</span><span class="n">DataStructureType</span><span class="o">.</span><span class="n">recarray</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># build type list</span>
+        <span class="n">type_list</span> <span class="o">=</span> <span class="n">data_storage</span><span class="o">.</span><span class="n">build_type_list</span><span class="p">(</span>
+            <span class="n">nseg</span><span class="o">=</span><span class="n">nseg</span><span class="p">,</span> <span class="n">cellid_expanded</span><span class="o">=</span><span class="n">cellid_expanded</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">data_storage</span><span class="o">.</span><span class="n">jagged_record</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;Data dimensions can not be determined for  &quot;</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. Data structure may be jagged or may contain &quot;</span>
+                <span class="s2">&quot;a keystring. Data type information is therefore &quot;</span>
+                <span class="s2">&quot;dependant on the data and can not be retreived &quot;</span>
+                <span class="s2">&quot;prior to the data being loaded&quot;</span>
+                <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_storage</span><span class="o">.</span><span class="n">data_dimensions</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+
+            <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                <span class="n">data_struct</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                <span class="n">data_struct</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                <span class="n">data_struct</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                <span class="s2">&quot;generating array template&quot;</span><span class="p">,</span>
+                <span class="n">data_struct</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">type_</span><span class="p">,</span>
+                <span class="n">value_</span><span class="p">,</span>
+                <span class="n">traceback_</span><span class="p">,</span>
+                <span class="n">comment</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">simulation_data</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">aux_vars</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aux_vars</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">aux_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+                    <span class="n">aux_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span>
+                <span class="p">):</span>
+                    <span class="n">aux_vars</span> <span class="o">=</span> <span class="n">aux_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">aux_var</span> <span class="ow">in</span> <span class="n">aux_vars</span><span class="p">:</span>
+                <span class="n">type_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">aux_var</span><span class="p">,</span> <span class="nb">object</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">boundnames</span><span class="p">:</span>
+            <span class="n">type_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;boundname&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">timeseries</span><span class="p">:</span>
+            <span class="c1"># fix type list to make all types objects</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">d_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">type_list</span><span class="p">):</span>
+                <span class="n">type_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">d_type</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">object</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">type_list</span></div>
+
+<div class="viewcode-block" id="ListTemplateGenerator.empty"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.ListTemplateGenerator.empty">[docs]</a>    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">maxbound</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">aux_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">boundnames</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">nseg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeseries</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">stress_periods</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cellid_expanded</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">mfstructure</span>
+
+        <span class="c1"># get type list</span>
+        <span class="n">type_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">aux_vars</span><span class="p">,</span>
+            <span class="n">boundnames</span><span class="p">,</span>
+            <span class="n">nseg</span><span class="p">,</span>
+            <span class="n">timeseries</span><span class="p">,</span>
+            <span class="n">cellid_expanded</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># get data storage</span>
+        <span class="n">data_struct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_dimensions</span><span class="p">(</span><span class="n">model</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data_type</span> <span class="o">=</span> <span class="n">data_struct</span><span class="o">.</span><span class="n">get_datatype</span><span class="p">()</span>
+
+        <span class="c1"># build recarray</span>
+        <span class="n">template_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_template_data</span><span class="p">(</span><span class="n">type_list</span><span class="p">)</span>
+        <span class="n">rec_array_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">maxbound</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxbound</span><span class="p">):</span>
+                <span class="n">rec_array_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">template_data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rec_array_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">template_data</span><span class="p">)</span>
+        <span class="n">rec_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rec_array_data</span><span class="p">,</span> <span class="n">type_list</span><span class="p">)</span>
+
+        <span class="c1"># if transient/multiple list</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">list_transient</span>
+            <span class="ow">or</span> <span class="n">data_type</span> <span class="o">==</span> <span class="n">mfstructure</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">list_multiple</span>
+        <span class="p">):</span>
+            <span class="c1"># Return as dictionary</span>
+            <span class="k">if</span> <span class="n">stress_periods</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">rec_array</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">template</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">stress_period</span> <span class="ow">in</span> <span class="n">stress_periods</span><span class="p">:</span>
+                    <span class="n">template</span><span class="p">[</span><span class="n">stress_period</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">rec_array</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">template</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rec_array</span></div></div>
+
+
+<div class="viewcode-block" id="MFDocString"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFDocString">[docs]</a><span class="k">class</span> <span class="nc">MFDocString</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helps build a python class doc string</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    description : string</span>
+<span class="sd">        description of the class</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    indent: string</span>
+<span class="sd">        indent to use in doc string</span>
+<span class="sd">    description : string</span>
+<span class="sd">        description of the class</span>
+<span class="sd">    parameter_header : string</span>
+<span class="sd">        header for parameter section of doc string</span>
+<span class="sd">    parameters : list</span>
+<span class="sd">        list of docstrings for class parameters</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    add_parameter : (param_descr : string, beginning_of_list : bool)</span>
+<span class="sd">        adds doc string for a parameter with description &#39;param_descr&#39; to the</span>
+<span class="sd">        end of the list unless beginning_of_list is True</span>
+<span class="sd">    get_doc_string : () : string</span>
+<span class="sd">        builds and returns the docstring for the class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indent</span> <span class="o">=</span> <span class="s2">&quot;    &quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_header</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">indent</span><span class="si">}</span><span class="s2">Parameters</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">indent</span><span class="si">}</span><span class="s2">----------&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_parameters</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="MFDocString.add_parameter"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFDocString.add_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">add_parameter</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">param_descr</span><span class="p">,</span> <span class="n">beginning_of_list</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">model_parameter</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">beginning_of_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">param_descr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model_parameter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_parameters</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">param_descr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param_descr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model_parameter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param_descr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFDocString.get_doc_string"><a class="viewcode-back" href="../../../../source/flopy.mf6.data.mfdatautil.html#flopy.mf6.data.mfdatautil.MFDocString.get_doc_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_doc_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_doc_string</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">doc_string</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&quot;&quot;&quot;</span><span class="se">\n</span><span class="si">{}{}</span><span class="se">\n\n</span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">indent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">indent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_header</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">model_doc_string</span><span class="p">:</span>
+            <span class="n">param_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_parameters</span>
+            <span class="n">doc_string</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">    modelname : string</span><span class="se">\n</span><span class="s2">        name of the &quot;</span>
+                <span class="s2">&quot;model</span><span class="se">\n</span><span class="s2">    model_nam_file : string</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;        relative path to the model name file from &quot;</span>
+                <span class="s2">&quot;model working folder</span><span class="se">\n</span><span class="s2">    version : string</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;        version of modflow</span><span class="se">\n</span><span class="s2">    exe_name : string</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;        model executable name</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;    model_ws : string</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;        model working folder path&quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">doc_string</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">param_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">param_list</span><span class="p">:</span>
+            <span class="n">doc_string</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">parameter</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model_doc_string</span><span class="p">:</span>
+            <span class="n">doc_string</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">indent</span><span class="si">}</span><span class="s1">&quot;&quot;&quot;&#39;</span>
+        <span class="k">return</span> <span class="n">doc_string</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

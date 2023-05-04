@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.swroutputfile &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.swroutputfile</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.swroutputfile</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils.utils_def</span> <span class="kn">import</span> <span class="n">FlopyBinaryData</span>
+
+
+<div class="viewcode-block" id="SwrFile"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile">[docs]</a><span class="k">class</span> <span class="nc">SwrFile</span><span class="p">(</span><span class="n">FlopyBinaryData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read binary SWR output from MODFLOW SWR Process binary output files</span>
+<span class="sd">    The SwrFile class is the super class from which specific derived</span>
+<span class="sd">    classes are formed.  This class should not be instantiated directly</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : string</span>
+<span class="sd">        Name of the swr output file</span>
+<span class="sd">    swrtype : str</span>
+<span class="sd">        swr data type. Valid data types are &#39;stage&#39;, &#39;budget&#39;,</span>
+<span class="sd">        &#39;flow&#39;, &#39;exchange&#39;, or &#39;structure&#39;. (default is &#39;stage&#39;)</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to the screen.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; so = flopy.utils.SwrFile(&#39;mymodel.swr.stage.bin&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">swrtype</span><span class="o">=</span><span class="s2">&quot;stage&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_float</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;kswr&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;stage&quot;</span><span class="p">,</span> <span class="s2">&quot;budget&quot;</span><span class="p">,</span> <span class="s2">&quot;flow&quot;</span><span class="p">,</span> <span class="s2">&quot;exchange&quot;</span><span class="p">,</span> <span class="s2">&quot;structure&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">swrtype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">swrtype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SWR type (</span><span class="si">{</span><span class="nb">type</span><span class="si">}</span><span class="s2">) is not defined. Available types are:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+                <span class="n">err</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="c1"># set data dtypes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_dtypes</span><span class="p">()</span>
+
+        <span class="c1"># debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+        <span class="c1"># Read the dimension data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flowitems</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flow&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flowitems</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span>
+
+        <span class="c1"># set-up</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">items</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># read connectivity for velocity data if necessary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn_dtype</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flow&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_connectivity</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connectivity: &quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">)</span>
+
+        <span class="c1"># initialize itemlist and nentries for qaq data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nentries</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">datastart</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+
+        <span class="c1"># build index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_index</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SwrFile.get_connectivity"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_connectivity">[docs]</a>    <span class="k">def</span> <span class="nf">get_connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get connectivity data from the file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : numpy array</span>
+<span class="sd">            Array has size (nrecord, 3). None is returned if swrtype is not</span>
+<span class="sd">            &#39;flow&#39;</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flow&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_nrecords"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_nrecords">[docs]</a>    <span class="k">def</span> <span class="nf">get_nrecords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of records in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : tuple of int</span>
+<span class="sd">            A tupe with the number of records and number of flow items</span>
+<span class="sd">            in the file. The number of flow items is non-zero only if</span>
+<span class="sd">            swrtype=&#39;flow&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowitems</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_kswrkstpkper"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_kswrkstpkper">[docs]</a>    <span class="k">def</span> <span class="nf">get_kswrkstpkper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique stress periods, time steps, and swr time steps</span>
+<span class="sd">        in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : list of (kswr, kstp, kper) tuples</span>
+<span class="sd">            List of unique kswr, kstp, kper combinations in binary file.</span>
+<span class="sd">            kswr, kstp, and kper values are zero-based.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kswrkstpkper</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_ntimes"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_ntimes">[docs]</a>    <span class="k">def</span> <span class="nf">get_ntimes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of times in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : int</span>
+<span class="sd">            The number of simulation times (totim) in binary file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_times"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_times">[docs]</a>    <span class="k">def</span> <span class="nf">get_times</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique times in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : list of floats</span>
+<span class="sd">            List contains unique simulation times (totim) in binary file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_record_names"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_record_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_record_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique record names in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : list of strings</span>
+<span class="sd">            List of unique text names in the binary file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="o">.</span><span class="n">names</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_data"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kswrkstpkper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">totim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get data from the file for the specified conditions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        idx : int</span>
+<span class="sd">            The zero-based record number.  The first record is record 0.</span>
+<span class="sd">            (default is None)</span>
+<span class="sd">        kswrkstpkper : tuple of ints</span>
+<span class="sd">            A tuple containing the swr time step, time step, and stress period</span>
+<span class="sd">            (kswr, kstp, kper). These are zero-based kswr, kstp, and kper</span>
+<span class="sd">            values. (default is None)</span>
+<span class="sd">        totim : float</span>
+<span class="sd">            The simulation time. (default is None)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : numpy record array</span>
+<span class="sd">            Array has size (nitems).</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        if both kswrkstpkper and totim are None, will return the last entry</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">kswrkstpkper</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kswr1</span> <span class="o">=</span> <span class="n">kswrkstpkper</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">kstp1</span> <span class="o">=</span> <span class="n">kswrkstpkper</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">kper1</span> <span class="o">=</span> <span class="n">kswrkstpkper</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="n">totim1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="p">[</span><span class="s2">&quot;kswr&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">kswr1</span><span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="p">[</span><span class="s2">&quot;kstp&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">kstp1</span><span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="p">[</span><span class="s2">&quot;kper&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">kper1</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">][</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">totim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="n">totim</span>
+        <span class="k">elif</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span><span class="p">[</span><span class="n">totim1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">itemlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nentries</span><span class="p">[</span><span class="n">totim1</span><span class="p">]</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_qaq</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">itemlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nentries</span><span class="p">[</span><span class="n">totim1</span><span class="p">]</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_structure</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_record</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">)</span>
+
+            <span class="c1"># add totim to data record array</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+            <span class="n">s</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">totim1</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                <span class="n">s</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SwrFile.get_ts"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFile.get_ts">[docs]</a>    <span class="k">def</span> <span class="nf">get_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">irec</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">iconn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">klay</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">istr</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a time series from a swr binary file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        irec : int</span>
+<span class="sd">            is the zero-based reach (stage, qm, qaq) or reach group number</span>
+<span class="sd">            (budget) to retrieve. (default is 0)</span>
+<span class="sd">        iconn : int</span>
+<span class="sd">            is the zero-based connection number for reach (irch) to retrieve</span>
+<span class="sd">            qm data. iconn is only used if qm data is being read.</span>
+<span class="sd">            (default is 0)</span>
+<span class="sd">        klay : int</span>
+<span class="sd">            is the zero-based layer number for reach (irch) to retrieve</span>
+<span class="sd">            qaq data . klay is only used if qaq data is being read.</span>
+<span class="sd">            (default is 0)</span>
+<span class="sd">        klay : int</span>
+<span class="sd">            is the zero-based structure number for reach (irch) to retrieve</span>
+<span class="sd">            structure data . isrt is only used if structure data is being read.</span>
+<span class="sd">            (default is 0)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : numpy recarray</span>
+<span class="sd">            Array has size (ntimes, nitems).  The first column in the</span>
+<span class="sd">            data array will contain time (totim). nitems is 2 for stage</span>
+<span class="sd">            data, 15 for budget data, 3 for qm data, and 11 for qaq</span>
+<span class="sd">            data.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        The irec, iconn, and klay values must be zero-based.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">irec</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;specified irec (</span><span class="si">{</span><span class="n">irec</span><span class="si">}</span><span class="s2">) exceeds the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;total number of records (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">gage_record</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;stage&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;budget&quot;</span><span class="p">:</span>
+            <span class="n">gage_record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ts</span><span class="p">(</span><span class="n">irec</span><span class="o">=</span><span class="n">irec</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flow&quot;</span><span class="p">:</span>
+            <span class="n">gage_record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ts_qm</span><span class="p">(</span><span class="n">irec</span><span class="o">=</span><span class="n">irec</span><span class="p">,</span> <span class="n">iconn</span><span class="o">=</span><span class="n">iconn</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span><span class="p">:</span>
+            <span class="n">gage_record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ts_qaq</span><span class="p">(</span><span class="n">irec</span><span class="o">=</span><span class="n">irec</span><span class="p">,</span> <span class="n">klay</span><span class="o">=</span><span class="n">klay</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+            <span class="n">gage_record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ts_structure</span><span class="p">(</span><span class="n">irec</span><span class="o">=</span><span class="n">irec</span><span class="p">,</span> <span class="n">istr</span><span class="o">=</span><span class="n">istr</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">gage_record</span></div>
+
+    <span class="k">def</span> <span class="nf">_read_connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[(</span><span class="s2">&quot;reach&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;from&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;to&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">icount</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">nrg</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flowitems</span><span class="p">):</span>
+            <span class="n">flowitems</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">flowitems</span><span class="p">):</span>
+                <span class="n">conn</span><span class="p">[</span><span class="n">icount</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">nrg</span>
+                <span class="n">conn</span><span class="p">[</span><span class="n">icount</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">conn</span><span class="p">[</span><span class="n">icount</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">icount</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">conn</span>
+
+    <span class="k">def</span> <span class="nf">_build_dtypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vtotim</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;stage&quot;</span><span class="p">:</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;stage&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;budget&quot;</span><span class="p">:</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;stage&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qsflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qlatflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;quzflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;rain&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;evap&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qbflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qeflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qexflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qbcflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;qcrflow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;dv&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;inf-out&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;volume&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flow&quot;</span><span class="p">:</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;flow&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;velocity&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">floattype</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span><span class="p">:</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;layer&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;stage&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;head&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;wetper&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;cond&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;headdiff&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;exchange&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;usstage&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;dsstage&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;gateelev&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;opening&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;strflow&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">vtype</span><span class="p">)</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span><span class="p">:</span>
+            <span class="n">temp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;reach&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qaq_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+            <span class="n">temp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;structure&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">))</span>
+            <span class="n">temp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;reach&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">str_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+        <span class="n">temp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vtotim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_read_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">nitems</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+            <span class="n">itemlist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">):</span>
+                    <span class="n">itemlist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span>
+                    <span class="n">nitems</span> <span class="o">+=</span> <span class="n">itemlist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span> <span class="o">=</span> <span class="n">nitems</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Could not read itemlist&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">totim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_real</span><span class="p">()</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_real</span><span class="p">()</span>
+            <span class="n">kper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">kstp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">kswr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nentries</span><span class="p">[</span><span class="n">totim</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">nitems</span><span class="p">,</span> <span class="n">itemlist</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">totim</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">kper</span><span class="p">,</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kswr</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_get_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">irec</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># create array</span>
+        <span class="n">gage_record</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+        <span class="c1"># iterate through the record dictionary</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">totim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">gage_record</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">totim</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                <span class="n">gage_record</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">irec</span><span class="p">]</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">gage_record</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_ts_qm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">irec</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">iconn</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># create array</span>
+        <span class="n">gage_record</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+        <span class="c1"># iterate through the record dictionary</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">totim</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="n">gage_record</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">totim</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data</span><span class="p">()</span>
+
+            <span class="c1"># find correct entry for reach and connection</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">):</span>
+                <span class="n">inode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">ic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">irec</span> <span class="o">==</span> <span class="n">inode</span> <span class="ow">and</span> <span class="n">ic</span> <span class="o">==</span> <span class="n">iconn</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                        <span class="n">gage_record</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">break</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">gage_record</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_ts_qaq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">irec</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">klay</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># create array</span>
+        <span class="n">gage_record</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+        <span class="c1"># iterate through the record dictionary</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">totim</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="n">gage_record</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">totim</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">itemlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nentries</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data</span><span class="p">()</span>
+
+            <span class="c1"># find correct entry for record and layer</span>
+            <span class="n">ilen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">r</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ilen</span><span class="p">):</span>
+                <span class="n">ir</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;reach&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">il</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">ir</span> <span class="o">==</span> <span class="n">irec</span> <span class="ow">and</span> <span class="n">il</span> <span class="o">==</span> <span class="n">klay</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                        <span class="n">gage_record</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">break</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">gage_record</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_ts_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">irec</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">istr</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># create array</span>
+        <span class="n">gage_record</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+        <span class="c1"># iterate through the record dictionary</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">totim</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="n">gage_record</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">totim</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">itemlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nentries</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data</span><span class="p">()</span>
+
+            <span class="c1"># find correct entry for record and structure number</span>
+            <span class="n">ilen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">r</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ilen</span><span class="p">):</span>
+                <span class="n">ir</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;reach&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">il</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;structure&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">ir</span> <span class="o">==</span> <span class="n">irec</span> <span class="ow">and</span> <span class="n">il</span> <span class="o">==</span> <span class="n">istr</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                        <span class="n">gage_record</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">break</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">gage_record</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out_dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_qaq</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_structure</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_record</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_read_qaq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># read qaq data using standard record reader</span>
+        <span class="n">bd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_record</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">)</span>
+        <span class="n">bd</span><span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># add reach number to qaq data</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qaq_dtype</span><span class="p">)</span>
+
+        <span class="c1"># build array with reach numbers</span>
+        <span class="n">reaches</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">irch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">):</span>
+            <span class="n">klay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itemlist</span><span class="p">[</span><span class="n">irch</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">klay</span><span class="p">):</span>
+                <span class="c1"># r[idx, 0] = irch</span>
+                <span class="n">reaches</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">irch</span>
+                <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># add reach to array returned</span>
+        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;reach&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reaches</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># add read data to array returned</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">r</span>
+
+    <span class="k">def</span> <span class="nf">_read_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># read qaq data using standard record reader</span>
+        <span class="n">bd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_record</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">)</span>
+
+        <span class="c1"># add reach and structure number to structure data</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">str_dtype</span><span class="p">)</span>
+
+        <span class="c1"># build array with reach numbers</span>
+        <span class="n">reaches</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">struct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nitems</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">irch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span><span class="p">):</span>
+            <span class="n">nstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itemlist</span><span class="p">[</span><span class="n">irch</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstr</span><span class="p">):</span>
+                <span class="n">reaches</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">irch</span>
+                <span class="n">struct</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span>
+                <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># add reach to array returned</span>
+        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;reach&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reaches</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;structure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># add read data to array returned</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">r</span>
+
+    <span class="k">def</span> <span class="nf">_build_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the recordarray recarray and recorddict dictionary, which map</span>
+<span class="sd">        the header information to the position in the binary file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datastart</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Generating SWR binary data time list&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_times</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kswrkstpkper</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># --output something to screen so it is possible to determine</span>
+            <span class="c1">#  that the time list is being created</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span> <span class="mf">72.0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="c1"># read header</span>
+            <span class="n">totim</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">kper</span><span class="p">,</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kswr</span><span class="p">,</span> <span class="n">success</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_header</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;exchange&quot;</span><span class="p">:</span>
+                    <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span> <span class="o">*</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">integerbyte</span> <span class="o">+</span> <span class="mi">8</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">realbyte</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+                    <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nitems</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">realbyte</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrecord</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">realbyte</span>
+                <span class="n">ipos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="c1"># save data</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ntimes</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">totim</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_kswrkstpkper</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">kswr</span><span class="p">,</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span><span class="p">))</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="p">(</span><span class="n">totim</span><span class="p">,</span> <span class="n">kswr</span><span class="p">,</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">recorddict</span><span class="p">[</span><span class="n">totim</span><span class="p">]</span> <span class="o">=</span> <span class="n">ipos</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_recordarray</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">header_dtype</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_kswrkstpkper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kswrkstpkper</span><span class="p">)</span>
+                <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="SwrStage"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrStage">[docs]</a><span class="k">class</span> <span class="nc">SwrStage</span><span class="p">(</span><span class="n">SwrFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read binary SWR stage output from MODFLOW SWR Process binary output files</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : string</span>
+<span class="sd">        Name of the swr stage output file</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to the screen.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; stageobj = flopy.utils.SwrStage(&#39;mymodel.swr.stg&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">swrtype</span><span class="o">=</span><span class="s2">&quot;stage&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="SwrBudget"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrBudget">[docs]</a><span class="k">class</span> <span class="nc">SwrBudget</span><span class="p">(</span><span class="n">SwrFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read binary SWR budget output from MODFLOW SWR Process binary output files</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : string</span>
+<span class="sd">        Name of the swr budget output file</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to the screen.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; stageobj = flopy.utils.SwrStage(&#39;mymodel.swr.bud&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">swrtype</span><span class="o">=</span><span class="s2">&quot;budget&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="SwrFlow"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrFlow">[docs]</a><span class="k">class</span> <span class="nc">SwrFlow</span><span class="p">(</span><span class="n">SwrFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read binary SWR flow output from MODFLOW SWR Process binary output files</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : string</span>
+<span class="sd">        Name of the swr flow output file</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to the screen.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; stageobj = flopy.utils.SwrStage(&#39;mymodel.swr.flow&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">swrtype</span><span class="o">=</span><span class="s2">&quot;flow&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="SwrExchange"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrExchange">[docs]</a><span class="k">class</span> <span class="nc">SwrExchange</span><span class="p">(</span><span class="n">SwrFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read binary SWR surface-water groundwater exchange output from MODFLOW SWR Process binary output files</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : string</span>
+<span class="sd">        Name of the swr surface-water groundwater exchange output file</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to the screen.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; stageobj = flopy.utils.SwrStage(&#39;mymodel.swr.qaq&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">swrtype</span><span class="o">=</span><span class="s2">&quot;exchange&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="SwrStructure"><a class="viewcode-back" href="../../../source/flopy.utils.swroutputfile.html#flopy.utils.swroutputfile.SwrStructure">[docs]</a><span class="k">class</span> <span class="nc">SwrStructure</span><span class="p">(</span><span class="n">SwrFile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read binary SWR structure output from MODFLOW SWR Process binary output</span>
+<span class="sd">    files</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : string</span>
+<span class="sd">        Name of the swr structure output file</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to the screen.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; stageobj = flopy.utils.SwrStage(&#39;mymodel.swr.str&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">swrtype</span><span class="o">=</span><span class="s2">&quot;structure&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">return</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

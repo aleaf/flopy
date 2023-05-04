@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.export.shapefile_utils &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.export.shapefile_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.export.shapefile_utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module for exporting and importing flopy model attributes</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..datbase</span> <span class="kn">import</span> <span class="n">DataInterface</span><span class="p">,</span> <span class="n">DataType</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util3d</span><span class="p">,</span> <span class="n">flopy_io</span><span class="p">,</span> <span class="n">import_optional_dependency</span>
+<span class="kn">from</span> <span class="nn">..utils.crs</span> <span class="kn">import</span> <span class="n">get_crs</span>
+
+<span class="c1"># web address of spatial reference dot org</span>
+<span class="n">srefhttp</span> <span class="o">=</span> <span class="s2">&quot;https://spatialreference.org&quot;</span>
+
+
+<div class="viewcode-block" id="write_gridlines_shapefile"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.write_gridlines_shapefile">[docs]</a><span class="k">def</span> <span class="nf">write_gridlines_shapefile</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span> <span class="n">mg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a polyline shapefile of the grid lines - a lightweight alternative</span>
+<span class="sd">    to polygons.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str or PathLike</span>
+<span class="sd">        path of the shapefile to write</span>
+<span class="sd">    mg : model grid</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shapefile</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapefile&quot;</span><span class="p">)</span>
+    <span class="n">wr</span> <span class="o">=</span> <span class="n">shapefile</span><span class="o">.</span><span class="n">Writer</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">shapeType</span><span class="o">=</span><span class="n">shapefile</span><span class="o">.</span><span class="n">POLYLINE</span><span class="p">)</span>
+    <span class="n">wr</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;number&quot;</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;SpatialReference&quot;</span><span class="p">:</span>
+        <span class="n">grid_lines</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">get_grid_lines</span><span class="p">()</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;SpatialReference has been deprecated. Use StructuredGrid&quot;</span>
+            <span class="s2">&quot; instead.&quot;</span><span class="p">,</span>
+            <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">grid_lines</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_lines</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grid_lines</span><span class="p">):</span>
+        <span class="n">wr</span><span class="o">.</span><span class="n">line</span><span class="p">([</span><span class="n">line</span><span class="p">])</span>
+        <span class="n">wr</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="n">wr</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">write_prj</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">modelgrid</span><span class="o">=</span><span class="n">mg</span><span class="p">)</span>
+    <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="write_grid_shapefile"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.write_grid_shapefile">[docs]</a><span class="k">def</span> <span class="nf">write_grid_shapefile</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span>
+    <span class="n">mg</span><span class="p">,</span>
+    <span class="n">array_dict</span><span class="p">,</span>
+    <span class="n">nan_val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+    <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prj</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Method to write a shapefile of gridded input data</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str or PathLike</span>
+<span class="sd">        shapefile file path</span>
+<span class="sd">    mg : flopy.discretization.Grid object</span>
+<span class="sd">        flopy model grid</span>
+<span class="sd">    array_dict : dict</span>
+<span class="sd">        dictionary of model input arrays</span>
+<span class="sd">    nan_val : float</span>
+<span class="sd">        value to fill nans</span>
+<span class="sd">    crs : pyproj.CRS, optional if `prjfile` is specified</span>
+<span class="sd">        Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">        (must be projected; geographic CRS are not supported).</span>
+<span class="sd">        The value can be anything accepted by</span>
+<span class="sd">        :meth:`pyproj.CRS.from_user_input() &lt;pyproj.crs.CRS.from_user_input&gt;`,</span>
+<span class="sd">        such as an authority string (eg &quot;EPSG:26916&quot;) or a WKT string.</span>
+<span class="sd">    prjfile : str or pathlike, optional if `crs` is specified</span>
+<span class="sd">        ESRI-style projection file with well-known text defining the CRS</span>
+<span class="sd">        for the model grid (must be projected; geographic CRS are not supported).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shapefile</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapefile&quot;</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">shapefile</span><span class="o">.</span><span class="n">Writer</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">shapeType</span><span class="o">=</span><span class="n">shapefile</span><span class="o">.</span><span class="n">POLYGON</span><span class="p">)</span>
+    <span class="n">w</span><span class="o">.</span><span class="n">autoBalance</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;SpatialReference&quot;</span><span class="p">:</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;SpatialReference has been deprecated. Use StructuredGrid&quot;</span>
+            <span class="s2">&quot; instead.&quot;</span><span class="p">,</span>
+            <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">=</span> <span class="s2">&quot;structured&quot;</span>
+    <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span><span class="p">:</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">mg</span><span class="o">.</span><span class="n">get_cell_vertices</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">nrow</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">ncol</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span><span class="p">:</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="p">[</span><span class="n">mg</span><span class="o">.</span><span class="n">get_cell_vertices</span><span class="p">(</span><span class="n">cellid</span><span class="p">)</span> <span class="k">for</span> <span class="n">cellid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)]</span>
+    <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;unstructured&quot;</span><span class="p">:</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="p">[</span><span class="n">mg</span><span class="o">.</span><span class="n">get_cell_vertices</span><span class="p">(</span><span class="n">cellid</span><span class="p">)</span> <span class="k">for</span> <span class="n">cellid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Grid type </span><span class="si">{</span><span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span><span class="si">}</span><span class="s2"> not supported.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># set up the attribute fields and arrays of attributes</span>
+    <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;row&quot;</span><span class="p">,</span> <span class="s2">&quot;column&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">array_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s2">&quot;row&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s2">&quot;column&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)),</span>
+        <span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">enforce_10ch_limit</span><span class="p">([</span><span class="n">name</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="p">]</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncol</span> <span class="o">*</span> <span class="n">mg</span><span class="o">.</span><span class="n">nrow</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncol</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">mg</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">nrow</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncol</span><span class="p">)</span>
+        <span class="n">at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">node</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">3</span><span class="p">:]]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="n">enforce_10ch_limit</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">array_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">))]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">enforce_10ch_limit</span><span class="p">([</span><span class="n">name</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="p">]</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncpl</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="n">enforce_10ch_limit</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;unstructured&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="n">nlay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">array_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">))]</span> <span class="o">+</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">enforce_10ch_limit</span><span class="p">([</span><span class="n">name</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="p">]</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;layer&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">array_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s2">&quot;layer&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)),</span>
+            <span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">enforce_10ch_limit</span><span class="p">([</span><span class="n">name</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="p">]</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ilay</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+                <span class="n">istart</span><span class="p">,</span> <span class="n">istop</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">get_layer_node_range</span><span class="p">(</span><span class="n">ilay</span><span class="p">)</span>
+                <span class="n">layer</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span> <span class="o">=</span> <span class="n">ilay</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">node</span><span class="p">]</span>
+                <span class="o">+</span> <span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+                <span class="o">+</span> <span class="p">[</span><span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">2</span><span class="p">:]]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="n">enforce_10ch_limit</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+    <span class="c1"># flag nan values and explicitly set the dtypes</span>
+    <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+        <span class="n">at</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">at</span><span class="p">)]</span> <span class="o">=</span> <span class="n">nan_val</span>
+    <span class="n">at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">at</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="p">)</span>
+
+    <span class="c1"># write field information</span>
+    <span class="n">fieldinfo</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">get_pyshp_field_info</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">dtypes</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">fieldinfo</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">at</span><span class="p">):</span>
+        <span class="c1"># check if polygon is closed, if not close polygon for QGIS</span>
+        <span class="k">if</span> <span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">poly</span><span class="p">([</span><span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="o">*</span><span class="n">r</span><span class="p">)</span>
+
+    <span class="c1"># close</span>
+    <span class="n">w</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;wrote </span><span class="si">{</span><span class="n">flopy_io</span><span class="o">.</span><span class="n">relpath_safe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># write the projection file</span>
+    <span class="n">write_prj</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mg</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">,</span> <span class="n">prj</span><span class="o">=</span><span class="n">prj</span><span class="p">,</span> <span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">)</span>
+    <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="model_attributes_to_shapefile"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.model_attributes_to_shapefile">[docs]</a><span class="k">def</span> <span class="nf">model_attributes_to_shapefile</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span>
+    <span class="n">ml</span><span class="p">,</span>
+    <span class="n">package_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">array_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper function for writing a shapefile of model data.  If package_names</span>
+<span class="sd">    is not None, then search through the requested packages looking for arrays</span>
+<span class="sd">    that can be added to the shapefile as attributes</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str or PathLike</span>
+<span class="sd">        path to write the shapefile to</span>
+<span class="sd">    ml : flopy.mbase</span>
+<span class="sd">        model instance</span>
+<span class="sd">    package_names : list of package names (e.g. [&quot;dis&quot;,&quot;lpf&quot;])</span>
+<span class="sd">        Packages to export data arrays to shapefile. (default is None)</span>
+<span class="sd">    array_dict : dict of {name:2D array} pairs</span>
+<span class="sd">       Additional 2D arrays to add as attributes to the shapefile.</span>
+<span class="sd">       (default is None)</span>
+<span class="sd">    verbose : bool, optional, default False</span>
+<span class="sd">        whether to print verbose output</span>
+<span class="sd">    **kwargs : keyword arguments</span>
+<span class="sd">        modelgrid : fp.modflow.Grid object</span>
+<span class="sd">            if modelgrid is supplied, user supplied modelgrid is used in lieu</span>
+<span class="sd">            of the modelgrid attached to the modflow model object</span>
+<span class="sd">        crs : pyproj.CRS, optional if `prjfile` is specified</span>
+<span class="sd">            Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">            (must be projected; geographic CRS are not supported).</span>
+<span class="sd">            The value can be anything accepted by</span>
+<span class="sd">            :meth:`pyproj.CRS.from_user_input() &lt;pyproj.crs.CRS.from_user_input&gt;`,</span>
+<span class="sd">            such as an authority string (eg &quot;EPSG:26916&quot;) or a WKT string.</span>
+<span class="sd">        prjfile : str or pathlike, optional if `crs` is specified</span>
+<span class="sd">            ESRI-style projection file with well-known text defining the CRS</span>
+<span class="sd">            for the model grid (must be projected; geographic CRS are not supported).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; flopy.utils.model_attributes_to_shapefile(&#39;model.shp&#39;, m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">array_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">array_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">package_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">package_names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">package_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">package_names</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">package_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">pak</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">pak</span> <span class="ow">in</span> <span class="n">ml</span><span class="o">.</span><span class="n">packagelist</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="s2">&quot;modelgrid&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;modelgrid&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">modelgrid</span>
+
+    <span class="n">horz_shape</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">get_plottable_layer_shape</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">pname</span> <span class="ow">in</span> <span class="n">package_names</span><span class="p">:</span>
+        <span class="n">pak</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="n">pname</span><span class="p">)</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="nb">dir</span><span class="p">(</span><span class="n">pak</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;sr&quot;</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;sr&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;start_datetime&quot;</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;start_datetime&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">pak</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s2">&quot;data_type&quot;</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;thickness&quot;</span>
+                <span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">a</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">array2d</span>
+                    <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">horz_shape</span>
+                <span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">shape_attr_name</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">keep_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="c1"># name = a.name.lower()</span>
+                    <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span>
+                <span class="k">elif</span> <span class="n">a</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">array3d</span><span class="p">:</span>
+                    <span class="c1"># Not sure how best to check if an object has array data</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">warn</span><span class="p">(</span>
+                            <span class="s2">&quot;Failed to get data for &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> array, </span><span class="si">{</span><span class="n">pak</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> package&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;thickness&quot;</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">horz_shape</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s2">&quot;shape&quot;</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># usg unstructured Util3d</span>
+                                <span class="c1"># return a flattened array, with a.name[0] (a per-layer list)</span>
+                                <span class="n">array_dict</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">array_dict</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">array_dict</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># array is not the same shape as the layer shape</span>
+                        <span class="k">for</span> <span class="n">ilay</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                            <span class="k">try</span><span class="p">:</span>
+                                <span class="n">arr</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span>
+                            <span class="k">except</span><span class="p">:</span>
+                                <span class="n">arr</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span>
+
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Util3d</span><span class="p">):</span>
+                                <span class="n">aname</span> <span class="o">=</span> <span class="n">shape_attr_name</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">aname</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span>
+
+                            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">horz_shape</span><span class="p">:</span>
+                                <span class="c1"># fix for mf6 case</span>
+                                <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="k">assert</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">horz_shape</span>
+                            <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">aname</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">ilay</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="n">a</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">transient2d</span>
+                <span class="p">):</span>  <span class="c1"># elif isinstance(a, Transient2d):</span>
+                    <span class="c1"># Not sure how best to check if an object has array data</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">warn</span><span class="p">(</span>
+                            <span class="s2">&quot;Failed to get data for &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> array, </span><span class="si">{</span><span class="n">pak</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> package&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">continue</span>
+                    <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shape_attr_name</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}{</span><span class="n">kper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="n">arr</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="n">kper</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">assert</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">horz_shape</span>
+                        <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="n">a</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">transientlist</span>
+                <span class="p">):</span>  <span class="c1"># elif isinstance(a, MfList):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">masked_4D_arrays_itr</span><span class="p">())</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">masked_4D_arrays_itr</span><span class="p">():</span>
+                        <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                                <span class="n">n</span> <span class="o">=</span> <span class="n">shape_attr_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+                                <span class="n">aname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}{</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}{</span><span class="n">kper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                                <span class="n">arr</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">kper</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+                                <span class="k">assert</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">horz_shape</span>
+                                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+                                    <span class="k">continue</span>
+                                <span class="n">array_dict</span><span class="p">[</span><span class="n">aname</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">DataInterface</span><span class="p">)</span>
+                            <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">array3d</span>
+                        <span class="p">):</span>
+                            <span class="k">for</span> <span class="n">ilay</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+                                <span class="n">u2d</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span>
+                                <span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
+                                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shape_attr_name</span><span class="p">(</span><span class="n">u2d</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">ilay</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                                <span class="p">)</span>
+                                <span class="n">arr</span> <span class="o">=</span> <span class="n">u2d</span><span class="o">.</span><span class="n">array</span>
+                                <span class="k">assert</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">horz_shape</span>
+                                <span class="n">array_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+
+    <span class="c1"># write data arrays to a shapefile</span>
+    <span class="n">write_grid_shapefile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">array_dict</span><span class="p">)</span>
+    <span class="n">crs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;crs&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">prjfile</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prjfile&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">write_prj</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="shape_attr_name"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.shape_attr_name">[docs]</a><span class="k">def</span> <span class="nf">shape_attr_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">keep_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function for to format an array name to a maximum of 10 characters to</span>
+<span class="sd">    conform with ESRI shapefile maximum attribute name length</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        data array name</span>
+<span class="sd">    length : int</span>
+<span class="sd">        maximum length of string to return. Value passed to function is</span>
+<span class="sd">        overridden and set to 10 if keep_layer=True. (default is 6)</span>
+<span class="sd">    keep_layer : bool</span>
+<span class="sd">        Boolean that determines if layer number in name should be retained.</span>
+<span class="sd">        (default is False)</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; name = flopy.utils.shape_attr_name(&#39;averylongstring&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; name</span>
+<span class="sd">    &gt;&gt;&gt; &#39;averyl&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># kludges</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;model_top&quot;</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;top&quot;</span>
+    <span class="c1"># replace spaces with &quot;_&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="c1"># exclude &quot;_layer_X&quot; portion of string</span>
+    <span class="k">if</span> <span class="n">keep_layer</span><span class="p">:</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_layer&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;_layer&quot;</span><span class="p">)</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">n</span><span class="p">[:</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">length</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">n</span><span class="p">[:</span><span class="n">length</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">n</span></div>
+
+
+<div class="viewcode-block" id="enforce_10ch_limit"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.enforce_10ch_limit">[docs]</a><span class="k">def</span> <span class="nf">enforce_10ch_limit</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enforce 10 character limit for fieldnames.</span>
+<span class="sd">    Add suffix for duplicate names starting at 0.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    names : list of strings</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        list of unique strings of len &lt;= 10.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="n">n</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="k">else</span> <span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+    <span class="n">dups</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">names</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">names</span><span class="p">}</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">cnt</span><span class="p">))</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">cnt</span> <span class="ow">in</span> <span class="n">dups</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">cnt</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dups</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span><span class="p">[:</span><span class="mi">9</span><span class="p">]</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">suffix</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">names</span></div>
+
+
+<div class="viewcode-block" id="get_pyshp_field_info"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.get_pyshp_field_info">[docs]</a><span class="k">def</span> <span class="nf">get_pyshp_field_info</span><span class="p">(</span><span class="n">dtypename</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get pyshp dtype information for a given numpy dtype.&quot;&quot;&quot;</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;int&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="s2">&quot;&lt;i&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;F&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span>
+        <span class="s2">&quot;&lt;f&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;F&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span>
+        <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="s2">&quot;b1&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="s2">&quot;str&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span>
+        <span class="s2">&quot;object&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dtypename</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fields</span><span class="p">[</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;str&quot;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_pyshp_field_dtypes"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.get_pyshp_field_dtypes">[docs]</a><span class="k">def</span> <span class="nf">get_pyshp_field_dtypes</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a numpy dtype for a pyshp field type.&quot;&quot;&quot;</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s2">&quot;F&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="s2">&quot;L&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="nb">object</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="shp2recarray"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.shp2recarray">[docs]</a><span class="k">def</span> <span class="nf">shp2recarray</span><span class="p">(</span><span class="n">shpname</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a shapefile into a numpy recarray.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shpname : str or PathLike</span>
+<span class="sd">        ESRI Shapefile path</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.recarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">..utils.geospatial_utils</span> <span class="kn">import</span> <span class="n">GeoSpatialCollection</span>
+
+    <span class="n">sf</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapefile&quot;</span><span class="p">)</span>
+
+    <span class="n">sfobj</span> <span class="o">=</span> <span class="n">sf</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">shpname</span><span class="p">))</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">get_pyshp_field_dtypes</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">sfobj</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="p">]</span>
+
+    <span class="n">geoms</span> <span class="o">=</span> <span class="n">GeoSpatialCollection</span><span class="p">(</span><span class="n">sfobj</span><span class="p">)</span><span class="o">.</span><span class="n">flopy_geometry</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">tuple</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">geoms</span><span class="p">[</span><span class="n">i</span><span class="p">],)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sfobj</span><span class="o">.</span><span class="n">iterRecords</span><span class="p">())</span>
+    <span class="p">]</span>
+    <span class="n">dtype</span> <span class="o">+=</span> <span class="p">[(</span><span class="s2">&quot;geometry&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">)]</span>
+
+    <span class="n">recarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">recarray</span></div>
+
+
+<div class="viewcode-block" id="recarray2shp"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.recarray2shp">[docs]</a><span class="k">def</span> <span class="nf">recarray2shp</span><span class="p">(</span>
+    <span class="n">recarray</span><span class="p">,</span>
+    <span class="n">geoms</span><span class="p">,</span>
+    <span class="n">shpname</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;recarray.shp&quot;</span><span class="p">,</span>
+    <span class="n">mg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prj</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a numpy record array to a shapefile, using a corresponding</span>
+<span class="sd">    list of geometries. Method supports list of flopy geometry objects,</span>
+<span class="sd">    flopy Collection object, shapely Collection object, and geojson</span>
+<span class="sd">    Geometry Collection objects</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    recarray : np.recarray</span>
+<span class="sd">        Numpy record array with attribute information that will go in the</span>
+<span class="sd">        shapefile</span>
+<span class="sd">    geoms : list of flopy.utils.geometry, shapely geometry collection,</span>
+<span class="sd">            flopy geometry collection, shapefile.Shapes,</span>
+<span class="sd">            list of shapefile.Shape objects, or geojson geometry collection</span>
+<span class="sd">        The number of geometries in geoms must equal the number of records in</span>
+<span class="sd">        recarray.</span>
+<span class="sd">    shpname : str or PathLike, default &quot;recarray.shp&quot;</span>
+<span class="sd">        Path for the output shapefile</span>
+<span class="sd">    crs : pyproj.CRS, optional if `prjfile` is specified</span>
+<span class="sd">        Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">        (must be projected; geographic CRS are not supported).</span>
+<span class="sd">        The value can be anything accepted by</span>
+<span class="sd">        :meth:`pyproj.CRS.from_user_input() &lt;pyproj.crs.CRS.from_user_input&gt;`,</span>
+<span class="sd">        such as an authority string (eg &quot;EPSG:26916&quot;) or a WKT string.</span>
+<span class="sd">    prjfile : str or pathlike, optional if `crs` is specified</span>
+<span class="sd">        ESRI-style projection file with well-known text defining the CRS</span>
+<span class="sd">        for the model grid (must be projected; geographic CRS are not supported).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Uses pyshp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">..utils.geospatial_utils</span> <span class="kn">import</span> <span class="n">GeoSpatialCollection</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">recarray</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">geoms</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+            <span class="s2">&quot;Number of geometries must equal the number of records!&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">recarray</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Recarray is empty&quot;</span><span class="p">)</span>
+
+    <span class="n">geomtype</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">geoms</span> <span class="o">=</span> <span class="n">GeoSpatialCollection</span><span class="p">(</span><span class="n">geoms</span><span class="p">)</span><span class="o">.</span><span class="n">flopy_geometry</span>
+
+    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">geoms</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">geomtype</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">shapeType</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+    <span class="c1"># set up for pyshp 2</span>
+    <span class="n">shapefile</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapefile&quot;</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">shapefile</span><span class="o">.</span><span class="n">Writer</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">shpname</span><span class="p">),</span> <span class="n">shapeType</span><span class="o">=</span><span class="n">geomtype</span><span class="p">)</span>
+    <span class="n">w</span><span class="o">.</span><span class="n">autoBalance</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># set up the attribute fields</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">enforce_10ch_limit</span><span class="p">(</span><span class="n">recarray</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">npdtype</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">recarray</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">descr</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">get_pyshp_field_info</span><span class="p">(</span><span class="n">npdtype</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="c1"># write the geometry and attributes for each record</span>
+    <span class="n">ralist</span> <span class="o">=</span> <span class="n">recarray</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">geomtype</span> <span class="o">==</span> <span class="n">shapefile</span><span class="o">.</span><span class="n">POLYGON</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ralist</span><span class="p">):</span>
+            <span class="n">w</span><span class="o">.</span><span class="n">poly</span><span class="p">(</span><span class="n">geoms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">pyshp_parts</span><span class="p">)</span>
+            <span class="n">w</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="o">*</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">geomtype</span> <span class="o">==</span> <span class="n">shapefile</span><span class="o">.</span><span class="n">POLYLINE</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ralist</span><span class="p">):</span>
+            <span class="n">w</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">geoms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">pyshp_parts</span><span class="p">)</span>
+            <span class="n">w</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="o">*</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">geomtype</span> <span class="o">==</span> <span class="n">shapefile</span><span class="o">.</span><span class="n">POINT</span><span class="p">:</span>
+        <span class="c1"># pyshp version 2.x w.point() method can only take x and y</span>
+        <span class="c1"># code will need to be refactored in order to write POINTZ</span>
+        <span class="c1"># shapes with the z attribute.</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ralist</span><span class="p">):</span>
+            <span class="n">w</span><span class="o">.</span><span class="n">point</span><span class="p">(</span><span class="o">*</span><span class="n">geoms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">pyshp_parts</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">w</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="o">*</span><span class="n">r</span><span class="p">)</span>
+
+    <span class="n">w</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">write_prj</span><span class="p">(</span><span class="n">shpname</span><span class="p">,</span> <span class="n">mg</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">,</span> <span class="n">prj</span><span class="o">=</span><span class="n">prj</span><span class="p">,</span> <span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;wrote </span><span class="si">{</span><span class="n">flopy_io</span><span class="o">.</span><span class="n">relpath_safe</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span><span class="w"> </span><span class="n">shpname</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="write_prj"><a class="viewcode-back" href="../../../source/flopy.export.shapefile_utils.html#flopy.export.shapefile_utils.write_prj">[docs]</a><span class="k">def</span> <span class="nf">write_prj</span><span class="p">(</span>
+    <span class="n">shpname</span><span class="p">,</span>
+    <span class="n">modelgrid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wkt_string</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># projection file name</span>
+    <span class="n">output_projection_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">shpname</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.prj&quot;</span><span class="p">)</span>
+
+    <span class="n">crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span>
+        <span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">,</span> <span class="n">prj</span><span class="o">=</span><span class="n">prj</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">wkt_string</span><span class="o">=</span><span class="n">wkt_string</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">modelgrid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">crs</span> <span class="o">=</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">crs</span>
+    <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_projection_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">dest</span><span class="p">:</span>
+            <span class="n">write_text</span> <span class="o">=</span> <span class="n">crs</span><span class="o">.</span><span class="n">to_wkt</span><span class="p">()</span>
+            <span class="n">dest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">write_text</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;No CRS information for writing a .prj file.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Supply an valid coordinate system reference to the attached modelgrid object &quot;</span>
+            <span class="s2">&quot;or .export() method.&quot;</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

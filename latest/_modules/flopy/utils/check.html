@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.check &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.check</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.check</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib</span> <span class="kn">import</span> <span class="n">recfunctions</span>
+
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">relpath_safe</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">recarray</span>
+<span class="kn">from</span> <span class="nn">..utils.util_array</span> <span class="kn">import</span> <span class="n">Util3d</span>
+
+
+<div class="viewcode-block" id="check"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check">[docs]</a><span class="k">class</span> <span class="nc">check</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check package for common errors</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    package : object</span>
+<span class="sd">        Instance of Package class.</span>
+<span class="sd">    f : str or PathLike, optional</span>
+<span class="sd">        Path to the summary file. If no path is provided, a summary</span>
+<span class="sd">        file is not created and results are only written to stdout.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Boolean flag used to determine if check method results are</span>
+<span class="sd">        written to the screen</span>
+<span class="sd">    level : int</span>
+<span class="sd">        Check method analysis level. If level=0, summary checks are</span>
+<span class="sd">        performed. If level=1, full checks are performed.</span>
+<span class="sd">    property_threshold_values : dict</span>
+<span class="sd">        hk : tuple</span>
+<span class="sd">            Reasonable minimum/maximum hydraulic conductivity value; values</span>
+<span class="sd">            below this will be flagged. Default is (1e-11, 1e5), after Bear,</span>
+<span class="sd">            1972 (see https://en.wikipedia.org/wiki/Hydraulic_conductivity)</span>
+<span class="sd">            and Schwartz and Zhang (2003, Table 4.4).</span>
+<span class="sd">        vka : tuple</span>
+<span class="sd">            Reasonable minimum/maximum hydraulic conductivity value;</span>
+<span class="sd">            Default is (1e-11, 1e5), after Bear, 1972 (see</span>
+<span class="sd">            https://en.wikipedia.org/wiki/Hydraulic_conductivity)</span>
+<span class="sd">            and Schwartz and Zhang (2003, Table 4.4).</span>
+<span class="sd">        vkcb : tuple</span>
+<span class="sd">            Reasonable minimum/maximum hydraulic conductivity value for</span>
+<span class="sd">            quasi-3D confining bed; Default is (1e-11, 1e5), after Bear, 1972</span>
+<span class="sd">            (see https://en.wikipedia.org/wiki/Hydraulic_conductivity)</span>
+<span class="sd">            and Schwartz and Zhang (2003, Table 4.4).</span>
+<span class="sd">        sy : tuple</span>
+<span class="sd">            Reasonable minimum/maximum specific yield values;</span>
+<span class="sd">            Default is (0.01,0.5) after Anderson, Woessner and Hunt</span>
+<span class="sd">            (2015, Table 5.2).</span>
+<span class="sd">        sy : tuple</span>
+<span class="sd">            Reasonable minimum/maximum specific storage values;</span>
+<span class="sd">            Default is (3.3e-6, 2e-2) after Anderson, Woessner and Hunt</span>
+<span class="sd">            (2015, Table 5.2).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Anderson, M.P, Woessner, W.W. and Hunt, R.J., 2015. Applied Groundwater</span>
+<span class="sd">        Modeling: Simulation of Flow and Advective Transport, Elsevier, 564p.</span>
+<span class="sd">    Bear, J., 1972. Dynamics of Fluids in Porous Media. Dover Publications.</span>
+<span class="sd">    Schwartz, F.W. and Zhang, H., 2003. Fundamentals of Groundwater, Wiley,</span>
+<span class="sd">        583 p.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">bc_stage_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;GHB&quot;</span><span class="p">:</span> <span class="s2">&quot;bhead&quot;</span><span class="p">,</span> <span class="s2">&quot;DRN&quot;</span><span class="p">:</span> <span class="s2">&quot;elev&quot;</span><span class="p">}</span>  <span class="c1"># all names in lower case</span>
+
+    <span class="c1"># only check packages when level is &gt;= to these values</span>
+    <span class="c1"># default is 0 (always check package)</span>
+    <span class="n">package_check_levels</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;sfr&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+
+    <span class="n">property_threshold_values</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;hk&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-11</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span>
+        <span class="s2">&quot;k&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-11</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span>
+        <span class="s2">&quot;k22&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-11</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span>
+        <span class="c1"># after Schwartz and Zhang, table 4.4</span>
+        <span class="s2">&quot;hani&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;vka&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-11</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span>
+        <span class="s2">&quot;k33&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-11</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span>
+        <span class="s2">&quot;vkcb&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-11</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span>
+        <span class="s2">&quot;ss&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">),</span>
+        <span class="s2">&quot;sy&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="c1"># which versions is pks compatible with?</span>
+    <span class="n">solver_packages</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;DE4&quot;</span><span class="p">,</span> <span class="s2">&quot;SIP&quot;</span><span class="p">,</span> <span class="s2">&quot;SOR&quot;</span><span class="p">,</span> <span class="s2">&quot;GMG&quot;</span><span class="p">,</span> <span class="s2">&quot;PCG&quot;</span><span class="p">,</span> <span class="s2">&quot;PCGN&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;mf2005&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;DE4&quot;</span><span class="p">,</span> <span class="s2">&quot;SIP&quot;</span><span class="p">,</span> <span class="s2">&quot;GMG&quot;</span><span class="p">,</span> <span class="s2">&quot;PCG&quot;</span><span class="p">,</span> <span class="s2">&quot;PCGN&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;mfnwt&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;DE4&quot;</span><span class="p">,</span> <span class="s2">&quot;SIP&quot;</span><span class="p">,</span> <span class="s2">&quot;PCG&quot;</span><span class="p">,</span> <span class="s2">&quot;NWT&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;mfusg&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;SMS&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># cells thickness less than this value will be flagged</span>
+    <span class="n">thin_cell_threshold</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">package</span><span class="p">,</span>
+        <span class="n">f</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">property_threshold_values</span><span class="o">=</span><span class="p">{},</span>
+    <span class="p">):</span>
+        <span class="c1"># allow for instantiation with model or package</span>
+        <span class="c1"># if isinstance(package, BaseModel): didn&#39;t work</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="s2">&quot;parent&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">parent</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> PACKAGE DATA VALIDATION&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">package</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> MODEL DATA VALIDATION SUMMARY&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">package</span>
+        <span class="k">if</span> <span class="s2">&quot;structured&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">structured</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">level</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">property_threshold_values</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">property_threshold_values</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary_array</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">summaryfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># if a path is supplied with summary file, save there</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">summaryfile</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summaryfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">txt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_add_to_summary</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+        <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">node</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">package</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">package</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">col_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">package</span><span class="p">]</span>
+        <span class="n">col_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured</span> <span class="k">else</span> <span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="n">col_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">value</span><span class="p">,</span> <span class="n">desc</span><span class="p">]</span>
+        <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">col_list</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">recarray</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_boolean_compare</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">array</span><span class="p">,</span>
+        <span class="n">col1</span><span class="p">,</span>
+        <span class="n">col2</span><span class="p">,</span>
+        <span class="n">level0txt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> violations encountered.&quot;</span><span class="p">,</span>
+        <span class="n">level1txt</span><span class="o">=</span><span class="s2">&quot;Violations:&quot;</span><span class="p">,</span>
+        <span class="n">sort_ascending</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">print_delimiter</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compare two columns in a record array. For each row,</span>
+<span class="sd">        tests if value in col1 is greater than col2. If any values</span>
+<span class="sd">        in col1 are &gt; col2, subsets array to only include rows where</span>
+<span class="sd">        col1 is greater. Creates another column with differences</span>
+<span class="sd">        (col1-col2), and prints the array sorted by the differences</span>
+<span class="sd">        column (diff).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        array : record array</span>
+<span class="sd">            Array with columns to compare.</span>
+<span class="sd">        col1 : string</span>
+<span class="sd">            Column name in array.</span>
+<span class="sd">        col2 : string</span>
+<span class="sd">            Column name in array.</span>
+<span class="sd">        sort_ascending : T/F; default True</span>
+<span class="sd">            If True, printed array will be sorted by differences in</span>
+<span class="sd">            ascending order.</span>
+<span class="sd">        print_delimiter : str</span>
+<span class="sd">            Delimiter for printed array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        txt : str</span>
+<span class="sd">            Error messages and printed array (if .level attribute of</span>
+<span class="sd">            checker is set to 1). Returns an empty string if no</span>
+<span class="sd">            values in col1 are greater than col2.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        info about appending to record arrays (views vs. copies and upcoming</span>
+<span class="sd">        changes to numpy): http://stackoverflow.com/q/22865877/</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">recfunctions</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span>
+                <span class="n">array</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s2">&quot;tmp1&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">col1</span><span class="p">,</span> <span class="n">asrecarray</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">col1</span> <span class="o">=</span> <span class="s2">&quot;tmp1&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">recfunctions</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span>
+                <span class="n">array</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s2">&quot;tmp2&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">col2</span><span class="p">,</span> <span class="n">asrecarray</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">col2</span> <span class="o">=</span> <span class="s2">&quot;tmp2&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col1</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">recfunctions</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span>
+                <span class="n">array</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">col1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="o">=</span><span class="n">col1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">asrecarray</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">col1</span> <span class="o">=</span> <span class="n">col1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col2</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">recfunctions</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span>
+                <span class="n">array</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">col2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="o">=</span><span class="n">col2</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">asrecarray</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">col2</span> <span class="o">=</span> <span class="n">col2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">failed</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">col1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">array</span><span class="p">[</span><span class="n">col2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">failed</span><span class="p">):</span>
+            <span class="n">failed_info</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">failed</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">txt</span> <span class="o">+=</span> <span class="n">level0txt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">failed_info</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="n">failed_info</span><span class="p">[</span><span class="n">col2</span><span class="p">]</span> <span class="o">-</span> <span class="n">failed_info</span><span class="p">[</span><span class="n">col1</span><span class="p">]</span>
+                <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">c</span>
+                    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">failed_info</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                    <span class="k">if</span> <span class="n">failed_info</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;diff&quot;</span>
+                    <span class="ow">and</span> <span class="s2">&quot;tmp&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">c</span>
+                <span class="p">]</span>
+                <span class="c1"># currently failed_info[cols] results in a warning. Not sure</span>
+                <span class="c1"># how to do this properly with a recarray.</span>
+                <span class="n">failed_info</span> <span class="o">=</span> <span class="n">recfunctions</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span>
+                    <span class="n">failed_info</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                    <span class="n">names</span><span class="o">=</span><span class="s2">&quot;diff&quot;</span><span class="p">,</span>
+                    <span class="n">data</span><span class="o">=</span><span class="n">diff</span><span class="p">,</span>
+                    <span class="n">asrecarray</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">failed_info</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s2">&quot;diff&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">sort_ascending</span><span class="p">:</span>
+                    <span class="n">failed_info</span> <span class="o">=</span> <span class="n">failed_info</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="n">level1txt</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="n">_print_rec_array</span><span class="p">(</span><span class="n">failed_info</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">print_delimiter</span><span class="p">)</span>
+            <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">txt</span>
+
+    <span class="k">def</span> <span class="nf">_get_summary_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dtype</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">((</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">recarray</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+        <span class="c1"># at = array.transpose()</span>
+        <span class="c1"># a = np.core.records.fromarrays(at, dtype=dtype)</span>
+        <span class="k">return</span> <span class="n">ra</span>
+
+    <span class="k">def</span> <span class="nf">_txt_footer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">headertxt</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="n">testname</span><span class="p">,</span> <span class="n">passed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        if len(txt) == 0 or passed:</span>
+<span class="sd">            txt += &#39;passed.&#39;</span>
+<span class="sd">            self.passed.append(testname)</span>
+<span class="sd">        elif warning:</span>
+<span class="sd">            self.warnings.append(testname)</span>
+<span class="sd">        else:</span>
+<span class="sd">            self.errors.append(testname)</span>
+<span class="sd">        if self.verbose:</span>
+<span class="sd">            print(txt + &#39;\n&#39;)</span>
+<span class="sd">        self.txt += headertxt + txt + &#39;\n&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_stress_period_data_valid_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check that stress period data inds are valid for model grid.&quot;&quot;&quot;</span>
+        <span class="n">spd_inds_valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_cell_indices</span><span class="p">(</span><span class="n">stress_period_data</span><span class="p">)</span>
+
+        <span class="c1"># check for BCs indices that are invalid for grid</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cell_inds</span><span class="p">(</span><span class="n">stress_period_data</span><span class="p">)</span>
+        <span class="n">isvalid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">isvalid</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">isvalid</span><span class="p">):</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_spd_check_violations</span><span class="p">(</span>
+                <span class="n">stress_period_data</span><span class="p">,</span>
+                <span class="o">~</span><span class="n">isvalid</span><span class="p">,</span>
+                <span class="n">error_name</span><span class="o">=</span><span class="s2">&quot;invalid BC index&quot;</span><span class="p">,</span>
+                <span class="n">error_type</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">recarray</span>
+            <span class="p">)</span>
+            <span class="n">spd_inds_valid</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span><span class="s2">&quot;BC indices valid&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">spd_inds_valid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="s2">&quot;BC indices valid&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">spd_inds_valid</span>
+
+    <span class="k">def</span> <span class="nf">_stress_period_data_nans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">,</span> <span class="n">nan_excl_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check for and list any nans in stress period data.&quot;&quot;&quot;</span>
+        <span class="n">isnan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stress_period_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;object&quot;</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">nan_excl_list</span>
+            <span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">isnan</span><span class="p">):</span>
+            <span class="n">row_has_nan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">isnan</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_spd_check_violations</span><span class="p">(</span>
+                <span class="n">stress_period_data</span><span class="p">,</span>
+                <span class="n">row_has_nan</span><span class="p">,</span>
+                <span class="n">error_name</span><span class="o">=</span><span class="s2">&quot;Not a number&quot;</span><span class="p">,</span>
+                <span class="n">error_type</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">recarray</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span><span class="s2">&quot;not a number (Nan) entries&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="s2">&quot;not a number (Nan) entries&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_stress_period_data_inactivecells</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check for and list any stress period data in cells with ibound=0.&quot;&quot;&quot;</span>
+        <span class="n">spd</span> <span class="o">=</span> <span class="n">stress_period_data</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cell_inds</span><span class="p">(</span><span class="n">spd</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;BC in inactive cell&quot;</span>
+
+        <span class="n">idomain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">idomain</span>
+        <span class="k">if</span> <span class="n">idomain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ibnd</span> <span class="o">=</span> <span class="n">idomain</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ibnd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_spd_check_violations</span><span class="p">(</span>
+                    <span class="n">stress_period_data</span><span class="p">,</span>
+                    <span class="n">ibnd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">error_name</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span>
+                    <span class="n">error_type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">recarray</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_list_spd_check_violations</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">stress_period_data</span><span class="p">,</span>
+        <span class="n">criteria</span><span class="p">,</span>
+        <span class="n">col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">error_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">error_type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If criteria contains any true values, return the error_type, package</span>
+<span class="sd">        name, k,i,j indices, values, and description of error for each row in</span>
+<span class="sd">        stress_period_data where criteria=True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inds_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cell_inds_names</span><span class="p">()</span>
+        <span class="c1"># inds = stress_period_data[criteria][inds_col]\</span>
+        <span class="c1">#    .reshape(stress_period_data[criteria].shape + (-1,))</span>
+        <span class="c1"># inds = np.atleast_2d(np.squeeze(inds.tolist()))</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">stress_period_data</span><span class="p">[</span><span class="n">criteria</span><span class="p">]</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cellid_cols</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">inds_col</span><span class="p">)</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">criteria</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">stress_period_data</span><span class="p">[</span><span class="n">criteria</span><span class="p">][</span><span class="n">col</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">criteria</span><span class="p">]))</span>
+        <span class="n">pn</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">en</span> <span class="o">=</span> <span class="p">[</span><span class="n">error_name</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="p">[</span><span class="n">error_type</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">tp</span><span class="p">,</span> <span class="n">pn</span><span class="p">,</span> <span class="n">inds</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">en</span><span class="p">]))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_cellid_cols</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">inds_col</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="n">inds_col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds_col</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">inds_col</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">inds</span><span class="p">[</span><span class="n">n</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">a</span>
+
+<div class="viewcode-block" id="check.append_passed"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.append_passed">[docs]</a>    <span class="k">def</span> <span class="nf">append_passed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a check to the passed list if it isn&#39;t already in there.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">message</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="check.remove_passed"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.remove_passed">[docs]</a>    <span class="k">def</span> <span class="nf">remove_passed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a check to the passed list if it failed in any stress period.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">message</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="check.isvalid"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.isvalid">[docs]</a>    <span class="k">def</span> <span class="nf">isvalid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inds</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check that indices are valid for model grid</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inds : tuple or lists or arrays; or a 1-D array</span>
+<span class="sd">            (k, i, j) for structured grids; (node) for unstructured.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        isvalid : 1-D boolean array</span>
+<span class="sd">            True for each index in inds that is valid for the model grid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="p">[</span><span class="n">inds</span><span class="p">]</span>
+
+        <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">mg</span><span class="o">.</span><span class="n">nlay</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">mg</span><span class="o">.</span><span class="n">nrow</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncol</span>
+            <span class="k">return</span> <span class="n">k</span> <span class="o">&amp;</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="n">j</span>
+        <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">lay</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">mg</span><span class="o">.</span><span class="n">nlay</span>
+            <span class="n">cpl</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncpl</span>
+            <span class="k">return</span> <span class="n">lay</span> <span class="o">&amp;</span> <span class="n">cpl</span>
+        <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;unstructured&quot;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="check.get_active"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.get_active">[docs]</a>    <span class="k">def</span> <span class="nf">get_active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_cbd</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a boolean array of active cells for the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        include_cbd : boolean</span>
+<span class="sd">            If True, active is of same dimension as the thickness array</span>
+<span class="sd">            in the DIS module (includes quasi 3-D confining beds).</span>
+<span class="sd">            Default False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        active : 3-D boolean array</span>
+<span class="sd">            True where active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span><span class="p">:</span>
+            <span class="n">nlaycbd</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">laycbd</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="k">if</span> <span class="n">include_cbd</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">nlay</span> <span class="o">+</span> <span class="n">nlaycbd</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncol</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span><span class="p">:</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="p">(</span><span class="n">mg</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">mg</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">nnodes</span>
+            <span class="n">include_cbd</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="s2">&quot;BAS6&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_package_list</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s2">&quot;DIS&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_package_list</span><span class="p">():</span>
+                <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">dis</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">disu</span>
+
+            <span class="c1"># make ibound of same shape as thicknesses/botm for quasi-3D models</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bas6</span><span class="o">.</span><span class="n">ibound</span><span class="o">.</span><span class="n">array</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">include_cbd</span> <span class="ow">and</span> <span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">laycbd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
+                    <span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="o">.</span><span class="n">array</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="p">)</span>  <span class="c1"># cbd layer index</span>
+                <span class="n">active</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">active</span><span class="p">,</span> <span class="n">laycbd</span><span class="p">,</span> <span class="n">active</span><span class="p">[</span><span class="n">laycbd</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># if bas package is missing</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">active</span></div>
+
+<div class="viewcode-block" id="check.print_summary"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.print_summary">[docs]</a>    <span class="k">def</span> <span class="nf">print_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{:.6f}</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="c1"># strip description column</span>
+        <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">desc</span>
+        <span class="n">sa</span><span class="p">[</span><span class="s2">&quot;desc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">desc</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">_print_rec_array</span><span class="p">(</span>
+            <span class="n">sa</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="n">float_format</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="check.stress_period_data_values"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.stress_period_data_values">[docs]</a>    <span class="k">def</span> <span class="nf">stress_period_data_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">stress_period_data</span><span class="p">,</span>
+        <span class="n">criteria</span><span class="p">,</span>
+        <span class="n">col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">error_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">error_type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If criteria contains any true values, return the error_type, package</span>
+<span class="sd">        name, k,i,j indices, values, and description of error for each row in</span>
+<span class="sd">        stress_period_data where criteria=True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># check for valid cell indices</span>
+        <span class="c1"># self._stress_period_data_valid_indices(stress_period_data)</span>
+
+        <span class="c1"># first check for and list nan values</span>
+        <span class="c1"># self._stress_period_data_nans(stress_period_data)</span>
+
+        <span class="c1"># next check for BCs in inactive cells</span>
+        <span class="c1"># self._stress_period_data_inactivecells(stress_period_data)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">criteria</span><span class="p">):</span>
+            <span class="c1"># list the values that met the criteria</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_spd_check_violations</span><span class="p">(</span>
+                <span class="n">stress_period_data</span><span class="p">,</span>
+                <span class="n">criteria</span><span class="p">,</span>
+                <span class="n">col</span><span class="p">,</span>
+                <span class="n">error_name</span><span class="o">=</span><span class="n">error_name</span><span class="p">,</span>
+                <span class="n">error_type</span><span class="o">=</span><span class="n">error_type</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">recarray</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span><span class="n">error_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="n">error_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="check.values"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">criteria</span><span class="p">,</span> <span class="n">error_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">error_type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If criteria contains any true values, return the error_type, package</span>
+<span class="sd">        name, indices, array values, and description of error for each</span>
+<span class="sd">        True value in criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">criteria</span><span class="p">):</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">criteria</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>  <span class="c1"># works with structured or unstructured</span>
+            <span class="n">pn</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">en</span> <span class="o">=</span> <span class="p">[</span><span class="n">error_name</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">tp</span> <span class="o">=</span> <span class="p">[</span><span class="n">error_type</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">indsT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span>
+            <span class="c1"># _get_summary_array requires 3 columns for k, i, j,</span>
+            <span class="c1"># but indsT will only have two columns if a 2-D array is being compared</span>
+            <span class="c1"># pad indsT with a column of zeros for k</span>
+            <span class="k">if</span> <span class="n">indsT</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">indsT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">indsT</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span> <span class="n">indsT</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">tp</span><span class="p">,</span> <span class="n">pn</span><span class="p">,</span> <span class="n">indsT</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">en</span><span class="p">])</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary_array</span><span class="p">(</span><span class="n">sa</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">recarray</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span><span class="n">error_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="n">error_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="check.view_summary_array_fields"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.view_summary_array_fields">[docs]</a>    <span class="k">def</span> <span class="nf">view_summary_array_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">):</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span>
+        <span class="n">dtype2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="n">name</span><span class="p">:</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype2</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arr</span><span class="o">.</span><span class="n">strides</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="check.summarize"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.summarize">[docs]</a>    <span class="k">def</span> <span class="nf">summarize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scrub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># write the summary array to text file (all levels)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">print_summary</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># print the screen output depending on level</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="c1"># tweak screen output for model-level to report package for each error</span>
+        <span class="k">if</span> <span class="s2">&quot;MODEL&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span>  <span class="c1"># add package name for model summary output</span>
+            <span class="n">packages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">package</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">desc</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">[</span><span class="s2">&quot;desc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    </span><span class="si">{</span><span class="n">packages</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> package: </span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">packages</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;model&quot;</span>
+                <span class="k">else</span> <span class="n">d</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">etype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="s2">&quot;Warning&quot;</span><span class="p">]:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">etype</span><span class="p">]</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">desc</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">etype</span><span class="si">}</span><span class="s2">s:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>  <span class="c1"># grammar</span>
+                <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">desc</span><span class="p">):</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">desc</span> <span class="o">==</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> instances of </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> instance of </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="n">txt</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;  No errors or warnings encountered.</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="n">txt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  see </span><span class="si">{</span><span class="n">relpath_safe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summaryfile</span><span class="p">,</span><span class="w"> </span><span class="n">scrub</span><span class="o">=</span><span class="n">scrub</span><span class="p">)</span><span class="si">}</span><span class="s2"> for details.</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="c1"># print checks that passed for higher levels</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">passed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Checks that passed:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">chkname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">chkname</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">txt</span> <span class="o">+=</span> <span class="n">txt</span>
+
+        <span class="c1"># for level 2, print the whole summary table at the bottom</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># kludge to improve screen printing</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">[</span><span class="s2">&quot;package&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2"> &quot;</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="p">[</span><span class="s2">&quot;package&quot;</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">DETAILED SUMMARY:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">print_summary</span><span class="p">(</span><span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{:.2e}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">txt</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Errors and/or Warnings encountered.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;  see </span><span class="si">{</span><span class="n">relpath_safe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summaryfile</span><span class="p">,</span><span class="w"> </span><span class="n">scrub</span><span class="o">=</span><span class="n">scrub</span><span class="p">)</span><span class="si">}</span><span class="s2"> for details.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span></div>
+
+    <span class="c1"># start of older model specific code</span>
+    <span class="k">def</span> <span class="nf">_has_cell_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">has_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">{</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">!=</span> <span class="p">{</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">}:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    Stress period data missing k, &quot;</span>
+                <span class="s2">&quot;i, j for structured grid.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">has_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="s2">&quot;node&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stress_period_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    Stress period data missing &quot;</span>
+                <span class="s2">&quot;node number for unstructured grid.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_get_cell_inds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spd</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">spd</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">spd</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">spd</span><span class="o">.</span><span class="n">j</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured</span> <span class="k">else</span> <span class="p">(</span><span class="n">spd</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_cell_inds_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured</span> <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+            <span class="c1"># include node column for structured grids (useful for indexing)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;package&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;desc&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;package&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;desc&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="check.get_neighbors"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.check.get_neighbors">[docs]</a>    <span class="k">def</span> <span class="nf">get_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a structured grid, this returns the 6 neighboring values for each</span>
+<span class="sd">        value in a. For an unstructured grid, this returns the n_max neighboring</span>
+<span class="sd">        values, where n_max is the maximum number of nodal connections for any</span>
+<span class="sd">        node within the model; nodes with less than n_max connections are assigned</span>
+<span class="sd">        np.nan for indices above the number of connections for that node.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        a : 3-D Model array in layer, row, column order array, even for an</span>
+<span class="sd">        unstructured grid; for instance, a Util3d array</span>
+<span class="sd">        (e.g. flopy.modflow.ModflowBas.ibound).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        neighbors : 4-D array</span>
+<span class="sd">            Array of neighbors, where axis 0 contains the n neighboring</span>
+<span class="sd">            values for each value in a, and subsequent axes are in layer, row,</span>
+<span class="sd">            column order. &quot;n&quot; is 6 for a structured grid, and &quot;n&quot; is n_max</span>
+<span class="sd">            for an unstructured grid, as described above. Nan is returned for</span>
+<span class="sd">            values at edges.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+            <span class="n">nk</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">nj</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nk</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ni</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">nj</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">tmp</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>  <span class="c1"># k-1</span>
+                    <span class="n">tmp</span><span class="p">[</span><span class="mi">2</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>  <span class="c1"># k+1</span>
+                    <span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>  <span class="c1"># i-1</span>
+                    <span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>  <span class="c1"># i+1</span>
+                    <span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>  <span class="c1"># j-1</span>
+                    <span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>  <span class="c1"># j+1</span>
+            <span class="k">return</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">nk</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;DISU&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_package_list</span><span class="p">():</span>
+                <span class="n">disu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">disu</span>
+                <span class="n">neighbors</span> <span class="o">=</span> <span class="n">disu</span><span class="o">.</span><span class="n">_neighboring_nodes</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Util3d</span><span class="p">):</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">array</span>
+                <span class="n">pad_value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="o">-</span><span class="mf">1e9</span><span class="p">)</span>
+                <span class="n">n_max</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">disu</span><span class="o">.</span><span class="n">iac</span><span class="o">.</span><span class="n">array</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="p">)</span>  <span class="c1"># -1 for self, removed below</span>
+                <span class="n">arr_neighbors</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">a</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">-</span> <span class="n">n</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                        <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+                        <span class="n">constant_values</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_value</span><span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">neighbors</span>
+                <span class="p">]</span>
+                <span class="n">arr_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">arr_neighbors</span> <span class="o">==</span> <span class="o">-</span><span class="mf">1e9</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">arr_neighbors</span>
+                <span class="p">)</span>
+                <span class="n">neighbors</span> <span class="o">=</span> <span class="n">arr_neighbors</span><span class="o">.</span><span class="n">T</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># if no disu, we can&#39;t define neighbours for this ugrid</span>
+                <span class="n">neighbors</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">neighbors</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_fmt_string_list</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">):</span>
+    <span class="n">fmt_string</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">descr</span><span class="p">:</span>
+        <span class="n">vtype</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+            <span class="n">fmt_string</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{:.0f}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span>
+            <span class="n">fmt_string</span> <span class="o">+=</span> <span class="p">[</span><span class="n">float_format</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;o&quot;</span><span class="p">:</span>
+            <span class="n">fmt_string</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;MfList error: &#39;str&#39; type found in dtype. &quot;</span>
+                <span class="s2">&quot;This gives unpredictable results when &quot;</span>
+                <span class="s2">&quot;recarray to file - change to &#39;object&#39; type&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;MfList.fmt_string error: unknown vtype in dtype:</span><span class="si">{</span><span class="n">vtype</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">fmt_string</span>
+
+
+<span class="k">def</span> <span class="nf">_print_rec_array</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{:.6f}</span><span class="s2">&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Print out a numpy record array to string, with column names.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cols : list of strings</span>
+<span class="sd">        List of columns to print.</span>
+<span class="sd">    delimiter : string</span>
+<span class="sd">        Delimited to use.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    txt : string</span>
+<span class="sd">        Text string of array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">dtypes</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">dtypes</span>
+    <span class="c1"># drop columns with no data</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">c</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span>
+            <span class="k">if</span> <span class="n">array</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span> <span class="ow">or</span> <span class="n">array</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">999999</span>
+        <span class="p">]</span>
+    <span class="c1"># edit dtypes</span>
+    <span class="n">array_cols</span> <span class="o">=</span> <span class="n">fields_view</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
+    <span class="n">fmts</span> <span class="o">=</span> <span class="n">_fmt_string_list</span><span class="p">(</span><span class="n">array_cols</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="n">float_format</span><span class="p">)</span>
+    <span class="n">txt</span> <span class="o">+=</span> <span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">array_cols</span> <span class="o">=</span> <span class="n">array_cols</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fmts</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">array_cols</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">txt</span>
+
+
+<div class="viewcode-block" id="fields_view"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.fields_view">[docs]</a><span class="k">def</span> <span class="nf">fields_view</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">fields</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    creates view of array that only contains the fields in fields.</span>
+<span class="sd">    https://stackoverflow.com/q/15182381/</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dtype2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="n">name</span><span class="p">:</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype2</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arr</span><span class="o">.</span><span class="n">strides</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="mf6check"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.mf6check">[docs]</a><span class="k">class</span> <span class="nc">mf6check</span><span class="p">(</span><span class="n">check</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">package</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">property_threshold_values</span><span class="o">=</span><span class="p">{},</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">property_threshold_values</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="s2">&quot;model_or_sim&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">model_or_sim</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_cellid_cols</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">inds_col</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="n">inds_col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_get_cell_inds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spd</span><span class="p">):</span>
+        <span class="n">hnames</span> <span class="o">=</span> <span class="p">()</span>
+        <span class="k">if</span> <span class="s2">&quot;cellid&quot;</span> <span class="ow">in</span> <span class="n">spd</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="n">cellid</span> <span class="o">=</span> <span class="n">spd</span><span class="o">.</span><span class="n">cellid</span>
+        <span class="k">elif</span> <span class="s2">&quot;cellid1&quot;</span> <span class="ow">in</span> <span class="n">spd</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="n">cellid</span> <span class="o">=</span> <span class="n">spd</span><span class="o">.</span><span class="n">cellid1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">cellid</span><span class="p">):</span>
+            <span class="n">hnames</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">(</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">),),</span> <span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">item</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">hnames</span>
+
+    <span class="k">def</span> <span class="nf">_get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;package&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;desc&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;package&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;lay&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;cell&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;desc&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;package&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;desc&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_has_cell_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">):</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span>
+            <span class="ow">or</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span>
+            <span class="ow">or</span> <span class="n">mg</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;unstructured&quot;</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;cellid&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">stress_period_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+            <span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;cellid1&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span>
+                    <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    Stress period data missing cellid.&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_get_cell_inds_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;cellid&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="mf6check.get_active"><a class="viewcode-back" href="../../../source/flopy.utils.check.html#flopy.utils.check.mf6check.get_active">[docs]</a>    <span class="k">def</span> <span class="nf">get_active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_cbd</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a boolean array of active cells for the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        include_cbd : boolean</span>
+<span class="sd">            Does not apply to MF6 models, always false.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        active : 3-D boolean array</span>
+<span class="sd">            True where active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="n">idomain</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">idomain</span>
+        <span class="k">if</span> <span class="n">idomain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">mg</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">idomain</span> <span class="o">&gt;</span> <span class="mi">0</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

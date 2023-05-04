@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modpath.mp7particlegroup &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modpath.mp7particlegroup</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modpath.mp7particlegroup</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mp7particlegroup module.  Contains the ParticleGroup, and</span>
+<span class="sd">    ParticleGroupNodeTemplate classes.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils.util_array</span> <span class="kn">import</span> <span class="n">Util2d</span>
+<span class="kn">from</span> <span class="nn">.mp7particledata</span> <span class="kn">import</span> <span class="n">NodeParticleData</span><span class="p">,</span> <span class="n">ParticleData</span>
+
+
+<span class="k">class</span> <span class="nc">_Modpath7ParticleGroup</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base particle group class that defines common data to all particle</span>
+<span class="sd">    input styles (MODPATH 7 simulation file items 26 through 32).</span>
+<span class="sd">    _Modpath7ParticleGroup should not be called directly.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    particlegroupname : str</span>
+<span class="sd">       Name of particle group</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Name of the external file that will contain the particle data.</span>
+<span class="sd">        If filename is &#39;&#39; or None the particle information for the</span>
+<span class="sd">        particle group will be written to the MODPATH7 simulation</span>
+<span class="sd">        file.</span>
+<span class="sd">    releasedata : float, int, list, or tuple</span>
+<span class="sd">        If releasedata is a float or an int or a list/tuple with a single</span>
+<span class="sd">        float or int, releaseoption is set to 1 and release data is the</span>
+<span class="sd">        particle release time.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particlegroupname</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">releasedata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particlegroupname</span> <span class="o">=</span> <span class="n">particlegroupname</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">releasedata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;releasedata must be provided to instantiate &quot;</span>
+                <span class="s2">&quot;a MODPATH 7 particle group&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># convert releasedata to a list, if required</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">releasedata</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="n">releasedata</span> <span class="o">=</span> <span class="p">[</span><span class="n">releasedata</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">releasedata</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">releasedata</span> <span class="o">=</span> <span class="n">releasedata</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="c1"># validate that releasedata is a list or tuple</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">releasedata</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;releasedata must be a float, int, list, or tuple&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># process releasedata</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">releasedata</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">releaseoption</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">releasetimecount</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">releaseinterval</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">releasetimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">releasedata</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">releasedata</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">releaseoption</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">releasetimecount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">releasedata</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">releaseinterval</span> <span class="o">=</span> <span class="n">releasedata</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">releasetimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">releasetimecount</span> <span class="o">*</span> <span class="n">releaseinterval</span><span class="p">,</span>
+                <span class="n">releaseinterval</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">releasedata</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">releaseoption</span> <span class="o">=</span> <span class="mi">3</span>
+            <span class="n">releasetimecount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">releasedata</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">releaseinterval</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c1"># convert releasetimes list or tuple to a numpy array</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">tuple</span>
+            <span class="p">):</span>
+                <span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">releasetimecount</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;The number of releasetimes data (</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                    <span class="s2">&quot;is not equal to releasetimecount &quot;</span>
+                    <span class="s2">&quot;(</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">releasetimecount</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">releasetimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">releasedata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;releasedata must have 1, 2, or 3 entries&quot;</span><span class="p">)</span>
+
+        <span class="c1"># set release data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">releaseoption</span> <span class="o">=</span> <span class="n">releaseoption</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">releasetimecount</span> <span class="o">=</span> <span class="n">releasetimecount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">releaseinterval</span> <span class="o">=</span> <span class="n">releaseinterval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">releasetimes</span> <span class="o">=</span> <span class="n">releasetimes</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Common write of MODPATH 7 simulation file items 26 through 32</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fp : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+<span class="sd">        ws : str</span>
+<span class="sd">            Workspace for particle data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot write data for particle group </span><span class="si">{}</span><span class="s2"> without passing a &quot;</span>
+                <span class="s2">&quot;valid file object (</span><span class="si">{}</span><span class="s2">) open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">particlegroupname</span><span class="p">,</span> <span class="n">fp</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># item 26</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">particlegroupname</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 27</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">releaseoption</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">releaseoption</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># item 28</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">releasetimes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">releaseoption</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># item 29</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">releasetimecount</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">releasetimes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">releaseinterval</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">releaseoption</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># item 30</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">releasetimecount</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># item 31</span>
+            <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">releasetimes</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">locat</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+
+        <span class="c1"># item 32</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;EXTERNAL </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;INTERNAL</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">return</span>
+
+
+<div class="viewcode-block" id="ParticleGroup"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particlegroup.html#flopy.modpath.mp7particlegroup.ParticleGroup">[docs]</a><span class="k">class</span> <span class="nc">ParticleGroup</span><span class="p">(</span><span class="n">_Modpath7ParticleGroup</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ParticleGroup class to create MODPATH 7 particle group data for location</span>
+<span class="sd">    input style 1. Location input style 1 is the most general type of particle</span>
+<span class="sd">    group that requires the user to define the location of all particles and</span>
+<span class="sd">    associated data (relative release time, drape, and optionally particle</span>
+<span class="sd">    ids). Particledata locations can be specified by layer, row, column</span>
+<span class="sd">    (locationstyle=1) or nodes (locationstyle=2) and are created with the</span>
+<span class="sd">    ParticleData class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    particlegroupname : str</span>
+<span class="sd">       Name of particle group (default is &#39;PG1&#39;)</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Name of the external file that will contain the particle data.</span>
+<span class="sd">        If filename is &#39;&#39; or None the particle information for the</span>
+<span class="sd">        particle group will be written to the MODPATH7 simulation</span>
+<span class="sd">        file (default is None).</span>
+<span class="sd">    releasedata : float, int, list, or tuple</span>
+<span class="sd">        If releasedata is a float or an int or a list/tuple with a single</span>
+<span class="sd">        float or int, releaseoption is set to 1 and release data is the</span>
+<span class="sd">        particle release time (default is 0.0).</span>
+<span class="sd">    particledata : ParticleData</span>
+<span class="sd">        ParticleData instance with particle data. If particledata is None,</span>
+<span class="sd">        a ParticleData instance will be created with a node-based particle</span>
+<span class="sd">        in the center of the first node in the model (default is None).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; p = [(2, 0, 0), (0, 20, 0)]</span>
+<span class="sd">    &gt;&gt;&gt; p = flopy.modpath.ParticleData(p)</span>
+<span class="sd">    &gt;&gt;&gt; pg = flopy.modpath.ParticleGroup(particledata=p)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">particlegroupname</span><span class="o">=</span><span class="s2">&quot;PG1&quot;</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">releasedata</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">particledata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># instantiate base class</span>
+        <span class="n">_Modpath7ParticleGroup</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">particlegroupname</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">releasedata</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ParticleGroup&quot;</span>
+
+        <span class="c1"># create default node-based particle data if not passed</span>
+        <span class="k">if</span> <span class="n">particledata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">particledata</span> <span class="o">=</span> <span class="n">ParticleData</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># convert particledata to a list if a ParticleData type</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">particledata</span><span class="p">,</span> <span class="n">ParticleData</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: particledata must be a &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;ParticleData instance not a </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">particledata</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># set attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputstyle</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particlecount</span> <span class="o">=</span> <span class="n">particledata</span><span class="o">.</span><span class="n">particlecount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particleidoption</span> <span class="o">=</span> <span class="n">particledata</span><span class="o">.</span><span class="n">particleidoption</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationstyle</span> <span class="o">=</span> <span class="n">particledata</span><span class="o">.</span><span class="n">locationstyle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span> <span class="o">=</span> <span class="n">particledata</span>
+
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ParticleGroup.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particlegroup.html#flopy.modpath.mp7particlegroup.ParticleGroup.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write MODPATH 7 particle data items 1 through 5</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fp : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+<span class="sd">        ws : str</span>
+<span class="sd">            Workspace for particle data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># call base class write method to write common data</span>
+        <span class="n">_Modpath7ParticleGroup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">ws</span><span class="p">)</span>
+
+        <span class="c1"># open external file if required</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">fpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpth</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">fp</span>
+
+        <span class="c1"># particle data item 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">inputstyle</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># particle data item 2</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">locationstyle</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># particle data item 3</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">particlecount</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">particleidoption</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># particle data item 4 and 5</span>
+        <span class="c1"># call the write method in ParticleData</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># close the external file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">_ParticleGroupTemplate</span><span class="p">(</span><span class="n">_Modpath7ParticleGroup</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base particle group template that defines all data for particle</span>
+<span class="sd">    group items 1 through 6. _ParticleGroupTemplate should not be</span>
+<span class="sd">    called directly.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particlegroupname</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">releasedata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># instantiate base class</span>
+        <span class="n">_Modpath7ParticleGroup</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">particlegroupname</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">releasedata</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fp : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+<span class="sd">        ws : str</span>
+<span class="sd">            Workspace for particle data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span>
+
+
+<div class="viewcode-block" id="ParticleGroupLRCTemplate"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particlegroup.html#flopy.modpath.mp7particlegroup.ParticleGroupLRCTemplate">[docs]</a><span class="k">class</span> <span class="nc">ParticleGroupLRCTemplate</span><span class="p">(</span><span class="n">_ParticleGroupTemplate</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Layer, row, column particle template class to create MODPATH 7 particle</span>
+<span class="sd">    location input style 2. Particle locations for this template are specified</span>
+<span class="sd">    by layer, row, column regions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    particlegroupname : str</span>
+<span class="sd">       Name of particle group</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Name of the external file that will contain the particle data.</span>
+<span class="sd">        If filename is &#39;&#39; or None the particle information for the</span>
+<span class="sd">        particle group will be written to the MODPATH7 simulation</span>
+<span class="sd">        file.</span>
+<span class="sd">    releasedata : float, int, list, or tuple</span>
+<span class="sd">        If releasedata is a float or an int or a list/tuple with a single</span>
+<span class="sd">        float or int, releaseoption is set to 1 and release data is the</span>
+<span class="sd">        particle release time.</span>
+<span class="sd">    particledata :</span>
+<span class="sd">        LRCParticleData object with input style 2 face and/or node particle</span>
+<span class="sd">        data. If particledata is None a default LRCParticleData object is</span>
+<span class="sd">        created (default is None).</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">particlegroupname</span><span class="o">=</span><span class="s2">&quot;PG1&quot;</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">releasedata</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,),</span>
+        <span class="n">particledata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ParticleGroupLRCTemplate&quot;</span>
+
+        <span class="c1"># instantiate base class</span>
+        <span class="n">_ParticleGroupTemplate</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">particlegroupname</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">releasedata</span>
+        <span class="p">)</span>
+        <span class="c1"># validate particledata</span>
+        <span class="k">if</span> <span class="n">particledata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">particledata</span> <span class="o">=</span> <span class="n">NodeParticleData</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputstyle</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span> <span class="o">=</span> <span class="n">particledata</span>
+
+<div class="viewcode-block" id="ParticleGroupLRCTemplate.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particlegroup.html#flopy.modpath.mp7particlegroup.ParticleGroupLRCTemplate.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fp : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+<span class="sd">        ws : str</span>
+<span class="sd">            Workspace for particle data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template without passing a valid &quot;</span>
+                <span class="s2">&quot;file object (</span><span class="si">{}</span><span class="s2">) open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># call base class write method to write common data</span>
+        <span class="n">_Modpath7ParticleGroup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">ws</span><span class="p">)</span>
+
+        <span class="c1"># open external file if required</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">fpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpth</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">fp</span>
+
+        <span class="c1"># item 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">inputstyle</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># items 2, 3, 4 or 5, and 6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># close the external file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="ParticleGroupNodeTemplate"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particlegroup.html#flopy.modpath.mp7particlegroup.ParticleGroupNodeTemplate">[docs]</a><span class="k">class</span> <span class="nc">ParticleGroupNodeTemplate</span><span class="p">(</span><span class="n">_ParticleGroupTemplate</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Node particle template class to create MODPATH 7 particle location</span>
+<span class="sd">    input style 3. Particle locations for this template are specified</span>
+<span class="sd">    by nodes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    particlegroupname : str</span>
+<span class="sd">       Name of particle group</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Name of the external file that will contain the particle data.</span>
+<span class="sd">        If filename is &#39;&#39; or None the particle information for the</span>
+<span class="sd">        particle group will be written to the MODPATH7 simulation</span>
+<span class="sd">        file.</span>
+<span class="sd">    releasedata : float, int, list, or tuple</span>
+<span class="sd">        If releasedata is a float or an int or a list/tuple with a single</span>
+<span class="sd">        float or int, releaseoption is set to 1 and release data is the</span>
+<span class="sd">        particle release time.</span>
+<span class="sd">    particledata :</span>
+<span class="sd">        NodeParticleData object with input style 3 face and/or node particle</span>
+<span class="sd">        data. If particledata is None a default NodeParticleData object is</span>
+<span class="sd">        created (default is None).</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">particlegroupname</span><span class="o">=</span><span class="s2">&quot;PG1&quot;</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">releasedata</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,),</span>
+        <span class="n">particledata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ParticleGroupNodeTemplate&quot;</span>
+
+        <span class="c1"># instantiate base class</span>
+        <span class="n">_ParticleGroupTemplate</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">particlegroupname</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">releasedata</span>
+        <span class="p">)</span>
+        <span class="c1"># validate particledata</span>
+        <span class="k">if</span> <span class="n">particledata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">particledata</span> <span class="o">=</span> <span class="n">NodeParticleData</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputstyle</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span> <span class="o">=</span> <span class="n">particledata</span>
+
+<div class="viewcode-block" id="ParticleGroupNodeTemplate.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particlegroup.html#flopy.modpath.mp7particlegroup.ParticleGroupNodeTemplate.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fp : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+<span class="sd">        ws : str</span>
+<span class="sd">            Workspace for particle data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template without passing a valid &quot;</span>
+                <span class="s2">&quot;file object (</span><span class="si">{}</span><span class="s2">) open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># call base class write method to write common data</span>
+        <span class="n">_Modpath7ParticleGroup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">ws</span><span class="p">)</span>
+
+        <span class="c1"># open external file if required</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">fpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpth</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">fp</span>
+
+        <span class="c1"># item 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">inputstyle</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># items 2, 3, 4 or 5, and 6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># close the external file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

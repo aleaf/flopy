@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfrch &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfrch</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfrch</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfrch module.  Contains the ModflowRch class. Note that the user can access</span>
+<span class="sd">the ModflowRch class as `flopy.modflow.ModflowRch`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/rch.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..modflow.mfparbc</span> <span class="kn">import</span> <span class="n">ModflowParBc</span> <span class="k">as</span> <span class="n">mfparbc</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Transient2d</span><span class="p">,</span> <span class="n">Util2d</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span>
+<span class="kn">from</span> <span class="nn">..utils.utils_def</span> <span class="kn">import</span> <span class="n">get_pak_vals_shape</span>
+
+
+<div class="viewcode-block" id="ModflowRch"><a class="viewcode-back" href="../../../source/flopy.modflow.mfrch.html#flopy.modflow.mfrch.ModflowRch">[docs]</a><span class="k">class</span> <span class="nc">ModflowRch</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Recharge Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    nrchop : int</span>
+<span class="sd">        is the recharge option code.</span>
+<span class="sd">        1: Recharge to top grid layer only</span>
+<span class="sd">        2: Recharge to layer defined in irch</span>
+<span class="sd">        3: Recharge to highest active cell (default is 3).</span>
+<span class="sd">    rech : float or filename or ndarray or dict keyed on kper (zero-based)</span>
+<span class="sd">        Recharge flux (default is 1.e-3, which is used for all stress periods)</span>
+<span class="sd">    irch : int or filename or ndarray or dict keyed on kper (zero-based)</span>
+<span class="sd">        Layer (for an unstructured grid) or node (for an unstructured grid) to</span>
+<span class="sd">        which recharge is applied in each vertical column (only used when</span>
+<span class="sd">        nrchop=2). Default is 0, which is used for all stress periods.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;rch&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output name will be created using</span>
+<span class="sd">        the model name and .cbc extension (for example, modflowtest.cbc),</span>
+<span class="sd">        if ipakcbc is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and cbc output names will be</span>
+<span class="sd">        created using the model name and .cbc extension, if ipakcbc is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are supported in Flopy only when reading in existing models.</span>
+<span class="sd">    Parameter values are converted to native values in Flopy and the</span>
+<span class="sd">    connection to &quot;parameters&quot; is thus nonexistent.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; #steady state</span>
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; rch = flopy.modflow.ModflowRch(m, nrchop=3, rech=1.2e-4)</span>
+
+<span class="sd">    &gt;&gt;&gt; #transient with time-varying recharge</span>
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; rech = {}</span>
+<span class="sd">    &gt;&gt;&gt; rech[0] = 1.2e-4 #stress period 1 to 4</span>
+<span class="sd">    &gt;&gt;&gt; rech[4] = 0.0 #stress period 5 and 6</span>
+<span class="sd">    &gt;&gt;&gt; rech[6] = 1.2e-3 #stress period 7 to the end</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; rch = flopy.modflow.ModflowRch(m, nrchop=3, rech=rech)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nrchop</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">rech</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">irch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;rch&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowRch</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with cbc output, if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;rch.html&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span> <span class="o">=</span> <span class="n">nrchop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+
+        <span class="n">rech_u2d_shape</span> <span class="o">=</span> <span class="n">get_pak_vals_shape</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">rech</span><span class="p">)</span>
+        <span class="n">irch_u2d_shape</span> <span class="o">=</span> <span class="n">get_pak_vals_shape</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">irch</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rech</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">rech_u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">rech</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;rech_&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">irch</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="n">irch_u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">irch</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;irch_&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">irch</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowRch.check"><a class="viewcode-back" href="../../../source/flopy.modflow.mfrch.html#flopy.modflow.mfrch.ModflowRch.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">RTmin</span><span class="o">=</span><span class="mf">2e-8</span><span class="p">,</span>
+        <span class="n">RTmax</span><span class="o">=</span><span class="mf">2e-4</span><span class="p">,</span>
+        <span class="n">checktype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check package data for common errors.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str or file handle</span>
+<span class="sd">            String defining file name or file handle for summary file</span>
+<span class="sd">            of check method output. If a sting is passed a file handle</span>
+<span class="sd">            is created. If f is None, check method does not write</span>
+<span class="sd">            results to a summary file. (default is None)</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag used to determine if check method results are</span>
+<span class="sd">            written to the screen</span>
+<span class="sd">        level : int</span>
+<span class="sd">            Check method analysis level. If level=0, summary checks are</span>
+<span class="sd">            performed. If level=1, full checks are performed.</span>
+<span class="sd">        RTmin : float</span>
+<span class="sd">            Minimum product of recharge and transmissivity. Default is 2e-8</span>
+<span class="sd">        RTmax : float</span>
+<span class="sd">            Maximum product of recharge and transmissivity. Default is 2e-4</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Unstructured models not checked for extreme recharge transmissivity</span>
+<span class="sd">        ratios.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow.load(&#39;model.nam&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; m.rch.check()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">checktype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">bas6</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">bas6</span><span class="o">.</span><span class="n">ibound</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rech</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="c1"># check for unusually high or low values of mean R/T</span>
+        <span class="n">hk_package</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;UPW&quot;</span><span class="p">,</span> <span class="s2">&quot;LPF&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package_list</span><span class="p">())</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hk_package</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+            <span class="n">pkg</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hk_package</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># handle quasi-3D layers</span>
+            <span class="c1"># (ugly, would be nice to put this else where in a general function)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">thickness</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cbd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="p">):</span>
+                    <span class="n">thickness</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span><span class="p">[</span>
+                        <span class="n">l</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span>
+                    <span class="p">]</span>
+                    <span class="k">if</span> <span class="n">cbd</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">l</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">l</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">assert</span> <span class="n">l</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">thickness</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span>
+            <span class="k">assert</span> <span class="n">thickness</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="n">pkg</span><span class="p">)</span><span class="o">.</span><span class="n">hk</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">Tmean</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="n">pkg</span><span class="p">)</span><span class="o">.</span><span class="n">hk</span><span class="o">.</span><span class="n">array</span> <span class="o">*</span> <span class="n">thickness</span><span class="p">)[:,</span> <span class="n">active</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="p">)</span>
+
+            <span class="c1"># get mean value of recharge array for each stress period</span>
+            <span class="n">period_means</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rech</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">Tmean</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">R_T</span> <span class="o">=</span> <span class="n">period_means</span> <span class="o">/</span> <span class="n">Tmean</span>
+                <span class="n">lessthan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">R_T</span> <span class="o">&lt;</span> <span class="n">RTmin</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">greaterthan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">R_T</span> <span class="o">&gt;</span> <span class="n">RTmax</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lessthan</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">txt</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    Mean R/T ratio &lt; checker warning threshold of &quot;</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2"> stress periods&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">RTmin</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">lessthan</span><span class="p">))</span>
+                    <span class="p">)</span>
+                    <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">R_T</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">desc</span><span class="o">=</span><span class="n">txt</span>
+                    <span class="p">)</span>
+                    <span class="n">chk</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Mean R/T is between </span><span class="si">{</span><span class="n">RTmin</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">RTmax</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">greaterthan</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">txt</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    Mean R/T ratio &gt; checker warning &quot;</span>
+                        <span class="s2">&quot;threshold of </span><span class="si">{}</span><span class="s2"> for &quot;</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> stress periods&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">RTmax</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">greaterthan</span><span class="p">))</span>
+                    <span class="p">)</span>
+                    <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">R_T</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">desc</span><span class="o">=</span><span class="n">txt</span>
+                    <span class="p">)</span>
+                    <span class="n">chk</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Mean R/T is between </span><span class="si">{</span><span class="n">RTmin</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">RTmax</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">lessthan</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">greaterthan</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">chk</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Mean R/T is between </span><span class="si">{</span><span class="n">RTmin</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">RTmax</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># check for NRCHOP values != 3</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    Variable NRCHOP set to value other than 3&quot;</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="n">txt</span><span class="p">)</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">remove_passed</span><span class="p">(</span><span class="s2">&quot;Variable NRCHOP set to 3.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">append_passed</span><span class="p">(</span><span class="s2">&quot;Variable NRCHOP set to 3.&quot;</span><span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">chk</span></div>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cells that have recharge (developed for</span>
+<span class="sd">        MT3DMS SSM package).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            maximum number of rch cells</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="k">return</span> <span class="n">nrow</span> <span class="o">*</span> <span class="n">ncol</span>
+
+<div class="viewcode-block" id="ModflowRch.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfrch.html#flopy.modflow.mfrch.ModflowRch.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        check : boolean</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># allows turning off package checks when writing files at model level</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="c1"># Open file for writing</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_rch</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_rch</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_rch</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_rch</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">irch</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">kper</span><span class="p">,</span> <span class="n">u2d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">irch</span><span class="o">.</span><span class="n">transient_2ds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">irch</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span> <span class="o">=</span> <span class="n">u2d</span><span class="o">.</span><span class="n">array</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">irch</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">irch</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">irch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">irch</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">irch</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">mxndrch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">u2d</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">size</span>
+                        <span class="k">for</span> <span class="n">kper</span><span class="p">,</span> <span class="n">u2d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">irch</span><span class="o">.</span><span class="n">transient_2ds</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">f_rch</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mxndrch</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">inrech</span><span class="p">,</span> <span class="n">file_entry_rech</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rech</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">kper</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">inirch</span><span class="p">,</span> <span class="n">file_entry_irch</span> <span class="o">=</span> <span class="n">irch</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">kper</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                    <span class="n">inirch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rech</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">size</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inirch</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">f_rch</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">inrech</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="n">inirch</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> # Stress period </span><span class="si">{</span><span class="n">kper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">inrech</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_rch</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_rech</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inirch</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_rch</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_irch</span><span class="p">)</span>
+        <span class="n">f_rch</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowRch.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfrch.html#flopy.modflow.mfrch.ModflowRch.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+<span class="sd">        check : boolean</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        rch : ModflowRch object</span>
+<span class="sd">            ModflowRch object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; rch = flopy.modflow.ModflowRch.load(&#39;test.rch&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading rch package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">npar</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="s2">&quot;parameter&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">npar</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;   Parameters detected. Number of parameters = </span><span class="si">{</span><span class="n">npar</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="c1"># dataset 2</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">nrchop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">ipakcb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># dataset 2b for mfusg</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span> <span class="ow">and</span> <span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">mxndrch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># dataset 3 and 4 - parameters data</span>
+        <span class="n">pak_parms</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pak_parms</span> <span class="o">=</span> <span class="n">mfparbc</span><span class="o">.</span><span class="n">loadarray</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">npar</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="n">u2d_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+
+        <span class="c1"># read data for every stress period</span>
+        <span class="n">rech</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">irch</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">irch</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">current_rech</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_irch</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">inrech</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">inirch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">inirch</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="n">u2d_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">inirch</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">u2d_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncol</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">inrech</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">npar</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;   loading rech stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="n">u2d_shape</span><span class="p">,</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="s2">&quot;rech&quot;</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">parm_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">ipar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inrech</span><span class="p">):</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="n">pname</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">c</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                            <span class="n">instance_dict</span> <span class="o">=</span> <span class="n">pak_parms</span><span class="o">.</span><span class="n">bc_parms</span><span class="p">[</span><span class="n">pname</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">instance_dict</span><span class="p">:</span>
+                                <span class="n">iname</span> <span class="o">=</span> <span class="n">c</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">iname</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">iname</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+                        <span class="n">parm_dict</span><span class="p">[</span><span class="n">pname</span><span class="p">]</span> <span class="o">=</span> <span class="n">iname</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">mfparbc</span><span class="o">.</span><span class="n">parameter_bcfill</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">pak_parms</span>
+                    <span class="p">)</span>
+
+                <span class="n">current_rech</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">rech</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_rech</span>
+
+            <span class="k">if</span> <span class="n">nrchop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inirch</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;   loading irch stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;irch&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                    <span class="p">)</span>
+                    <span class="n">current_irch</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">array</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;irch&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">irch</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_irch</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowRch</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">ipakcb</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span>
+
+        <span class="c1"># create recharge package instance</span>
+        <span class="n">rch</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nrchop</span><span class="o">=</span><span class="n">nrchop</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">rech</span><span class="o">=</span><span class="n">rech</span><span class="p">,</span>
+            <span class="n">irch</span><span class="o">=</span><span class="n">irch</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="n">rch</span><span class="o">.</span><span class="n">check</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rch</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">rch</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">rch</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;RCH&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">19</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

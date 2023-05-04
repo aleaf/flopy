@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mt3d.mtsft &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mt3d.mtsft</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mt3d.mtsft</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">MfList</span><span class="p">,</span> <span class="n">Util2d</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;emorway&quot;</span>
+
+
+<div class="viewcode-block" id="Mt3dSft"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtsft.html#flopy.mt3d.mtsft.Mt3dSft">[docs]</a><span class="k">class</span> <span class="nc">Mt3dSft</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MT3D-USGS StreamFlow Transport package class</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.mt3dms.mt.Mt3dms`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nsfinit : int</span>
+<span class="sd">        Is the number of simulated stream reaches (in SFR2, the number of</span>
+<span class="sd">        stream reaches is greater than or equal to the number of stream</span>
+<span class="sd">        segments).  This is equal to NSTRM found on the first line of the</span>
+<span class="sd">        SFR2 input file.  If NSFINIT &gt; 0 then surface-water transport is</span>
+<span class="sd">        solved in the stream network while taking into account groundwater</span>
+<span class="sd">        exchange and precipitation and evaporation sources and sinks.</span>
+<span class="sd">        Otherwise, if NSFINIT &lt; 0, the surface-water network as represented</span>
+<span class="sd">        by the SFR2 flow package merely acts as a boundary condition to the</span>
+<span class="sd">        groundwater transport problem; transport in the surface-water</span>
+<span class="sd">        network is not simulated.</span>
+<span class="sd">    mxsfbc : int</span>
+<span class="sd">        Is the maximum number of stream boundary conditions.</span>
+<span class="sd">    icbcsf : int</span>
+<span class="sd">        Is an integer value that directs MT3D-USGS to write reach-by-reach</span>
+<span class="sd">        concentration information to unit ICBCSF.</span>
+<span class="sd">    ioutobs : int</span>
+<span class="sd">        Is the unit number of the output file for simulated concentrations at</span>
+<span class="sd">        specified gage locations.  The NAM file must also list the unit</span>
+<span class="sd">        number to which observation information will be written.</span>
+<span class="sd">    ietsfr : int</span>
+<span class="sd">        Specifies whether or not mass will exit the surface-water network</span>
+<span class="sd">        with simulated evaporation.  If IETSFR = 0, then mass does not leave</span>
+<span class="sd">        via stream evaporation.  If IETSFR &gt; 0, then mass is allowed to exit</span>
+<span class="sd">        the simulation with the simulated evaporation.</span>
+<span class="sd">    isfsolv : int</span>
+<span class="sd">        Specifies the numerical technique that will be used to solve the</span>
+<span class="sd">        transport problem in the surface water network.  The first release</span>
+<span class="sd">        of MT3D-USGS (version 1.0) only allows for a finite-difference</span>
+<span class="sd">        formulation and regardless of what value the user specifies, the</span>
+<span class="sd">        variable defaults to 1, meaning the finite-difference solution is</span>
+<span class="sd">        invoked.</span>
+<span class="sd">    wimp : float</span>
+<span class="sd">        Is the stream solver time weighting factor.  Ranges between 0.0 and</span>
+<span class="sd">        1.0.  Values of 0.0, 0.5, or 1.0 correspond to explicit,</span>
+<span class="sd">        Crank-Nicolson, and fully implicit schemes, respectively.</span>
+<span class="sd">    wups : float</span>
+<span class="sd">        Is the space weighting factor employed in the stream network solver.</span>
+<span class="sd">        Ranges between 0.0 and 1.0.  Values of 0.0 and 1.0 correspond to a</span>
+<span class="sd">        central-in-space and upstream weighting factors, respectively.</span>
+<span class="sd">    cclosesf : float</span>
+<span class="sd">        Is the closure criterion for the SFT solver</span>
+<span class="sd">    mxitersf : int</span>
+<span class="sd">        Limits the maximum number of iterations the SFT solver can use to</span>
+<span class="sd">        find a solution of the stream transport problem.</span>
+<span class="sd">    crntsf : float</span>
+<span class="sd">        Is the Courant constraint specific to the SFT time step, its value</span>
+<span class="sd">        has no bearing upon the groundwater transport solution time step.</span>
+<span class="sd">    iprtxmd : int</span>
+<span class="sd">        A flag to print SFT solution information to the standard output file.</span>
+<span class="sd">        IPRTXMD = 0 means no SFT solution information is printed;</span>
+<span class="sd">        IPRTXMD = 1 means SFT solution summary information is printed at the</span>
+<span class="sd">        end of every MT3D-USGS outer iteration; and IPRTXMD = 2 means SFT</span>
+<span class="sd">        solution details are written for each SFT outer iteration that</span>
+<span class="sd">        calls the xMD solver that solved SFT equations.</span>
+<span class="sd">    coldsf : array of floats</span>
+<span class="sd">        Represents the initial concentrations in the surface water network.</span>
+<span class="sd">        The length of the array is equal to the number of stream reaches and</span>
+<span class="sd">        starting concentration values should be entered in the same order</span>
+<span class="sd">        that individual reaches are entered for record set 2 in the SFR2</span>
+<span class="sd">        input file. To specify starting concentrations for other species in a</span>
+<span class="sd">        multi-species simulation, include additional keywords, such as</span>
+<span class="sd">        coldsf2, coldsf3, and so forth.</span>
+<span class="sd">    dispsf : array of floats</span>
+<span class="sd">        Is the dispersion coefficient [L2 T-1] for each stream reach in the</span>
+<span class="sd">        simulation and can vary for each simulated component of the</span>
+<span class="sd">        simulation.  That is, the length of the array is equal to the number</span>
+<span class="sd">        of simulated stream reaches times the number of simulated components.</span>
+<span class="sd">        Values of dispersion for each reach should be entered in the same</span>
+<span class="sd">        order that individual reaches are entered for record set 2 in the</span>
+<span class="sd">        SFR2 input file.  To specify dispsf for other species in a</span>
+<span class="sd">        multi-species simulation, include additional keywords, such as</span>
+<span class="sd">        dispsf2, dispsf3, and so forth.</span>
+<span class="sd">    nobssf : int</span>
+<span class="sd">        Specifies the number of surface flow observation points for</span>
+<span class="sd">        monitoring simulated concentrations in streams.</span>
+<span class="sd">    isobs : int</span>
+<span class="sd">        The segment number for each stream flow concentration observation</span>
+<span class="sd">        point.</span>
+<span class="sd">    irobs : int</span>
+<span class="sd">        The reach number for each stream flow concentration observation point.</span>
+<span class="sd">    ntmp : int</span>
+<span class="sd">        The number of specified stream boundary conditions to follow.  For</span>
+<span class="sd">        the first stress period, this value must be greater than or equal to</span>
+<span class="sd">        zero, but may be less than zero in subsequent stress periods.</span>
+<span class="sd">    isegbc : int</span>
+<span class="sd">        Is the segment number for which the current boundary condition will</span>
+<span class="sd">        be applied.</span>
+<span class="sd">    irchbc : int</span>
+<span class="sd">        Is the reach number for which the current boundary condition will be</span>
+<span class="sd">        applied.</span>
+<span class="sd">    isfbctyp : int</span>
+<span class="sd">        Specifies, for ISEGBC/IRCHBC, what the boundary condition type is</span>
+<span class="sd">           0   A headwater boundary.  That is, for streams entering at the</span>
+<span class="sd">               boundary of the simulated domain that need a specified</span>
+<span class="sd">               concentration, use ISFBCTYP = 0</span>
+<span class="sd">           1   a precipitation boundary. If precipitation directly to</span>
+<span class="sd">               channels is simulated in the flow model and a non-zero</span>
+<span class="sd">               concentration (default is zero) is desired, use ISFBCTYP = 1</span>
+<span class="sd">           2   a runoff boundary condition that is not the same thing as</span>
+<span class="sd">               runoff simulated in the UZF1 package and routed to a stream</span>
+<span class="sd">               (or lake) using the IRNBND array.  Users who specify runoff</span>
+<span class="sd">               in the SFR2 input via the RUNOFF variable appearing in either</span>
+<span class="sd">               record sets 4b or 6a and want to assign a non-zero</span>
+<span class="sd">               concentration (default is zero) associated with this specified</span>
+<span class="sd">               source, use ISFBCTYP=2;</span>
+<span class="sd">           3   a constant-concentration boundary.  Any ISEGBC/IRCHBC</span>
+<span class="sd">               combination may set equal to a constant concentration boundary</span>
+<span class="sd">               condition.</span>
+<span class="sd">           4   a pumping boundary condition.</span>
+<span class="sd">           5   an evaporation boundary condition.  In models where</span>
+<span class="sd">               evaporation is simulated directly from the surface of the</span>
+<span class="sd">               channel, users can use this boundary condition to specify a</span>
+<span class="sd">               non-zero concentration (default is zero) associated with the</span>
+<span class="sd">               evaporation losses.</span>
+<span class="sd">    cbcsf : float</span>
+<span class="sd">        Is the specified concentration associated with the current boundary</span>
+<span class="sd">        condition entry.  Repeat CBCSF for each simulated species (NCOMP).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;sft&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the sfr output name will be created using</span>
+<span class="sd">        the model name and lake concentration observation extension</span>
+<span class="sd">        (for example, modflowtest.cbc and modflowtest.sftcobs.out), if ioutobs</span>
+<span class="sd">        is a number greater than zero. If a single string is passed the</span>
+<span class="sd">        package will be set to the string and sfr concentration observation</span>
+<span class="sd">        output name will be created using the model name and .sftcobs.out</span>
+<span class="sd">        extension, if ioutobs is a number greater than zero. To define the</span>
+<span class="sd">        names for all package files (input and output) the length of the list</span>
+<span class="sd">        of strings should be 2. Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; datadir = &#39;examples/data/mt3d_test/mfnwt_mt3dusgs/sft_crnkNic&#39;</span>
+<span class="sd">    &gt;&gt;&gt; mf = flopy.modflow.Modflow.load(</span>
+<span class="sd">    ...     &#39;CrnkNic.nam&#39;, model_ws=datadir, load_only=[&#39;dis&#39;, &#39;bas6&#39;])</span>
+<span class="sd">    &gt;&gt;&gt; sfr = flopy.modflow.ModflowSfr2.load(&#39;CrnkNic.sfr2&#39;, mf)</span>
+<span class="sd">    &gt;&gt;&gt; chk = sfr.check()</span>
+<span class="sd">    &gt;&gt;&gt; # initialize an MT3D-USGS model</span>
+<span class="sd">    &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms.load(</span>
+<span class="sd">    ...     &#39;CrnkNic.mtnam&#39;, exe_name=&#39;mt3d-usgs_1.0.00.exe&#39;,</span>
+<span class="sd">    &gt;&gt;&gt;     model_ws=datadir, load_only=&#39;btn&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; sft = flopy.mt3d.Mt3dSft.load(mt, &#39;CrnkNic.sft&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nsfinit</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">mxsfbc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">icbcsf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ioutobs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ietsfr</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">isfsolv</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">wimp</span><span class="o">=</span><span class="mf">0.50</span><span class="p">,</span>
+        <span class="n">wups</span><span class="o">=</span><span class="mf">1.00</span><span class="p">,</span>
+        <span class="n">cclosesf</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">,</span>
+        <span class="n">mxitersf</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">crntsf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">iprtxmd</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">coldsf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">dispsf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">nobssf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">obs_sf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sf_stress_period_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;sft&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">Mt3dSft</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">unitnumber</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">Mt3dSft</span><span class="o">.</span><span class="n">_reservedunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ioutobs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">if</span> <span class="n">ioutobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;sftcobs.out&quot;</span>
+            <span class="k">if</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fname</span><span class="p">:</span>  <span class="c1"># add extension</span>
+                    <span class="n">fname</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="nb">abs</span><span class="p">(</span><span class="n">ioutobs</span><span class="p">),</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">,</span>
+                <span class="n">extension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ioutobs</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set dimensions</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+        <span class="n">mcomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mcomp</span>
+
+        <span class="c1"># Set package specific parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsfinit</span> <span class="o">=</span> <span class="n">nsfinit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mxsfbc</span> <span class="o">=</span> <span class="n">mxsfbc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">icbcsf</span> <span class="o">=</span> <span class="n">icbcsf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ioutobs</span> <span class="o">=</span> <span class="n">ioutobs</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ietsfr</span> <span class="o">=</span> <span class="n">ietsfr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isfsolv</span> <span class="o">=</span> <span class="n">isfsolv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wimp</span> <span class="o">=</span> <span class="n">wimp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wups</span> <span class="o">=</span> <span class="n">wups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cclosesf</span> <span class="o">=</span> <span class="n">cclosesf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mxitersf</span> <span class="o">=</span> <span class="n">mxitersf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crntsf</span> <span class="o">=</span> <span class="n">crntsf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iprtxmd</span> <span class="o">=</span> <span class="n">iprtxmd</span>
+
+        <span class="c1"># Set 1D array values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coldsf</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nsfinit</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">coldsf</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;coldsf&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispsf</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nsfinit</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">dispsf</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dispsf&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+        <span class="c1"># handle the miult</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">base_name</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;coldsf&quot;</span><span class="p">,</span> <span class="s2">&quot;dispsf&quot;</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coldsf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispsf</span><span class="p">]</span>
+                <span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_name</span><span class="si">}{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;SFT: setting </span><span class="si">{</span><span class="n">base_name</span><span class="si">}</span><span class="s2"> for component </span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;to zero, kwarg name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                    <span class="n">u2d</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nsfinit</span><span class="p">,),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">val</span><span class="p">,</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">array_free_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">free_format</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">attr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u2d</span><span class="p">)</span>
+
+        <span class="c1"># Set streamflow observation locations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nobssf</span> <span class="o">=</span> <span class="n">nobssf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obs_sf</span> <span class="o">=</span> <span class="n">obs_sf</span>
+
+        <span class="c1"># Read and set transient data</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">ncomp</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">sf_stress_period_data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">sf_stress_period_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sf_stress_period_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sf_stress_period_data</span> <span class="o">=</span> <span class="n">MfList</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">sf_stress_period_data</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sf_stress_period_data</span><span class="o">.</span><span class="n">list_free_format</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Mt3dSft.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtsft.html#flopy.mt3d.mtsft.Mt3dSft.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">ncomp</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a dtype for the recarray containing the list of surface</span>
+<span class="sd">        water boundary conditions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">type_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;isfbctyp&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;cbcsf0&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncomp</span><span class="p">):</span>
+                <span class="n">comp_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;cbcsf</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">type_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">comp_name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">type_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dtype</span></div>
+
+<div class="viewcode-block" id="Mt3dSft.write_file"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtsft.html#flopy.mt3d.mtsft.Mt3dSft.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; datadir = .examples/data/mt3d_test/mfnwt_mt3dusgs/sft_crnkNic</span>
+<span class="sd">        &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms.load(</span>
+<span class="sd">        ...     &#39;CrnkNic.mtnam&#39;, exe_name=&#39;mt3d-usgs_1.0.00.exe&#39;,</span>
+<span class="sd">        ...     model_ws=datadir, verbose=True)</span>
+<span class="sd">        &gt;&gt;&gt; mt.name = &#39;CrnkNic_rewrite&#39;</span>
+<span class="sd">        &gt;&gt;&gt; mt.sft.dispsf.fmtin = &#39;(10F12.2)&#39;</span>
+<span class="sd">        &gt;&gt;&gt; mt.write_input()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Open file for writing</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10d}{:10d}{:10d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nsfinit</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mxsfbc</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">icbcsf</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ioutobs</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ietsfr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="mi">30</span> <span class="o">*</span> <span class="s2">&quot; &quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;# nsfinit, mxsfbc, icbcsf, ioutobs, ietsfr</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Item 2</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:10d}{:10.5f}{:10.5f}{:10.7f}{:10d}{:10.5f}{:10d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">isfsolv</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wimp</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wups</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cclosesf</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mxitersf</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">crntsf</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iprtxmd</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot; # isfsolv, wimp, wups, cclosesf, mxitersf, crntsf, &quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;iprtxmd</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Item 3</span>
+        <span class="k">for</span> <span class="n">coldsf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coldsf</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">coldsf</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 4</span>
+        <span class="k">for</span> <span class="n">dispsf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispsf</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dispsf</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 5</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nobssf</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">                 # nobssf</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 6</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobssf</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">iobs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs_sf</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iobs</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">                          &quot;</span>
+                    <span class="s2">&quot;# location of obs as given by position in irch list</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="c1"># Items 7, 8</span>
+        <span class="c1"># Loop through each stress period and assign source &amp; sink concentrations to stream features</span>
+        <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">closed</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+
+            <span class="c1"># List of concentrations associated with various boundaries</span>
+            <span class="c1"># interacting with the stream network.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_stress_period_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sf_stress_period_data</span><span class="o">.</span><span class="n">write_transient</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">single_per</span><span class="o">=</span><span class="n">kper</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="mi">0</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">       # ntmp - SP </span><span class="si">{</span><span class="n">kper</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Mt3dSft.load"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtsft.html#flopy.mt3d.mtsft.Mt3dSft.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nsfinit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ncomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.mt3d.mt.Mt3dms`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nsfinit : int</span>
+<span class="sd">            number of simulated stream reaches in the surface-water transport</span>
+<span class="sd">            process.</span>
+<span class="sd">        isfsolv : int</span>
+<span class="sd">            Specifies the numerical technique that will be used to solve the</span>
+<span class="sd">            transport problem in the surface water network.  The first release</span>
+<span class="sd">            of MT3D-USGS (version 1.0) only allows for a finite-difference</span>
+<span class="sd">            formulation and regardless of what value the user specifies, the</span>
+<span class="sd">            variable defaults to 1, meaning the finite-difference solution is</span>
+<span class="sd">            invoked.</span>
+<span class="sd">        wimp : float</span>
+<span class="sd">            Is the stream solver time weighting factor.  Ranges between 0.0</span>
+<span class="sd">            and 1.0.  Values of 0.0, 0.5, or 1.0 correspond to explicit,</span>
+<span class="sd">            Crank-Nicolson, and fully implicit schemes, respectively.</span>
+<span class="sd">        wups : float</span>
+<span class="sd">            Is the space weighting factor employed in the stream network</span>
+<span class="sd">            solver. Ranges between 0.0 and 1.0.  Values of 0.0 and 1.0</span>
+<span class="sd">            correspond to a central-in-space and upstream weighting factors,</span>
+<span class="sd">            respectively.</span>
+<span class="sd">        cclosesf : float</span>
+<span class="sd">            Is the closure criterion for the SFT solver</span>
+<span class="sd">        mxitersf : int</span>
+<span class="sd">            Limits the maximum number of iterations the SFT solver can use to</span>
+<span class="sd">            find a solution of the stream transport problem.</span>
+<span class="sd">        crntsf : float</span>
+<span class="sd">            Is the Courant constraint specific to the SFT time step, its value</span>
+<span class="sd">            has no bearing upon the groundwater transport solution time step.</span>
+<span class="sd">        iprtxmd : int</span>
+<span class="sd">            a flag to print SFT solution information to the standard output</span>
+<span class="sd">            file. IPRTXMD can equal 0, 1, or 2, and will write increasing</span>
+<span class="sd">            amounts of solver information to the standard output file,</span>
+<span class="sd">            respectively.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sft : MT3D-USGS object</span>
+<span class="sd">            MT3D-USGS object</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import os</span>
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; mf = flopy.modflow.Modflow.load(&#39;CrnkNic_mf.nam&#39;,</span>
+<span class="sd">        ...                                 load_only=[&#39;dis&#39;, &#39;bas6&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; sfr = flopy.modflow.ModflowSfr2.load(&#39;CrnkNic.sfr2&#39;, mf)</span>
+<span class="sd">        &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms.load(&#39;CrnkNic_mt.nam&#39;, load_only=&#39;btn&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; sft = flopy.mt3d.Mt3dSft.load(&#39;CrnkNic.sft&#39;, mt)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading sft package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set default nlay values</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Set dimensions if necessary</span>
+        <span class="k">if</span> <span class="n">nlay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">if</span> <span class="n">nrow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="k">if</span> <span class="n">ncol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">Mt3dSft</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">ncomp</span><span class="p">)</span>
+
+        <span class="c1"># Item 1 (NSFINIT, MXSFBC, ICBCSF, IOUTOBS, IETSFR)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SFT package does not support comment lines&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading nsfinit, mxsfbc, icbcsf, ioutobs, ietsfr...&quot;</span><span class="p">)</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="n">nsfinit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">mxsfbc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">icbcsf</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">ioutobs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">ietsfr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NSFINIT </span><span class="si">{</span><span class="n">nsfinit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MXSFBC </span><span class="si">{</span><span class="n">mxsfbc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ICBCSF </span><span class="si">{</span><span class="n">icbcsf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IOUTOBS </span><span class="si">{</span><span class="n">ioutobs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IETSFR </span><span class="si">{</span><span class="n">ietsfr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ietsfr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Mass does not exit the model via simulated &quot;</span>
+                    <span class="s2">&quot;stream evaporation &quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Mass exits the stream network via simulated &quot;</span>
+                    <span class="s2">&quot;stream evaporation &quot;</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Item 2 (ISFSOLV, WIMP, WUPS, CCLOSESF, MXITERSF, CRNTSF, IPRTXMD)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;   loading isfsolv, wimp, wups, cclosesf, mxitersf, &quot;</span>
+                <span class="s2">&quot;crntsf, iprtxmd...&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;expected 7 values for item 2 of SFT input file&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">isfsolv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">wimp</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">wups</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">cclosesf</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">mxitersf</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">crntsf</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">iprtxmd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">isfsolv</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">isfsolv</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   Resetting isfsolv to 1&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   In version 1.0 of MT3D-USGS, isfsov=1 is only option&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ISFSOLV </span><span class="si">{</span><span class="n">isfsolv</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   WIMP </span><span class="si">{</span><span class="n">wimp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   WUPS </span><span class="si">{</span><span class="n">wups</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CCLOSESF </span><span class="si">{</span><span class="n">cclosesf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MXITERSF </span><span class="si">{</span><span class="n">mxitersf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CRNTSF </span><span class="si">{</span><span class="n">crntsf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IPRTXMD </span><span class="si">{</span><span class="n">iprtxmd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 3 (COLDSF(NRCH)) Initial concentration</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading COLDSF...&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">free_format</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Using MODFLOW style array reader utilities to &quot;</span>
+                    <span class="s2">&quot;read COLDSF&quot;</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">model</span><span class="o">.</span><span class="n">array_format</span> <span class="o">==</span> <span class="s2">&quot;mt3d&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Using historic MT3DMS array reader utilities to &quot;</span>
+                    <span class="s2">&quot;read COLDSF&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">coldsf</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nsfinit</span><span class="p">),),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="s2">&quot;coldsf1&quot;</span><span class="p">,</span>
+            <span class="n">ext_unit_dict</span><span class="p">,</span>
+            <span class="n">array_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">array_format</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;coldsf</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">u2d</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nsfinit</span><span class="p">,),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="n">array_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">array_format</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u2d</span>
+
+        <span class="c1"># Item 4 (DISPSF(NRCH)) Reach-by-reach dispersion</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">free_format</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Using MODFLOW style array reader utilities to &quot;</span>
+                    <span class="s2">&quot;read DISPSF&quot;</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">model</span><span class="o">.</span><span class="n">array_format</span> <span class="o">==</span> <span class="s2">&quot;mt3d&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Using historic MT3DMS array reader utilities to &quot;</span>
+                    <span class="s2">&quot;read DISPSF&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">dispsf</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nsfinit</span><span class="p">),),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="s2">&quot;dispsf1&quot;</span><span class="p">,</span>
+            <span class="n">ext_unit_dict</span><span class="p">,</span>
+            <span class="n">array_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">array_format</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;dispsf</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">u2d</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nsfinit</span><span class="p">),),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="n">array_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">array_format</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u2d</span>
+
+        <span class="c1"># Item 5 NOBSSF</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading NOBSSF...&quot;</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">m_arr</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nobssf</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NOBSSF </span><span class="si">{</span><span class="n">nobssf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># If NOBSSF &gt; 0, store observation segment &amp; reach (Item 6)</span>
+        <span class="n">obs_sf</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">nobssf</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   loading </span><span class="si">{}</span><span class="s2"> observation locations given by ISOBS, &quot;</span>
+                    <span class="s2">&quot;IROBS...&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nobssf</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nobssf</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">m_arr</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">obs_sf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">obs_sf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">obs_sf</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   Surface water concentration observation locations:&quot;</span><span class="p">)</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">obs_sf</span><span class="p">:</span>
+                    <span class="n">text</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">o</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   No observation points specified.&quot;</span><span class="p">)</span>
+
+        <span class="n">sf_stress_period_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="c1"># Item 7 NTMP (Transient data)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading NTMP...stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">nper</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">m_arr</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ntmp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># Item 8 ISEGBC, IRCHBC, ISFBCTYP, CBCSF</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   loading </span><span class="si">{}</span><span class="s2"> instances of ISEGBC, IRCHBC, &quot;</span>
+                    <span class="s2">&quot;ISFBCTYP, CBCSF...stress period </span><span class="si">{}</span><span class="s2"> of </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">ntmp</span><span class="p">,</span> <span class="n">iper</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nper</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">current_sf</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">ntmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">current_sf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">ntmp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ibnd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntmp</span><span class="p">):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">m_arr</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">ivar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>  <span class="c1"># First three terms are not variable</span>
+                        <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="n">ivar</span><span class="p">])</span>
+                    <span class="n">cbcsf</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_sf</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">3</span>
+                    <span class="k">if</span> <span class="n">cbcsf</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">ivar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cbcsf</span><span class="p">):</span>
+                            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="n">ivar</span> <span class="o">+</span> <span class="mi">3</span><span class="p">])</span>
+                    <span class="n">current_sf</span><span class="p">[</span><span class="n">ibnd</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">t</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_sf</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)])</span>
+                    <span class="p">)</span>
+                <span class="c1"># Convert node IRCH indices to zero-based</span>
+                <span class="n">current_sf</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">current_sf</span> <span class="o">=</span> <span class="n">current_sf</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+                <span class="n">sf_stress_period_data</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_sf</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   No transient boundary conditions specified&quot;</span><span class="p">)</span>
+                <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># 1 item for SFT input file, 1 item for SFTOBS file</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">Mt3dSft</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ioutobs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">ioutobs</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">ioutobs</span><span class="p">))</span>
+
+        <span class="c1"># Construct and return SFT package</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nsfinit</span><span class="o">=</span><span class="n">nsfinit</span><span class="p">,</span>
+            <span class="n">mxsfbc</span><span class="o">=</span><span class="n">mxsfbc</span><span class="p">,</span>
+            <span class="n">icbcsf</span><span class="o">=</span><span class="n">icbcsf</span><span class="p">,</span>
+            <span class="n">ioutobs</span><span class="o">=</span><span class="n">ioutobs</span><span class="p">,</span>
+            <span class="n">ietsfr</span><span class="o">=</span><span class="n">ietsfr</span><span class="p">,</span>
+            <span class="n">isfsolv</span><span class="o">=</span><span class="n">isfsolv</span><span class="p">,</span>
+            <span class="n">wimp</span><span class="o">=</span><span class="n">wimp</span><span class="p">,</span>
+            <span class="n">cclosesf</span><span class="o">=</span><span class="n">cclosesf</span><span class="p">,</span>
+            <span class="n">mxitersf</span><span class="o">=</span><span class="n">mxitersf</span><span class="p">,</span>
+            <span class="n">crntsf</span><span class="o">=</span><span class="n">crntsf</span><span class="p">,</span>
+            <span class="n">iprtxmd</span><span class="o">=</span><span class="n">iprtxmd</span><span class="p">,</span>
+            <span class="n">coldsf</span><span class="o">=</span><span class="n">coldsf</span><span class="p">,</span>
+            <span class="n">dispsf</span><span class="o">=</span><span class="n">dispsf</span><span class="p">,</span>
+            <span class="n">nobssf</span><span class="o">=</span><span class="n">nobssf</span><span class="p">,</span>
+            <span class="n">obs_sf</span><span class="o">=</span><span class="n">obs_sf</span><span class="p">,</span>
+            <span class="n">sf_stress_period_data</span><span class="o">=</span><span class="n">sf_stress_period_data</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;SFT&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">19</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_reservedunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">19</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mflak &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mflak</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mflak</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mflak module.  Contains the ModflowLak class. Note that the user can access</span>
+<span class="sd">the ModflowLak class as `flopy.modflow.ModflowLak`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/lak.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util3d</span><span class="p">,</span> <span class="n">read_fixed_var</span><span class="p">,</span> <span class="n">utils_def</span><span class="p">,</span> <span class="n">write_fixed_var</span>
+<span class="kn">from</span> <span class="nn">..utils.util_array</span> <span class="kn">import</span> <span class="n">Transient3d</span>
+
+
+<div class="viewcode-block" id="ModflowLak"><a class="viewcode-back" href="../../../source/flopy.modflow.mflak.html#flopy.modflow.mflak.ModflowLak">[docs]</a><span class="k">class</span> <span class="nc">ModflowLak</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Lake Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nlakes : int</span>
+<span class="sd">        NLAKES Number of separate lakes.</span>
+<span class="sd">        Sublakes of multiple-lake systems are considered separate lakes for</span>
+<span class="sd">        input purposes. The variable NLAKES is used, with certain internal</span>
+<span class="sd">        assumptions and approximations, to dimension arrays for the simulation.</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        (ILKCB in MODFLOW documentation)</span>
+<span class="sd">        Whether or not to write cell-by-cell flows (yes if ILKCB&gt; 0, no</span>
+<span class="sd">        otherwise). If ILKCB&lt; 0 and &quot;Save Budget&quot; is specified in the Output</span>
+<span class="sd">        Control or ICBCFL is not equal to 0, the cell-by-cell flows will be</span>
+<span class="sd">        printed in the standard output file. ICBCFL is specified in the input</span>
+<span class="sd">        to the Output Control Option of MODFLOW.</span>
+<span class="sd">    lwrt : int or list of ints (one per SP)</span>
+<span class="sd">        lwrt &gt; 0, suppresses printout from the lake package. Default is 0 (to</span>
+<span class="sd">        print budget information)</span>
+<span class="sd">    theta : float</span>
+<span class="sd">        Explicit (THETA = 0.0), semi-implicit (0.0 &lt; THETA &lt; 1.0), or implicit</span>
+<span class="sd">        (THETA = 1.0) solution for lake stages. SURFDEPTH is read only if</span>
+<span class="sd">        THETA is assigned a negative value (the negative value of THETA is</span>
+<span class="sd">        then changed to a positive value internally by the code).</span>
+<span class="sd">        *   A new method of solving for lake stage uses only the time-weighting</span>
+<span class="sd">            factor THETA (Merritt and Konikow, 2000, p. 52) for transient</span>
+<span class="sd">            simulations. THETA is automatically set to a value of 1.0 for all</span>
+<span class="sd">            steady-state stress periods. For transient stress periods, Explicit</span>
+<span class="sd">            (THETA = 0.0), semi-implicit (0.0 &lt; THETA &lt; 1.0), or implicit</span>
+<span class="sd">            (THETA = 1.0) solutions can be used to calculate lake stages. The</span>
+<span class="sd">            option to specify negative values for THETA is supported to allow</span>
+<span class="sd">            specification of additional variables (NSSITER, SSCNCR, SURFDEP)</span>
+<span class="sd">            for simulations that only include transient stress periods. If</span>
+<span class="sd">            THETA is specified as a negative value, then it is converted to a</span>
+<span class="sd">            positive value for calculations of lake stage.</span>
+<span class="sd">        *   In MODFLOW-2000 and later, ISS is not part of the input. Instead</span>
+<span class="sd">            NSSITR or SSCNCR should be included if one or more stress periods</span>
+<span class="sd">            is a steady state stress period as defined in Ss/tr in the</span>
+<span class="sd">            Discretization file.</span>
+<span class="sd">        *   SSCNCR and NSSITR can be read for a transient only simulation by</span>
+<span class="sd">            placing a negative sign immediately in front of THETA. A negative</span>
+<span class="sd">            THETA sets a flag which assumes input values for NSSITR and SSCNCR</span>
+<span class="sd">            will follow THETA in the format as described by Merritt and Konikow</span>
+<span class="sd">            (p. 52). A negative THETA is automatically reset to a positive</span>
+<span class="sd">            value after values of NSSITR and SSCNCR are read.</span>
+<span class="sd">    nssitr : int</span>
+<span class="sd">        Maximum number of iterations for Newton&#39;s method of solution for</span>
+<span class="sd">        equilibrium lake stages in each MODFLOW iteration for steady-state</span>
+<span class="sd">        aquifer head solution. Only read if ISS (option flag input to DIS</span>
+<span class="sd">        Package of MODFLOW indicating steady-state solution) is not zero or</span>
+<span class="sd">        if THETA is specified as a negative value.</span>
+<span class="sd">        *   NSSITR and SSCNCR may be omitted for transient solutions (ISS = 0).</span>
+<span class="sd">        *   In MODFLOW-2000 and later, ISS is not part of the input.</span>
+<span class="sd">            Instead NSSITR or SSCNCR should be included if one or more stress</span>
+<span class="sd">            periods is a steady state stress period as defined in Ss/tr in the</span>
+<span class="sd">            Discretization file.</span>
+<span class="sd">        *   SSCNCR and NSSITR can be read for a transient only simulation by</span>
+<span class="sd">            placing a negative sign immediately in front of THETA. A negative</span>
+<span class="sd">            THETA sets a flag which assumes input values for NSSITR and SSCNCR</span>
+<span class="sd">            will follow THETA in the format as described by Merritt and Konikow</span>
+<span class="sd">            (p. 52). A negative THETA is automatically reset to a positive</span>
+<span class="sd">            value after values of NSSITR and SSCNCR are read.</span>
+<span class="sd">        *   If NSSITR = 0, a value of 100 will be used instead.</span>
+<span class="sd">    sscncr : float</span>
+<span class="sd">        Convergence criterion for equilibrium lake stage solution by Newton&#39;s</span>
+<span class="sd">        method. Only read if ISS is not zero or if THETA is specified as a</span>
+<span class="sd">        negative value. See notes above for nssitr.</span>
+<span class="sd">    surfdepth : float</span>
+<span class="sd">        The height of small topological variations (undulations) in lake-bottom</span>
+<span class="sd">        elevations that can affect groundwater discharge to lakes. SURFDEPTH</span>
+<span class="sd">        decreases the lakebed conductance for vertical flow across a horizontal</span>
+<span class="sd">        lakebed caused both by a groundwater head that is between the lakebed</span>
+<span class="sd">        and the lakebed plus SURFDEPTH and a lake stage that is also between</span>
+<span class="sd">        the lakebed and the lakebed plus SURFDEPTH. This method provides a</span>
+<span class="sd">        smooth transition from a condition of no groundwater discharge to a</span>
+<span class="sd">        lake, when groundwater head is below the lakebed, to a condition of</span>
+<span class="sd">        increasing groundwater discharge to a lake as groundwater head becomes</span>
+<span class="sd">        greater than the elevation of the dry lakebed. The method also allows</span>
+<span class="sd">        for the transition of seepage from a lake to groundwater when the lake</span>
+<span class="sd">        stage decreases to the lakebed elevation. Values of SURFDEPTH ranging</span>
+<span class="sd">        from 0.01 to 0.5 have been used successfully in test simulations.</span>
+<span class="sd">        SURFDEP is read only if THETA is specified as a negative value.</span>
+<span class="sd">    stages : float or list of floats</span>
+<span class="sd">        The initial stage of each lake at the beginning of the run.</span>
+<span class="sd">    stage_range : list of tuples (ssmn, ssmx) of length nlakes</span>
+<span class="sd">        Where ssmn and ssmx are the minimum and maximum stages allowed for each</span>
+<span class="sd">        lake in steady-state solution.</span>
+<span class="sd">        *   SSMN and SSMX are not needed for a transient run and must be</span>
+<span class="sd">            omitted when the solution is transient.</span>
+<span class="sd">        *   When the first stress period is a steady-state stress period,</span>
+<span class="sd">            SSMN is defined in record 3.</span>
+
+<span class="sd">        For subsequent steady-state stress periods, SSMN is defined in</span>
+<span class="sd">        record 9a.</span>
+<span class="sd">    lakarr : array of integers (nlay, nrow, ncol)</span>
+<span class="sd">        LKARR A value is read in for every grid cell.</span>
+<span class="sd">        If LKARR(I,J,K) = 0, the grid cell is not a lake volume cell.</span>
+<span class="sd">        If LKARR(I,J,K) &gt; 0, its value is the identification number of the lake</span>
+<span class="sd">        occupying the grid cell. LKARR(I,J,K) must not exceed the value NLAKES.</span>
+<span class="sd">        If it does, or if LKARR(I,J,K) &lt; 0, LKARR(I,J,K) is set to zero.</span>
+<span class="sd">        Lake cells cannot be overlain by non-lake cells in a higher layer.</span>
+<span class="sd">        Lake cells must be inactive cells (IBOUND = 0) and should not be</span>
+<span class="sd">        convertible to active cells (WETDRY = 0).</span>
+
+<span class="sd">        The Lake package can be used when all or some of the model layers</span>
+<span class="sd">        containing the lake are confined.  The authors recommend using the</span>
+<span class="sd">        Layer-Property Flow Package (LPF) for this case, although the</span>
+<span class="sd">        BCF and HUF Packages will work too.  However, when using the BCF6</span>
+<span class="sd">        package to define aquifer properties, lake/aquifer conductances in the</span>
+<span class="sd">        lateral direction are based solely on the lakebed leakance (and not on</span>
+<span class="sd">        the lateral transmissivity of the aquifer layer).  As before, when the</span>
+<span class="sd">        BCF6 package is used, vertical lake/aquifer conductances are based on</span>
+<span class="sd">        lakebed conductance and on the vertical hydraulic conductivity of the</span>
+<span class="sd">        aquifer layer underlying the lake when the wet/dry option is</span>
+<span class="sd">        implemented, and only on the lakebed leakance when the wet/dry option</span>
+<span class="sd">        is not implemented.</span>
+<span class="sd">    bdlknc : array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        BDLKNC A value is read in for every grid cell. The value is the lakebed</span>
+<span class="sd">        leakance that will be assigned to lake/aquifer interfaces that occur</span>
+<span class="sd">        in the corresponding grid cell. If the wet-dry option flag (IWDFLG) is</span>
+<span class="sd">        not active (cells cannot rewet if they become dry), then the BDLKNC</span>
+<span class="sd">        values are assumed to represent the combined leakances of the lakebed</span>
+<span class="sd">        material and the aquifer material between the lake and the centers of</span>
+<span class="sd">        the underlying grid cells, i. e., the vertical conductance values (CV)</span>
+<span class="sd">        will not be used in the computation of conductances across lake/aquifer</span>
+<span class="sd">        boundary faces in the vertical direction.</span>
+
+<span class="sd">        IBOUND and WETDRY should be set to zero for every cell for which LKARR</span>
+<span class="sd">        is not equal to zero. IBOUND is defined in the input to the Basic</span>
+<span class="sd">        Package of MODFLOW. WETDRY is defined in the input to the BCF or other</span>
+<span class="sd">        flow package of MODFLOW if the IWDFLG option is active. When used with</span>
+<span class="sd">        the HUF package, the Lake Package has been modified to compute</span>
+<span class="sd">        effective lake-aquifer conductance solely on the basis of the</span>
+<span class="sd">        user-specified value of lakebed leakance; aquifer hydraulic</span>
+<span class="sd">        conductivities are not used in this calculation. An appropriate</span>
+<span class="sd">        informational message is now printed after the lakebed conductances</span>
+<span class="sd">        are written to the main output file.</span>
+<span class="sd">    sill_data : dict</span>
+<span class="sd">        (dataset 8 in documentation)</span>
+<span class="sd">        Dict of lists keyed by stress period. Each list has a tuple of dataset</span>
+<span class="sd">        8a, 8b for every multi-lake system, where dataset 8a is another tuple of</span>
+<span class="sd">            IC : int</span>
+<span class="sd">                The number of sublakes</span>
+<span class="sd">            ISUB : list of ints</span>
+<span class="sd">                The identification numbers of the sublakes in the sublake</span>
+<span class="sd">                system being described in this record. The center lake number</span>
+<span class="sd">                is listed first.</span>
+<span class="sd">        And dataset 8b contains</span>
+<span class="sd">            SILLVT : sequence of floats</span>
+<span class="sd">                A sequence of sill elevations for each sublakes that determines</span>
+<span class="sd">                whether the center lake is connected with a given sublake.</span>
+<span class="sd">                Values are entered for each sublake in the order the sublakes</span>
+<span class="sd">                are listed in the previous record.</span>
+<span class="sd">    flux_data : dict</span>
+<span class="sd">        (dataset 9 in documentation)</span>
+<span class="sd">        Dict of lists keyed by stress period. The list for each stress period</span>
+<span class="sd">        is a list of lists, with each list containing the variables</span>
+<span class="sd">        PRCPLK EVAPLK RNF WTHDRW [SSMN] [SSMX] from the documentation.</span>
+<span class="sd">            PRCPLK : float</span>
+<span class="sd">                The rate of precipitation per unit area at the surface of a</span>
+<span class="sd">                lake (L/T).</span>
+<span class="sd">            EVAPLK : float</span>
+<span class="sd">                The rate of evaporation per unit area from the surface of a</span>
+<span class="sd">                lake (L/T).</span>
+<span class="sd">            RNF : float</span>
+<span class="sd">                Overland runoff from an adjacent watershed entering the lake.</span>
+<span class="sd">                If RNF &gt; 0, it is specified directly as a volumetric rate, or</span>
+<span class="sd">                flux (L3 /T). If RNF &lt; 0, its absolute value is used as a</span>
+<span class="sd">                dimensionless multiplier applied to the product of the lake</span>
+<span class="sd">                precipitation rate per unit area (PRCPLK) and the surface area</span>
+<span class="sd">                of the lake at its full stage (occupying all layer 1 lake</span>
+<span class="sd">                cells). When RNF is entered as a dimensionless multiplier</span>
+<span class="sd">                (RNF &lt; 0), it is considered to be the product of two</span>
+<span class="sd">                proportionality factors. The first is the ratio of the area of</span>
+<span class="sd">                the basin contributing runoff to the surface area of the lake</span>
+<span class="sd">                when it is at full stage. The second is the fraction of the</span>
+<span class="sd">                current rainfall rate that becomes runoff to the lake. This</span>
+<span class="sd">                procedure provides a means for the automated computation of</span>
+<span class="sd">                runoff rate from a watershed to a lake as a function of</span>
+<span class="sd">                varying rainfall rate. For example, if the basin area is 10</span>
+<span class="sd">                times greater than the surface area of the lake, and 20 percent</span>
+<span class="sd">                of the precipitation on the basin becomes overland runoff</span>
+<span class="sd">                directly into the lake, then set RNF = -2.0.</span>
+<span class="sd">            WTHDRW : float</span>
+<span class="sd">                The volumetric rate, or flux (L3 /T), of water removal from a</span>
+<span class="sd">                lake by means other than rainfall, evaporation, surface</span>
+<span class="sd">                outflow, or groundwater seepage. A negative value indicates</span>
+<span class="sd">                augmentation. Normally, this would be used to specify the</span>
+<span class="sd">                rate of artificial withdrawal from a lake for human water use,</span>
+<span class="sd">                or if negative, artificial augmentation of a lake volume for</span>
+<span class="sd">                aesthetic or recreational purposes.</span>
+<span class="sd">            SSMN : float</span>
+<span class="sd">                Minimum stage allowed for each lake in steady-state solution.</span>
+<span class="sd">                See notes on ssmn and ssmx above.</span>
+<span class="sd">            SSMX : float</span>
+<span class="sd">                SSMX Maximum stage allowed for each lake in steady-state</span>
+<span class="sd">                solution.</span>
+
+<span class="sd">    options : list of strings</span>
+<span class="sd">        Package options. (default is None).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;lak&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output name will be created using</span>
+<span class="sd">        the model name and .cbc extension (for example, modflowtest.cbc),</span>
+<span class="sd">        if ipakcbc is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and cbc output names will be</span>
+<span class="sd">        created using the model name and .cbc extension, if ipakcbc is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; lak = {}</span>
+<span class="sd">    &gt;&gt;&gt; lak[0] = [[2, 3, 4, 15.6, 1050., -4]]  #this lake boundary will be</span>
+<span class="sd">    &gt;&gt;&gt;                                        #applied to all stress periods</span>
+<span class="sd">    &gt;&gt;&gt; lak = flopy.modflow.ModflowLak(m, nstress_period_data=strd)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nlakes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">theta</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">nssitr</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">sscncr</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">surfdep</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">stages</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">stage_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">tab_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">tab_units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">lakarr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">bdlknc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sill_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">flux_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;lak&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">lwrt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowLak</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">tabdata</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;TABLEINPUT&quot;</span> <span class="ow">in</span> <span class="n">option</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="n">tabdata</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">nlen</span> <span class="o">+=</span> <span class="n">nlakes</span>
+                    <span class="k">break</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="n">nlen</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with cbc output, if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># table input files</span>
+        <span class="k">if</span> <span class="n">tabdata</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tab_files</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tab_files</span> <span class="o">=</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="c1"># add tab_files as external files</span>
+        <span class="k">if</span> <span class="n">tabdata</span><span class="p">:</span>
+            <span class="c1"># make sure the number of tabfiles is equal to the number of lakes</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tab_files</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nlakes</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;a tabfile must be specified for each lake &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> tabfiles specified &quot;</span>
+                    <span class="s2">&quot;instead of </span><span class="si">{}</span><span class="s2"> tabfiles&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tab_files</span><span class="p">),</span> <span class="n">nlakes</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="c1"># TODO: what should happen with msg?</span>
+            <span class="c1"># make sure tab_files are not None</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">fname</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tab_files</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;a filename must be specified for the &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;tabfile for lake </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="c1"># set unit for tab files if not passed to __init__</span>
+            <span class="k">if</span> <span class="n">tab_units</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tab_units</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tab_files</span><span class="p">)):</span>
+                    <span class="n">tab_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">next_ext_unit</span><span class="p">())</span>
+            <span class="c1"># add tabfiles as external files</span>
+            <span class="k">for</span> <span class="n">iu</span><span class="p">,</span> <span class="n">fname</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tab_units</span><span class="p">,</span> <span class="n">tab_files</span><span class="p">):</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_external</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">iu</span><span class="p">)</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;lak.html&quot;</span>
+
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span> <span class="o">=</span> <span class="n">nlakes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nssitr</span> <span class="o">=</span> <span class="n">nssitr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sscncr</span> <span class="o">=</span> <span class="n">sscncr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surfdep</span> <span class="o">=</span> <span class="n">surfdep</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lwrt</span> <span class="o">=</span> <span class="n">lwrt</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stages</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">stages</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="n">stages</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stages</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="n">stages</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stages</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">stages</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stages</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stages</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">nlakes</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;stages shape should be (</span><span class="si">{</span><span class="n">nlakes</span><span class="si">}</span><span class="s2">) but is only (</span><span class="si">{</span><span class="n">stages</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stages</span> <span class="o">=</span> <span class="n">stages</span>
+        <span class="k">if</span> <span class="n">stage_range</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stage_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nlakes</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">stage_range</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">10000.0</span>
+            <span class="n">stage_range</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10000.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stage_range</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">stage_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stage_range</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stage_range</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;stage_range should be a list or array of size (</span><span class="si">{</span><span class="n">nlakes</span><span class="si">}</span><span class="s2">, 2)&quot;</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dis</span> <span class="o">=</span> <span class="n">utils_def</span><span class="o">.</span><span class="n">get_dis</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">stage_range</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">nlakes</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;stages shape should be (</span><span class="si">{}</span><span class="s2">,2) but is only &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nlakes</span><span class="p">,</span> <span class="n">stage_range</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_range</span> <span class="o">=</span> <span class="n">stage_range</span>
+
+        <span class="c1"># tabfile data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tabdata</span> <span class="o">=</span> <span class="n">tabdata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iunit_tab</span> <span class="o">=</span> <span class="n">tab_units</span>
+
+        <span class="k">if</span> <span class="n">lakarr</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">bdlknc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="s2">&quot;lakarr and bdlknc must be specified&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lakarr</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">lakarr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lakarr_&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bdlknc</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">bdlknc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bdlknc_&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">sill_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sill_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">sill_data</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">sill_data</span><span class="p">}</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">err</span> <span class="o">=</span> <span class="s2">&quot;sill_data must be a dictionary&quot;</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">flux_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flux_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="c1"># convert array to a dictionary</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">flux_data</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">flux_data</span><span class="p">}</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">err</span> <span class="o">=</span> <span class="s2">&quot;flux_data must be a dictionary&quot;</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">flux_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">td</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                        <span class="n">td</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                    <span class="n">flux_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">td</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">flux_data</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">!=</span> <span class="n">nlakes</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;flux_data dictionary must have </span><span class="si">{</span><span class="n">nlakes</span><span class="si">}</span><span class="s2"> entries&quot;</span>
+                        <span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">td</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">):</span>
+                        <span class="n">td</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                    <span class="n">flux_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">td</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">steady</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">steady</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">nlen</span> <span class="o">=</span> <span class="mi">4</span>
+                    <span class="k">if</span> <span class="n">steady</span> <span class="ow">and</span> <span class="n">key</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">nlen</span> <span class="o">=</span> <span class="mi">6</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">):</span>
+                        <span class="n">td</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">td</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nlen</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                                <span class="s2">&quot;flux_data entry for stress period </span><span class="si">{}</span><span class="s2"> &quot;</span>
+                                <span class="s2">&quot;has </span><span class="si">{}</span><span class="s2"> entries but should have &quot;</span>
+                                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> entries&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nlen</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">td</span><span class="p">))</span>
+                            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux_data</span> <span class="o">=</span> <span class="n">flux_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sill_data</span> <span class="o">=</span> <span class="n">sill_data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cells that can have lakes (developed for</span>
+<span class="sd">        MT3DMS SSM package).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            maximum number of lak cells</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="k">return</span> <span class="n">nlay</span> <span class="o">*</span> <span class="n">nrow</span> <span class="o">*</span> <span class="n">ncol</span>
+
+<div class="viewcode-block" id="ModflowLak.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mflak.html#flopy.modflow.mflak.ModflowLak.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="c1"># dataset 0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span> <span class="o">!=</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 1a</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">option</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 1b</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="n">write_fixed_var</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">],</span> <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># dataset 2</span>
+        <span class="n">steady</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="o">.</span><span class="n">array</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">steady</span><span class="p">:</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nssitr</span><span class="p">)</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sscncr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfdep</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">write_fixed_var</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">))</span>
+
+        <span class="c1"># dataset 3</span>
+        <span class="n">steady</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">):</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="n">n</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="n">steady</span><span class="p">:</span>
+                <span class="n">ipos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_range</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+                <span class="n">ipos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_range</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tabdata</span><span class="p">:</span>
+                <span class="n">ipos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iunit_tab</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">write_fixed_var</span><span class="p">(</span>
+                    <span class="n">t</span><span class="p">,</span> <span class="n">ipos</span><span class="o">=</span><span class="n">ipos</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">ds8_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sill_data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sill_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
+        <span class="n">ds9_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flux_data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">itmp</span><span class="p">,</span> <span class="n">file_entry_lakarr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lakarr</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">kper</span><span class="p">)</span>
+            <span class="n">ibd</span><span class="p">,</span> <span class="n">file_entry_bdlknc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdlknc</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">kper</span><span class="p">)</span>
+
+            <span class="n">itmp2</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">kper</span> <span class="ow">in</span> <span class="n">ds9_keys</span><span class="p">:</span>
+                <span class="n">itmp2</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds9_keys</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">itmp2</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lwrt</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">tmplwrt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lwrt</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tmplwrt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lwrt</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="n">itmp</span><span class="p">,</span> <span class="n">itmp2</span><span class="p">,</span> <span class="n">tmplwrt</span><span class="p">]</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Stress period </span><span class="si">{</span><span class="n">kper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">write_fixed_var</span><span class="p">(</span>
+                    <span class="n">t</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="n">comment</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">itmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_lakarr</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_bdlknc</span><span class="p">)</span>
+
+                <span class="n">nslms</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">kper</span> <span class="ow">in</span> <span class="n">ds8_keys</span><span class="p">:</span>
+                    <span class="n">ds8</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sill_data</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                    <span class="n">nslms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds8</span><span class="p">)</span>
+
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="n">write_fixed_var</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">nslms</span><span class="p">],</span>
+                        <span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">,</span>
+                        <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;Data set 7&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">nslms</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nslms</span><span class="p">):</span>
+                        <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">ds8</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">write_fixed_var</span><span class="p">(</span>
+                            <span class="n">d1</span><span class="p">,</span>
+                            <span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                            <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">,</span>
+                            <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;Data set 8a&quot;</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">write_fixed_var</span><span class="p">(</span>
+                            <span class="n">d2</span><span class="p">,</span>
+                            <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">,</span>
+                            <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;Data set 8b&quot;</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">itmp2</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ds9</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_data</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlakes</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">steady</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">steady</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">kper</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">steady</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">ds9</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">ds9</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="n">write_fixed_var</span><span class="p">(</span>
+                        <span class="n">t</span><span class="p">,</span>
+                        <span class="n">free</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">free_format_input</span><span class="p">,</span>
+                        <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;Data set 9a&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="c1"># close the lak file</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowLak.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mflak.html#flopy.modflow.mflak.ModflowLak.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str : ModflowLak object</span>
+<span class="sd">            ModflowLak object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; lak = flopy.modflow.ModflowStr.load(&#39;test.lak&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">dis</span> <span class="o">=</span> <span class="n">utils_def</span><span class="o">.</span><span class="n">get_dis</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading lak package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tabdata</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="s2">&quot;TABLEINPUT&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   reading lak dataset 1a&quot;</span><span class="p">)</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;TABLEINPUT&quot;</span><span class="p">)</span>
+            <span class="n">tabdata</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+        <span class="c1"># read dataset 1b</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   reading lak dataset 1b&quot;</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nlakes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="c1"># read dataset 2</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">array_free_format</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">nssitr</span><span class="p">,</span> <span class="n">sscncr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">nssitr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  implicit nssitr defined in file&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sscncr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  implicit sscncr defined in file&quot;</span><span class="p">)</span>
+
+        <span class="n">surfdep</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">surfdep</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   reading lak dataset 3&quot;</span><span class="p">)</span>
+        <span class="n">stages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">stage_range</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">tabdata</span><span class="p">:</span>
+            <span class="n">tab_units</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tab_units</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">lake</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlakes</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">array_free_format</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ipos</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+            <span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">stage_range</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ipos</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ipos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])))</span>
+                <span class="n">ipos</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="n">tabdata</span><span class="p">:</span>
+                <span class="n">iu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ipos</span><span class="p">])</span>
+                <span class="n">tab_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iu</span><span class="p">)</span>
+
+        <span class="n">lake_loc</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">lake_lknc</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sill_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">flux_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">lwrt</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;   reading lak dataset 4 - for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">array_free_format</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">itmp</span><span class="p">,</span> <span class="n">itmp1</span><span class="p">,</span> <span class="n">tmplwrt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">lwrt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmplwrt</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">itmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;   reading lak dataset 5 - for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;LKARR_StressPeriod_</span><span class="si">{</span><span class="n">iper</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">lakarr</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;   reading lak dataset 6 - for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;BDLKNC_StressPeriod_</span><span class="si">{</span><span class="n">iper</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">bdlknc</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">lake_loc</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">lakarr</span>
+                <span class="n">lake_lknc</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">bdlknc</span>
+
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;   reading lak dataset 7 - for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">nslms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">ds8</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="n">nslms</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;   reading lak dataset 8 - for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nslms</span><span class="p">):</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">array_free_format</span><span class="p">:</span>
+                            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">ic</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">])</span>
+                            <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="n">ic</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+                        <span class="n">ic</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="n">ds8a</span> <span class="o">=</span> <span class="p">[</span><span class="n">ic</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ic</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                            <span class="n">ds8a</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">array_free_format</span><span class="p">:</span>
+                            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="n">ic</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">silvt</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ic</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                            <span class="n">silvt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+                        <span class="n">ds8</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ds8a</span><span class="p">,</span> <span class="n">silvt</span><span class="p">))</span>
+                    <span class="n">sill_data</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds8</span>
+            <span class="k">if</span> <span class="n">itmp1</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;   reading lak dataset 9 - for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">ds9</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlakes</span><span class="p">):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">array_free_format</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">read_fixed_var</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+                    <span class="n">tds</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                    <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+                    <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+                    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="n">iper</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">iper</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stage_range</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+                            <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stage_range</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+                            <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">]))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+                        <span class="n">tds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+                    <span class="n">ds9</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tds</span>
+                <span class="n">flux_data</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds9</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># convert lake data to Transient3d objects</span>
+        <span class="n">lake_loc</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">lake_loc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lakarr_&quot;</span>
+        <span class="p">)</span>
+        <span class="n">lake_lknc</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">lake_lknc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bdlknc_&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">tab_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">+=</span> <span class="n">nlakes</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowLak</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">ipakcb</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span>
+
+            <span class="n">ipos</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="n">tab_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tab_units</span><span class="p">)):</span>
+                    <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="n">ipos</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">tab_units</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">ipos</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">nlakes</span><span class="o">=</span><span class="n">nlakes</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">nssitr</span><span class="o">=</span><span class="n">nssitr</span><span class="p">,</span>
+            <span class="n">surfdep</span><span class="o">=</span><span class="n">surfdep</span><span class="p">,</span>
+            <span class="n">sscncr</span><span class="o">=</span><span class="n">sscncr</span><span class="p">,</span>
+            <span class="n">lwrt</span><span class="o">=</span><span class="n">lwrt</span><span class="p">,</span>
+            <span class="n">stages</span><span class="o">=</span><span class="n">stages</span><span class="p">,</span>
+            <span class="n">stage_range</span><span class="o">=</span><span class="n">stage_range</span><span class="p">,</span>
+            <span class="n">tab_units</span><span class="o">=</span><span class="n">tab_units</span><span class="p">,</span>
+            <span class="n">lakarr</span><span class="o">=</span><span class="n">lake_loc</span><span class="p">,</span>
+            <span class="n">bdlknc</span><span class="o">=</span><span class="n">lake_lknc</span><span class="p">,</span>
+            <span class="n">sill_data</span><span class="o">=</span><span class="n">sill_data</span><span class="p">,</span>
+            <span class="n">flux_data</span><span class="o">=</span><span class="n">flux_data</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;LAK&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">119</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

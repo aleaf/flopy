@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.utils.lakpak_utils &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.utils.lakpak_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.utils.lakpak_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="get_lak_connections"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.lakpak_utils.html#flopy.mf6.utils.lakpak_utils.get_lak_connections">[docs]</a><span class="k">def</span> <span class="nf">get_lak_connections</span><span class="p">(</span><span class="n">modelgrid</span><span class="p">,</span> <span class="n">lake_map</span><span class="p">,</span> <span class="n">idomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bedleak</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to create lake package connection data from a zero-based</span>
+<span class="sd">    integer array of lake numbers. If the shape of lake number array is</span>
+<span class="sd">    equal to (nrow, ncol) or (ncpl) then the lakes are on top of the model</span>
+<span class="sd">    and are vertically connected to cells at the top of the model. Otherwise</span>
+<span class="sd">    the lakes are embedded in the grid.</span>
+
+<span class="sd">    TODO: implement embedded lakes for VertexGrid</span>
+
+<span class="sd">    TODO: add support for UnstructuredGrid</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    modelgrid : StructuredGrid, VertexGrid</span>
+<span class="sd">        model grid</span>
+<span class="sd">    lake_map : MaskedArray, ndarray, list, tuple</span>
+<span class="sd">        location and zero-based lake number for lakes in the model domain.</span>
+<span class="sd">        If lake_map is of size (nrow, ncol) or (ncpl) lakes are located on</span>
+<span class="sd">        top of the model and vertically connected to cells in model layer 1.</span>
+<span class="sd">        If lake_map is of size (nlay, nrow, ncol) or (nlay, ncpl) lakes</span>
+<span class="sd">        are embedded in the model domain and horizontal and vertical lake</span>
+<span class="sd">        connections are defined.</span>
+<span class="sd">    idomain : int or ndarray</span>
+<span class="sd">        location of inactive cells, which are defined with a zero value. If a</span>
+<span class="sd">        ndarray is passed it must be of size (nlay, nrow, ncol) or</span>
+<span class="sd">        (nlay, ncpl).</span>
+<span class="sd">    bedleak : ndarray, list, tuple, float</span>
+<span class="sd">        bed leakance for lakes in the model domain. If bedleak is a float the</span>
+<span class="sd">        same bed leakance is applied to each lake connection in the model.</span>
+<span class="sd">        If bedleak is of size (nrow, ncol) or (ncpl) then all lake</span>
+<span class="sd">        connections for the cellid are given the same bed leakance value. If</span>
+<span class="sd">        bedleak is None, lake conductance is only a function of aquifer</span>
+<span class="sd">        properties for all lakes. Can also pass mixed values as list or</span>
+<span class="sd">        ndarray of size (nrow, ncol) or (ncpl) with floats and &#39;none&#39; strings.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    idomain : ndarry</span>
+<span class="sd">        idomain adjusted to inactivate cells with lakes</span>
+<span class="sd">    connection_dict : dict</span>
+<span class="sd">        dictionary with the zero-based lake number keys and number of</span>
+<span class="sd">        connections in a lake values</span>
+<span class="sd">    connectiondata : list of lists</span>
+<span class="sd">        connectiondata block for the lake package</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">grid_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;unstructured&quot;</span><span class="p">,):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;unstructured grids not supported in get_lak_connections()&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">embedded</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">shape3d</span> <span class="o">=</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">shape2d</span> <span class="o">=</span> <span class="n">shape3d</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="c1"># convert to numpy array if necessary</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lake_map</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">lake_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lake_map</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lake_map</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;lake_map must be a Masked Array, ndarray, list, or tuple&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># evaluate lake_map shape</span>
+    <span class="n">shape_map</span> <span class="o">=</span> <span class="n">lake_map</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">shape_map</span> <span class="o">!=</span> <span class="n">shape3d</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">shape_map</span> <span class="o">!=</span> <span class="n">shape2d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;lake_map shape (</span><span class="si">{}</span><span class="s2">) must be equal to the grid shape for &quot;</span>
+                <span class="s2">&quot;each layer (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shape_map</span><span class="p">,</span> <span class="n">shape2d</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedded</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># process idomain</span>
+    <span class="k">if</span> <span class="n">idomain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">idomain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape3d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idomain</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">idomain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape3d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">idomain</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idomain</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;idomain must be a integer&quot;</span><span class="p">)</span>
+
+    <span class="c1"># check dimensions of idomain</span>
+    <span class="k">if</span> <span class="n">idomain</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">shape3d</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;shape of idomain (</span><span class="si">{</span><span class="n">idomain</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) not equal to </span><span class="si">{</span><span class="n">shape3d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># convert bedleak to numpy array if necessary</span>
+    <span class="k">if</span> <span class="n">bedleak</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bedleak</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">chararray</span><span class="p">(</span><span class="n">shape2d</span><span class="p">,</span> <span class="n">itemsize</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">unicode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">bedleak</span><span class="p">[:]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bedleak</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+        <span class="n">bedleak</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape2d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">bedleak</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bedleak</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">bedleak</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bedleak</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+    <span class="c1"># check the dimensions of the bedleak array</span>
+    <span class="k">if</span> <span class="n">bedleak</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">shape2d</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;shape of bedleak (</span><span class="si">{</span><span class="n">bedleak</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) not equal to </span><span class="si">{</span><span class="n">shape2d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># get the model grid elevations and reset lake_map using idomain</span>
+    <span class="c1"># if lake is embedded and in an inactive cell</span>
+    <span class="k">if</span> <span class="n">embedded</span><span class="p">:</span>
+        <span class="n">elevations</span> <span class="o">=</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">top_botm</span>
+        <span class="n">lake_map</span><span class="p">[</span><span class="n">idomain</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">elevations</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># determine if masked array, in not convert to masked array</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">lake_map</span><span class="p">):</span>
+        <span class="n">lake_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">lake_map</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lake_map</span><span class="p">)</span>
+
+    <span class="n">connection_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">connectiondata</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># find unique lake numbers</span>
+    <span class="n">unique</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">lake_map</span><span class="p">)</span>
+
+    <span class="c1"># exclude lakes with lake numbers less than 0</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">unique</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">unique</span> <span class="o">=</span> <span class="n">unique</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+    <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="c1"># embedded lakes</span>
+    <span class="k">for</span> <span class="n">lake_number</span> <span class="ow">in</span> <span class="n">unique</span><span class="p">:</span>
+        <span class="n">iconn</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">lake_map</span> <span class="o">==</span> <span class="n">lake_number</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+            <span class="n">cell_index</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">embedded</span><span class="p">:</span>
+                <span class="n">leak_value</span> <span class="o">=</span> <span class="n">bedleak</span><span class="p">[</span><span class="n">cell_index</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+                <span class="k">if</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;structured&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">dx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">xv</span><span class="p">,</span> <span class="n">yv</span> <span class="o">=</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">xvertices</span><span class="p">,</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">yvertices</span>
+                        <span class="n">dx</span> <span class="o">=</span> <span class="n">xv</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xv</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">dy</span> <span class="o">=</span> <span class="n">yv</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">yv</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="p">(</span>
+                        <span class="n">cellids</span><span class="p">,</span>
+                        <span class="n">claktypes</span><span class="p">,</span>
+                        <span class="n">belevs</span><span class="p">,</span>
+                        <span class="n">televs</span><span class="p">,</span>
+                        <span class="n">connlens</span><span class="p">,</span>
+                        <span class="n">connwidths</span><span class="p">,</span>
+                    <span class="p">)</span> <span class="o">=</span> <span class="n">__structured_lake_connections</span><span class="p">(</span>
+                        <span class="n">lake_map</span><span class="p">,</span> <span class="n">idomain</span><span class="p">,</span> <span class="n">cell_index</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">elevations</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="n">modelgrid</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;vertex&quot;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s2">&quot;embedded lakes have not been implemented&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cellid</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">+</span> <span class="n">cell_index</span>
+                <span class="n">leak_value</span> <span class="o">=</span> <span class="n">bedleak</span><span class="p">[</span><span class="n">cell_index</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">idomain</span><span class="p">[</span><span class="n">cellid</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">cellids</span> <span class="o">=</span> <span class="p">[</span><span class="n">cellid</span><span class="p">]</span>
+                    <span class="n">claktypes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;vertical&quot;</span><span class="p">]</span>
+                    <span class="n">belevs</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+                    <span class="n">televs</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+                    <span class="n">connlens</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+                    <span class="n">connwidths</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cellids</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">claktypes</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">belevs</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">televs</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">connlens</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">connwidths</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># iterate through each cellid</span>
+            <span class="k">for</span> <span class="n">cellid</span><span class="p">,</span> <span class="n">claktype</span><span class="p">,</span> <span class="n">belev</span><span class="p">,</span> <span class="n">telev</span><span class="p">,</span> <span class="n">connlen</span><span class="p">,</span> <span class="n">connwidth</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">cellids</span><span class="p">,</span> <span class="n">claktypes</span><span class="p">,</span> <span class="n">belevs</span><span class="p">,</span> <span class="n">televs</span><span class="p">,</span> <span class="n">connlens</span><span class="p">,</span> <span class="n">connwidths</span>
+            <span class="p">):</span>
+                <span class="n">connectiondata</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">lake_number</span><span class="p">,</span>
+                        <span class="n">iconn</span><span class="p">,</span>
+                        <span class="n">cellid</span><span class="p">[:],</span>
+                        <span class="n">claktype</span><span class="p">,</span>
+                        <span class="n">leak_value</span><span class="p">,</span>
+                        <span class="n">belev</span><span class="p">,</span>
+                        <span class="n">telev</span><span class="p">,</span>
+                        <span class="n">connlen</span><span class="p">,</span>
+                        <span class="n">connwidth</span><span class="p">,</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">iconn</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># set number of connections for lake</span>
+        <span class="n">connection_dict</span><span class="p">[</span><span class="n">lake_number</span><span class="p">]</span> <span class="o">=</span> <span class="n">iconn</span>
+
+        <span class="c1"># reset idomain for lake</span>
+        <span class="k">if</span> <span class="n">iconn</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">lake_map</span> <span class="o">==</span> <span class="n">lake_number</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">idomain</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">idomain</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">idomain</span><span class="p">,</span> <span class="n">connection_dict</span><span class="p">,</span> <span class="n">connectiondata</span></div>
+
+
+<span class="k">def</span> <span class="nf">__structured_lake_connections</span><span class="p">(</span>
+    <span class="n">lake_map</span><span class="p">,</span> <span class="n">idomain</span><span class="p">,</span> <span class="n">cell_index</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">elevations</span>
+<span class="p">):</span>
+    <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">lake_map</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">cellids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">claktypes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">belevs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">televs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">connlens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">connwidths</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">cell_index</span>
+
+    <span class="k">if</span> <span class="n">idomain</span><span class="p">[</span><span class="n">cell_index</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># back face</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="n">cit</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">lake_map</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span> <span class="ow">and</span> <span class="n">idomain</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cellids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ci</span><span class="p">)</span>
+                <span class="n">claktypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;horizontal&quot;</span><span class="p">)</span>
+                <span class="n">belevs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">cit</span><span class="p">])</span>
+                <span class="n">televs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span>
+                <span class="n">connlens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dy</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">connwidths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+        <span class="c1"># left face</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">cit</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">lake_map</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span> <span class="ow">and</span> <span class="n">idomain</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cellids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ci</span><span class="p">)</span>
+                <span class="n">claktypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;horizontal&quot;</span><span class="p">)</span>
+                <span class="n">belevs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">cit</span><span class="p">])</span>
+                <span class="n">televs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span>
+                <span class="n">connlens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dx</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">connwidths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dy</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># right face</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">ncol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">cit</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">lake_map</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span> <span class="ow">and</span> <span class="n">idomain</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cellids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ci</span><span class="p">)</span>
+                <span class="n">claktypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;horizontal&quot;</span><span class="p">)</span>
+                <span class="n">belevs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">cit</span><span class="p">])</span>
+                <span class="n">televs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span>
+                <span class="n">connlens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dx</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">connwidths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dy</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># front face</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nrow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="n">cit</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">lake_map</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span> <span class="ow">and</span> <span class="n">idomain</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cellids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ci</span><span class="p">)</span>
+                <span class="n">claktypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;horizontal&quot;</span><span class="p">)</span>
+                <span class="n">belevs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">cit</span><span class="p">])</span>
+                <span class="n">televs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elevations</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span>
+                <span class="n">connlens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dy</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">connwidths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+        <span class="c1"># lower face</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nlay</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">lake_map</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span> <span class="ow">and</span> <span class="n">idomain</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cellids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ci</span><span class="p">)</span>
+                <span class="n">claktypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;vertical&quot;</span><span class="p">)</span>
+                <span class="n">belevs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+                <span class="n">televs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+                <span class="n">connlens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+                <span class="n">connwidths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cellids</span><span class="p">,</span> <span class="n">claktypes</span><span class="p">,</span> <span class="n">belevs</span><span class="p">,</span> <span class="n">televs</span><span class="p">,</span> <span class="n">connlens</span><span class="p">,</span> <span class="n">connwidths</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

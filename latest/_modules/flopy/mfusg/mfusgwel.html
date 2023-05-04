@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mfusg.mfusgwel &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mfusg.mfusgwel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mfusg.mfusgwel</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Mfusgwel module.</span>
+
+<span class="sd">Contains the MfUsgWel class. Note that the user can access</span>
+<span class="sd">the MfUsgWel class as `flopy.mfusg.MfUsgWel`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/wel.html&gt;`_.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">stack_arrays</span>
+
+<span class="kn">from</span> <span class="nn">..modflow.mfparbc</span> <span class="kn">import</span> <span class="n">ModflowParBc</span> <span class="k">as</span> <span class="n">mfparbc</span>
+<span class="kn">from</span> <span class="nn">..modflow.mfwel</span> <span class="kn">import</span> <span class="n">ModflowWel</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">MfList</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">ulstrd</span>
+<span class="kn">from</span> <span class="nn">..utils.utils_def</span> <span class="kn">import</span> <span class="n">get_open_file_object</span>
+<span class="kn">from</span> <span class="nn">.mfusg</span> <span class="kn">import</span> <span class="n">MfUsg</span>
+
+
+<div class="viewcode-block" id="MfUsgWel"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgwel.html#flopy.mfusg.MfUsgWel">[docs]</a><span class="k">class</span> <span class="nc">MfUsgWel</span><span class="p">(</span><span class="n">ModflowWel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MODFLOW-USG Well Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    stress_period_data : list of boundaries, or recarray of boundaries, or</span>
+<span class="sd">        dictionary of boundaries</span>
+<span class="sd">        For structured grid, each well is defined through definition of</span>
+<span class="sd">        layer (int), row (int), column (int), flux (float).</span>
+<span class="sd">        The simplest form is a dictionary with a lists of boundaries for each</span>
+<span class="sd">        stress period, where each list of boundaries itself is a list of</span>
+<span class="sd">        boundaries. Indices of the dictionary are the numbers of the stress</span>
+<span class="sd">        period. This gives the form of:</span>
+
+<span class="sd">            stress_period_data =</span>
+<span class="sd">            {0: [</span>
+<span class="sd">                [lay, row, col, flux],</span>
+<span class="sd">                [lay, row, col, flux],</span>
+<span class="sd">                [lay, row, col, flux]</span>
+<span class="sd">                ],</span>
+<span class="sd">            1:  [</span>
+<span class="sd">                [lay, row, col, flux],</span>
+<span class="sd">                [lay, row, col, flux],</span>
+<span class="sd">                [lay, row, col, flux]</span>
+<span class="sd">                ], ...</span>
+<span class="sd">            kper:</span>
+<span class="sd">                [</span>
+<span class="sd">                [lay, row, col, flux],</span>
+<span class="sd">                [lay, row, col, flux],</span>
+<span class="sd">                [lay, row, col, flux]</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+
+<span class="sd">        For unstructured grid,</span>
+<span class="sd">            stress_period_data =</span>
+<span class="sd">            {0: [</span>
+<span class="sd">                [node, flux],</span>
+<span class="sd">                [node, flux],</span>
+<span class="sd">                [node, flux]</span>
+<span class="sd">                ],</span>
+<span class="sd">            1:  [</span>
+<span class="sd">                [node, flux],</span>
+<span class="sd">                [node, flux],</span>
+<span class="sd">                [node, flux]</span>
+<span class="sd">                ], ...</span>
+<span class="sd">            kper:</span>
+<span class="sd">                [</span>
+<span class="sd">                [node, flux],</span>
+<span class="sd">                [node, flux],</span>
+<span class="sd">                [node, flux]</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+
+<span class="sd">        Note that if the number of lists is smaller than the number of stress</span>
+<span class="sd">        periods, then the last list of wells will apply until the end of the</span>
+<span class="sd">        simulation. Full details of all options to specify stress_period_data</span>
+<span class="sd">        can be found in the flopy3 boundaries Notebook in the basic</span>
+<span class="sd">        subdirectory of the examples directory</span>
+<span class="sd">    cln_stress_period_data : list of boundaries, or recarray of boundaries, or</span>
+<span class="sd">        dictionary of boundaries</span>
+<span class="sd">        Stress period data of wells simulated as Connected Linear Network (CLN)</span>
+<span class="sd">        The simplest form is a dictionary with a lists of boundaries for each</span>
+<span class="sd">        stress period, where each list of boundaries itself is a list of</span>
+<span class="sd">        boundaries. Indices of the dictionary are the numbers of the stress</span>
+<span class="sd">        period. This gives the form of:</span>
+
+<span class="sd">            cln_stress_period_data =</span>
+<span class="sd">            {0: [</span>
+<span class="sd">                [iclnnode, flux],</span>
+<span class="sd">                [iclnnode, flux],</span>
+<span class="sd">                [iclnnode, flux]</span>
+<span class="sd">                ],</span>
+<span class="sd">            1:  [</span>
+<span class="sd">                [iclnnode, flux],</span>
+<span class="sd">                [iclnnode, flux],</span>
+<span class="sd">                [iclnnode, flux]</span>
+<span class="sd">                ], ...</span>
+<span class="sd">            kper:</span>
+<span class="sd">                [</span>
+<span class="sd">                [iclnnode, flux],</span>
+<span class="sd">                [iclnnode, flux],</span>
+<span class="sd">                [iclnnode, flux]</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+<span class="sd">    dtype : custom datatype of stress_period_data.</span>
+<span class="sd">        If None the default well datatype will be applied (default is None).</span>
+<span class="sd">    cln_dtype : custom datatype of cln_stress_period_data.</span>
+<span class="sd">        If None the default well datatype will be applied (default is None).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;wel&#39;)</span>
+<span class="sd">    options : list of strings</span>
+<span class="sd">        Package options (default is None).</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output name will be created using</span>
+<span class="sd">        the model name and .cbc extension (for example, modflowtest.cbc),</span>
+<span class="sd">        if ipakcbc is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and cbc output names will be</span>
+<span class="sd">        created using the model name and .cbc extension, if ipakcbc is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+<span class="sd">    add_package : bool</span>
+<span class="sd">        Flag to add the initialised package object to the parent model object.</span>
+<span class="sd">        Default is True.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mxactw : int</span>
+<span class="sd">        Maximum number of wells for a stress period.  This is calculated</span>
+<span class="sd">        automatically by FloPy based on the information in</span>
+<span class="sd">        stress_period_data.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.mfusg.MfUsg()</span>
+<span class="sd">    &gt;&gt;&gt; lrcq = {0:[[2, 3, 4, -100.]], 1:[[2, 3, 4, -100.]]}</span>
+<span class="sd">    &gt;&gt;&gt; wel = flopy.mfusg.MfUsgWel(m, stress_period_data=lrcq)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">stress_period_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cln_stress_period_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cln_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;wel&quot;</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">binary</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">add_package</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Package constructor.&quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">stress_period_data</span><span class="o">=</span><span class="n">stress_period_data</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">binary</span><span class="o">=</span><span class="n">binary</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="n">add_package</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoflowreduce</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iunitafr</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;autoflowreduce&quot;</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">autoflowreduce</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="s2">&quot;iunitafr&quot;</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">line_text</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iunitafr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line_text</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iunitafr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iunitafr</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;afr&quot;</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+        <span class="c1"># initialize CLN MfList</span>
+        <span class="c1"># CLN WELs are always read as CLNNODE Q, so dtype must be of unstructured form</span>
+        <span class="k">if</span> <span class="n">cln_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cln_dtype</span> <span class="o">=</span> <span class="n">MfUsgWel</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">cln_dtype</span>
+
+        <span class="c1"># determine if any aux variables in cln_dtype</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_for_aux</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">cln</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cln_stress_period_data</span> <span class="o">=</span> <span class="n">MfList</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">cln_stress_period_data</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="n">binary</span>
+        <span class="p">)</span>
+
+        <span class="c1"># reset self.dtype for cases where the model is structured but CLN WELs are used</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span>
+                <span class="n">structured</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span>
+            <span class="p">)</span>
+
+        <span class="c1"># determine if any aux variables in dtype</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_for_aux</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+
+        <span class="c1"># initialize MfList</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span> <span class="o">=</span> <span class="n">MfList</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">stress_period_data</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="n">binary</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">add_package</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_check_for_aux</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">cln</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check dtype for auxiliary variables, and add to options.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        ----------</span>
+<span class="sd">            options: (list) package options</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            options: list</span>
+<span class="sd">                Package options strings</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">cln</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="p">:]:</span>
+                <span class="n">ladd</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">option</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                        <span class="n">ladd</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+                <span class="k">if</span> <span class="n">ladd</span><span class="p">:</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;aux </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">options</span>
+
+<div class="viewcode-block" id="MfUsgWel.write_file"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgwel.html#flopy.mfusg.MfUsgWel.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write the package file.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        ----------</span>
+<span class="sd">            f: (str) optional file name</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_wel</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">f_wel</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_wel</span> <span class="o">=</span> <span class="n">f</span>
+
+        <span class="n">f_wel</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">mxact</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">mxact</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cln_stress_period_data</span><span class="o">.</span><span class="n">mxact</span>
+        <span class="p">)</span>
+
+        <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">mxact</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f_wel</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="c1"># gwf wels (and possibly cln wells)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">write_transient</span><span class="p">(</span>
+            <span class="n">f_wel</span><span class="p">,</span> <span class="n">cln_data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cln_stress_period_data</span>
+        <span class="p">)</span>
+
+        <span class="n">f_wel</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

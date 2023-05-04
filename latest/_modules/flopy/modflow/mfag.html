@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfag &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfag</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfag</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfag module which contains the ModflowAg class.</span>
+
+<span class="sd">Note that the user can access the ModflowAg class as `flopy.modflow.ModflowAg`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at</span>
+<span class="sd">&lt;https://www.sciencedirect.com/science/article/pii/S1364815219305080&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">multi_line_strip</span>
+<span class="kn">from</span> <span class="nn">..utils.optionblock</span> <span class="kn">import</span> <span class="n">OptionBlock</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+
+
+<div class="viewcode-block" id="ModflowAg"><a class="viewcode-back" href="../../../source/flopy.modflow.mfag.html#flopy.modflow.mfag.ModflowAg">[docs]</a><span class="k">class</span> <span class="nc">ModflowAg</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The ModflowAg class is used to build read, write, and edit data</span>
+<span class="sd">    from the MODFLOW-NWT AG package.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : flopy.modflow.Modflow object</span>
+<span class="sd">        model object</span>
+<span class="sd">    options : flopy.utils.OptionBlock object</span>
+<span class="sd">        option block object</span>
+<span class="sd">    time_series : np.recarray</span>
+<span class="sd">        numpy recarray for the time series block</span>
+<span class="sd">    well_list : np.recarray</span>
+<span class="sd">        recarray of the well_list block</span>
+<span class="sd">    irrdiversion : dict {per: np.recarray}</span>
+<span class="sd">        dictionary of the irrdiversion block</span>
+<span class="sd">    irrwell : dict {per: np.recarray}</span>
+<span class="sd">        dictionary of the irrwell block</span>
+<span class="sd">    supwell : dict {per: np.recarray}</span>
+<span class="sd">        dictionary of the supwell block</span>
+<span class="sd">    extension : str, optional</span>
+<span class="sd">        default is .ag</span>
+<span class="sd">    unitnumber : list, optional</span>
+<span class="sd">        fortran unit number for modflow, default 69</span>
+<span class="sd">    filenames : list, optional</span>
+<span class="sd">        file name for ModflowAwu package to write input</span>
+<span class="sd">    nper : int</span>
+<span class="sd">        number of stress periods in the model</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    load a ModflowAg file</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; ml = flopy.modflow.Modflow(&#39;agtest&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; ag = flopy.modflow.ModflowAg.load(&#39;test.ag&#39;, ml, nper=2)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;noprint&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;irrigation_diversion&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="p">(</span><span class="s2">&quot;numirrdiversions&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                            <span class="p">(</span><span class="s2">&quot;maxcellsdiversion&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                        <span class="p">]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;irrigation_well&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="p">(</span><span class="s2">&quot;numirrwells&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                            <span class="p">(</span><span class="s2">&quot;maxcellswell&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                        <span class="p">]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;supplemental_well&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="p">(</span><span class="s2">&quot;numsupwells&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                            <span class="p">(</span><span class="s2">&quot;maxdiversions&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                        <span class="p">]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;maxwells&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[(</span><span class="s2">&quot;nummaxwell&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">)]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;tabfiles&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_tabfile</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;phiramp&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;etdemand&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;accel&quot;</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                            <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                            <span class="n">OptionBlock</span><span class="o">.</span><span class="n">optional</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                        <span class="p">}</span>
+                    <span class="p">},</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;trigger&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;timeseries_diversion&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;timeseries_well&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;timeseries_diversionet&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;timeseries_wellet&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;diversionlist&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[(</span><span class="s2">&quot;unit_diversionlist&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">)]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;welllist&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[(</span><span class="s2">&quot;unit_welllist&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">)]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;wellirrlist&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[(</span><span class="s2">&quot;unit_wellirrlist&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">)]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;diversionirrlist&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[(</span><span class="s2">&quot;unit_diversionirrlist&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">)]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;wellcbc&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[(</span><span class="s2">&quot;unitcbc&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">)]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">time_series</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">well_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">irrdiversion</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">irrwell</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">supwell</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;ag&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">nper</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;nwt&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s2">&quot;Model version must be mfnwt to use the AG package&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># setup the package parent class</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># set up class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+
+        <span class="c1"># options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noprint</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irrigation_diversion</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numirrdiversions</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxcellsdiversion</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irrigation_well</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numirrwells</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supplemental_well</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numsupwells</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxdiversions</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxwells</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nummaxwell</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tabfiles</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numtab</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxval</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phiramp</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">etdemand</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trigger</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeseries_diversion</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeseries_well</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeseries_diversionet</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeseries_wellet</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diversionlist</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_diversionlist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">welllist</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_welllist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wellirrlist</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_wellirrlist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diversionirrlist</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_diversionirrlist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wellcbc</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unitcbc</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_attrs_from_option_block</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">OptionBlock</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">ModflowAg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_series</span> <span class="o">=</span> <span class="n">time_series</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">well_list</span> <span class="o">=</span> <span class="n">well_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span> <span class="o">=</span> <span class="n">irrdiversion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irrwell</span> <span class="o">=</span> <span class="n">irrwell</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supwell</span> <span class="o">=</span> <span class="n">supwell</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nper</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nper</span> <span class="o">=</span> <span class="n">nper</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">segment_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get a unique list of segments from irrdiversion</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">segments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">recarray</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">recarray</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">recarray</span><span class="p">[</span><span class="s2">&quot;segid&quot;</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">t</span><span class="p">:</span>
+                    <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
+
+            <span class="n">segments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">segments</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">segments</span>
+
+    <span class="k">def</span> <span class="nf">_update_attrs_from_option_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to update option attributes from the</span>
+<span class="sd">        option block</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        options : OptionBlock object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ctx</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">]:</span>
+                    <span class="k">for</span> <span class="n">k2</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">[</span><span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">k2</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                            <span class="n">v2</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">k2</span><span class="p">]</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">k2</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowAg.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfag.html#flopy.modflow.mfag.ModflowAg.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write method for ModflowAg</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        check: bool</span>
+<span class="sd">            not implemented</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">model_ws</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">foo</span><span class="p">:</span>
+            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># update options</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">update_from_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">write_options</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+
+            <span class="c1"># check if there is a timeseries block and write output</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_series</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# ag time series</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;TIME SERIES </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_series</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;keyword&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;welletall&quot;</span><span class="p">,</span> <span class="s2">&quot;wellall&quot;</span><span class="p">):</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;keyword&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">   </span><span class="si">{</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">record</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;END </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># check if item 12 exists and write item 12 - 14</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">segment_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# segment list for irrigation diversions</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;SEGMENT LIST</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">iseg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">segment_list</span><span class="p">:</span>
+                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iseg</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;END </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># check if item 15 exists and write item 15 through 17</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">well_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# ag well list</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;WELL LIST </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tabfiles</span><span class="p">:</span>
+                    <span class="c1"># item 16a</span>
+                    <span class="n">fmt16a</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">fmt16</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># item 16b</span>
+                    <span class="n">fmt16a</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">fmt16</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">well_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">fmt16a</span><span class="p">:</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="n">fmt16</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">],</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;tabval&quot;</span><span class="p">],</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="n">fmt16</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">],</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;END </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# ag stress period data</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">per</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nper</span><span class="p">):</span>
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;STRESS PERIOD </span><span class="si">{</span><span class="n">per</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="c1"># check for item 18 and write items 18 - 21</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;IRRDIVERSION </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trigger</span><span class="p">:</span>
+                        <span class="c1"># item 20</span>
+                        <span class="n">fmt20</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># item 20, if trigger option is false we need 0&#39;s for</span>
+                        <span class="c1"># period and trigger fac.</span>
+                        <span class="n">fmt20</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   0   0</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                    <span class="k">if</span> <span class="n">per</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span><span class="p">[</span><span class="n">per</span><span class="p">]):</span>
+                            <span class="c1"># write item 19</span>
+                            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;-1  </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">recarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrdiversion</span><span class="p">[</span><span class="n">per</span><span class="p">]</span>
+
+                            <span class="c1"># write item 19</span>
+                            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">recarray</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">fmt21</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                            <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">recarray</span><span class="p">:</span>
+                                <span class="n">num</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">]</span>
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trigger</span><span class="p">:</span>
+                                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                        <span class="n">fmt20</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;segid&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;period&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;triggerfact&quot;</span><span class="p">],</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                        <span class="n">fmt20</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;segid&quot;</span><span class="p">],</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">]</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+                                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                        <span class="n">fmt21</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;i</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;j</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;eff_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;field_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># write item 19</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;0  </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="c1"># check for item 22 and write 22 - 25</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrwell</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;IRRWELL </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trigger</span><span class="p">:</span>
+                        <span class="c1"># item 24</span>
+                        <span class="n">fmt24</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># item 24</span>
+                        <span class="n">fmt24</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   0   0</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                    <span class="k">if</span> <span class="n">per</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrwell</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">irrwell</span><span class="p">[</span><span class="n">per</span><span class="p">]):</span>
+                            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;-1  </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">recarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrwell</span><span class="p">[</span><span class="n">per</span><span class="p">]</span>
+
+                            <span class="c1"># write item 23</span>
+                            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">recarray</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">fmt25</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                            <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">recarray</span><span class="p">:</span>
+                                <span class="n">num</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">]</span>
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trigger</span><span class="p">:</span>
+                                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                        <span class="n">fmt24</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;wellid&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;period&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;triggerfact&quot;</span><span class="p">],</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                        <span class="n">fmt24</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;wellid&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">]</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+                                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                        <span class="n">fmt25</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;i</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;j</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;eff_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                            <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;field_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># write item 23</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;0  </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="c1"># check if item 26 and write items 26 - 29</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">supwell</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;SUPWELL </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                    <span class="n">fmt28</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                    <span class="k">if</span> <span class="n">per</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supwell</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">supwell</span><span class="p">[</span><span class="n">per</span><span class="p">]):</span>
+                            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;-1  </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">recarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">supwell</span><span class="p">[</span><span class="n">per</span><span class="p">]</span>
+
+                            <span class="c1"># write item 27</span>
+                            <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">recarray</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                            <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">recarray</span><span class="p">:</span>
+                                <span class="n">num</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">]</span>
+
+                                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                    <span class="n">fmt28</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                        <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;wellid&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;numcell&quot;</span><span class="p">]</span>
+                                    <span class="p">)</span>
+                                <span class="p">)</span>
+
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+                                    <span class="k">if</span> <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;fracsupmax</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mf">1e10</span><span class="p">:</span>
+                                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                            <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                                <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;segid</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                                <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;fracsup</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                                <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;fracsupmax</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                            <span class="p">)</span>
+                                        <span class="p">)</span>
+
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                            <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">   </span><span class="si">{:f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                                <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;segid</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                                <span class="n">rec</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;fracsup</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                                            <span class="p">)</span>
+                                        <span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># write item 27</span>
+                        <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;0 </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="n">foo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;END </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowAg.get_empty"><a class="viewcode-back" href="../../../source/flopy.modflow.mfag.html#flopy.modflow.mfag.ModflowAg.get_empty">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty</span><span class="p">(</span><span class="n">numrecords</span><span class="p">,</span> <span class="n">maxells</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;well&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an empty record array corresponding to the block data type</span>
+<span class="sd">        it is associated with.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        numrecords : int</span>
+<span class="sd">            number of records to create recarray with</span>
+<span class="sd">        maxells : int, optional</span>
+<span class="sd">            maximum number of irrigation links</span>
+<span class="sd">        block : str</span>
+<span class="sd">            str which indicates data set valid options are</span>
+<span class="sd">            &quot;well&quot; ,</span>
+<span class="sd">            &quot;tabfile_well&quot; ,</span>
+<span class="sd">            &quot;timeseries&quot; ,</span>
+<span class="sd">            &quot;irrdiversion_modflow&quot; ,</span>
+<span class="sd">            &quot;irrdiversion_gsflow&quot; ,</span>
+<span class="sd">            &quot;irrwell_modflow&quot; ,</span>
+<span class="sd">            &quot;irrwell_gsflow&quot; ,</span>
+<span class="sd">            &quot;supwell&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            np.recarray</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">maxells</span><span class="o">=</span><span class="n">maxells</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">numrecords</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mf">1.0e10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowAg.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.modflow.mfag.html#flopy.modflow.mfag.ModflowAg.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">maxells</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;well&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function that gets a default dtype for a block</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        maxells : int</span>
+<span class="sd">             maximum number of irrigation links</span>
+<span class="sd">        block : str</span>
+<span class="sd">            str which indicates data set valid options are</span>
+<span class="sd">            &quot;well&quot;</span>
+<span class="sd">            &quot;tabfile_well&quot;</span>
+<span class="sd">            &quot;timeseries&quot;</span>
+<span class="sd">            &quot;irrdiversion&quot;</span>
+<span class="sd">            &quot;irrwell&quot;</span>
+<span class="sd">            &quot;supwell&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            dtype : (list, tuple)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;well&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+            <span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;tabfile_well&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;tabval&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;time series&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;keyword&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+
+        <span class="k">elif</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;irrdiversion&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;segid&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;numcell&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;triggerfact&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+            <span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxells</span><span class="p">):</span>
+                <span class="n">dtype</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;i</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;j</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;eff_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;field_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                <span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;irrwell&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;wellid&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;numcell&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;triggerfact&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+            <span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxells</span><span class="p">):</span>
+                <span class="n">dtype</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;i</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;j</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;eff_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;field_fact</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                <span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;supwell&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;wellid&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;numcell&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxells</span><span class="p">):</span>
+                <span class="n">dtype</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;segid</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fracsup</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                    <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fracsupmax</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                <span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;block type </span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">, not supported&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowAg.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfag.html#flopy.modflow.mfag.ModflowAg.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to load the AG package from file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str</span>
+<span class="sd">            filename</span>
+<span class="sd">        model : gsflow.modflow.Modflow object</span>
+<span class="sd">            model to attach the ag pacakge to</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            number of stress periods in model</span>
+<span class="sd">        ext_unit_dict : dict, optional</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            ModflowAg object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nper</span>
+
+        <span class="c1"># open the file if not already open</span>
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># strip the file header if it exists</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># read the options block</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">load_options</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ModflowAg</span><span class="p">)</span>
+
+        <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="n">time_series</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;time series&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="c1"># read time_series</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;end&quot;</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">nrec</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">time_series</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">nrec</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;time series&quot;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">rec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">rec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;welletall&quot;</span><span class="p">,</span> <span class="s2">&quot;wellall&quot;</span><span class="p">):</span>
+                        <span class="n">time_series</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">999</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">time_series</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rec</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="c1"># read item 12-14</span>
+        <span class="k">if</span> <span class="s2">&quot;segment list&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="c1"># read item 13</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;end&quot;</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">segments</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">t</span><span class="p">:</span>
+                    <span class="n">iseg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iseg</span><span class="p">)</span>
+
+        <span class="c1"># read item 15-17 well_list</span>
+        <span class="n">well</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;well list&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="c1"># read item 16</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;end&quot;</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">nrec</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+                <span class="c1"># check if this is block 16a</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">tabfiles</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">):</span>
+                    <span class="n">tf</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">well</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">nrec</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;tabfile_well&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">tf</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">well</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">nrec</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;well&quot;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">rec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="p">:</span>
+                        <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">j</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">well</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">j</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">well</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rec</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+
+        <span class="n">maxcellsdiversion</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">maxcellsdiversion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">maxcellsdiversion</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">maxcellsdiversion</span>
+
+        <span class="n">maxcellswell</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">maxcellswell</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">maxcellswell</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">maxcellswell</span>
+
+        <span class="n">maxdiversions</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">maxdiversions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">maxdiversions</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">maxdiversions</span>
+
+        <span class="n">irr_diversion</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">irr_well</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sup_well</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># get the stress period data from blocks 18 - 29</span>
+        <span class="k">for</span> <span class="n">per</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;stress period&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                <span class="c1"># block 18</span>
+                <span class="k">elif</span> <span class="s2">&quot;irrdiversion&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="c1"># read block 19</span>
+                    <span class="n">nrec</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">nrec</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">irr_diversion</span><span class="p">[</span><span class="n">per</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">irr</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+                            <span class="n">nrec</span><span class="p">,</span>
+                            <span class="n">maxells</span><span class="o">=</span><span class="n">maxcellsdiversion</span><span class="p">,</span>
+                            <span class="n">block</span><span class="o">=</span><span class="s2">&quot;irrdiversion&quot;</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+                        <span class="c1"># read blocks 20 &amp; 21</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">_read_block_21_25_or_29</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nrec</span><span class="p">,</span> <span class="n">irr</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+                    <span class="n">irr_diversion</span><span class="p">[</span><span class="n">per</span><span class="p">]</span> <span class="o">=</span> <span class="n">irr</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                <span class="c1"># block 22</span>
+                <span class="k">elif</span> <span class="s2">&quot;irrwell&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="c1"># read block 23</span>
+                    <span class="n">nrec</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">nrec</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">irr_well</span><span class="p">[</span><span class="n">per</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">irr</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+                            <span class="n">nrec</span><span class="p">,</span> <span class="n">maxells</span><span class="o">=</span><span class="n">maxcellswell</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;irrwell&quot;</span>
+                        <span class="p">)</span>
+
+                        <span class="c1"># read blocks 24 &amp; 25</span>
+                        <span class="n">irr</span> <span class="o">=</span> <span class="n">_read_block_21_25_or_29</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nrec</span><span class="p">,</span> <span class="n">irr</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+
+                    <span class="n">irr_well</span><span class="p">[</span><span class="n">per</span><span class="p">]</span> <span class="o">=</span> <span class="n">irr</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                <span class="c1"># block 26</span>
+                <span class="k">elif</span> <span class="s2">&quot;supwel&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="c1"># read block 27</span>
+                    <span class="n">nrec</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">nrec</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="n">sup</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">sup_well</span><span class="p">[</span><span class="n">per</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="n">sup</span> <span class="o">=</span> <span class="n">sup</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">sup</span> <span class="o">=</span> <span class="n">ModflowAg</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+                            <span class="n">nrec</span><span class="p">,</span> <span class="n">maxells</span><span class="o">=</span><span class="n">maxdiversions</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="s2">&quot;supwell&quot;</span>
+                        <span class="p">)</span>
+                        <span class="c1"># read blocks 28 &amp; 29</span>
+                        <span class="n">sup</span> <span class="o">=</span> <span class="n">_read_block_21_25_or_29</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nrec</span><span class="p">,</span> <span class="n">sup</span><span class="p">,</span> <span class="mi">29</span><span class="p">)</span>
+
+                    <span class="n">sup_well</span><span class="p">[</span><span class="n">per</span><span class="p">]</span> <span class="o">=</span> <span class="n">sup</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                <span class="c1"># block 30?</span>
+                <span class="k">elif</span> <span class="s2">&quot;end&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">per</span> <span class="o">==</span> <span class="n">nper</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Something went wrong at: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">time_series</span><span class="o">=</span><span class="n">time_series</span><span class="p">,</span>
+            <span class="n">well_list</span><span class="o">=</span><span class="n">well</span><span class="p">,</span>
+            <span class="n">irrwell</span><span class="o">=</span><span class="n">irr_well</span><span class="p">,</span>
+            <span class="n">irrdiversion</span><span class="o">=</span><span class="n">irr_diversion</span><span class="p">,</span>
+            <span class="n">supwell</span><span class="o">=</span><span class="n">sup_well</span><span class="p">,</span>
+            <span class="n">nper</span><span class="o">=</span><span class="n">nper</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">69</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;AG&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">plottable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<span class="k">def</span> <span class="nf">_read_block_21_25_or_29</span><span class="p">(</span><span class="n">fobj</span><span class="p">,</span> <span class="n">nrec</span><span class="p">,</span> <span class="n">recarray</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Method to read blocks 21, 25, and 29 from the AG package</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fobj : File object</span>
+<span class="sd">    nrec : int</span>
+<span class="sd">        number of records</span>
+<span class="sd">    recarray : np.recarray</span>
+<span class="sd">        recarray to add data to</span>
+<span class="sd">    block : int</span>
+<span class="sd">        valid options are 21, 25, 29</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        recarray : np.recarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrec</span><span class="p">):</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">fobj</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">block</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">21</span><span class="p">,):</span>
+            <span class="c1"># do not zero adjust segid</span>
+            <span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">block</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">21</span><span class="p">,</span> <span class="mi">25</span><span class="p">):</span>
+            <span class="c1"># correct list length if not using trigger factor</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">ll</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">ll</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">t1</span> <span class="o">+=</span> <span class="n">ll</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">block</span> <span class="o">==</span> <span class="mi">29</span><span class="p">:</span>
+            <span class="n">t1</span> <span class="o">+=</span> <span class="n">ll</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;block number must be 21, 25, or 29&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+            <span class="k">if</span> <span class="n">block</span> <span class="o">==</span> <span class="mi">29</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">ll</span> <span class="o">+=</span> <span class="p">[</span><span class="mf">1e-10</span><span class="p">]</span>
+
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">fobj</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]</span>
+                <span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">fobj</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[:</span><span class="mi">4</span><span class="p">]</span>
+                <span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">t1</span> <span class="o">+=</span> <span class="n">tmp</span>
+
+        <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">rec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ix2</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">recarray</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">ix2</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rec</span><span class="p">):</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">recarray</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="n">ix2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">recarray</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

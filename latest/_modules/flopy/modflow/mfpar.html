@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfpar &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfpar</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfpar</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfpar module.  Contains the ModflowPar class. Note that the user can access</span>
+<span class="sd">the ModflowPar class as `flopy.modflow.ModflowPar`.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.mfmlt</span> <span class="kn">import</span> <span class="n">ModflowMlt</span>
+<span class="kn">from</span> <span class="nn">.mfpval</span> <span class="kn">import</span> <span class="n">ModflowPval</span>
+<span class="kn">from</span> <span class="nn">.mfzon</span> <span class="kn">import</span> <span class="n">ModflowZon</span>
+
+
+<div class="viewcode-block" id="ModflowPar"><a class="viewcode-back" href="../../../source/flopy.modflow.mfpar.html#flopy.modflow.mfpar.ModflowPar">[docs]</a><span class="k">class</span> <span class="nc">ModflowPar</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for loading mult, zone, pval, and parameter data for MODFLOW packages</span>
+<span class="sd">    that use array data (LPF, UPW, RCH, EVT). Class also includes methods to</span>
+<span class="sd">    create data arrays using mult, zone, pval, and parameter data (not used</span>
+<span class="sd">    for boundary conditions).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are supported in Flopy only when reading in existing models.</span>
+<span class="sd">    Parameter values are converted to native values in Flopy and the</span>
+<span class="sd">    connection to &quot;parameters&quot; is thus nonexistent.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Package constructor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mult</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ModflowPar.set_zone"><a class="viewcode-back" href="../../../source/flopy.modflow.mfpar.html#flopy.modflow.mfpar.ModflowPar.set_zone">[docs]</a>    <span class="k">def</span> <span class="nf">set_zone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing zone package and set zone data for a model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; ml.mfpar.set_zone(ml, ext_unit_dict)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">zone</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">zone_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;zone&quot;</span><span class="p">:</span>
+                <span class="n">zone</span> <span class="o">=</span> <span class="n">item</span>
+                <span class="n">zone_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="k">if</span> <span class="n">zone_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">zone</span> <span class="o">=</span> <span class="n">ModflowZon</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">zone</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> package load...success&quot;</span><span class="p">)</span>
+                <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">zone_key</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">remove_package</span><span class="p">(</span><span class="s2">&quot;ZONE&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">o</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ZONE package load...failed</span><span class="se">\n</span><span class="s2">      </span><span class="si">{</span><span class="n">o</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="ModflowPar.set_mult"><a class="viewcode-back" href="../../../source/flopy.modflow.mfpar.html#flopy.modflow.mfpar.ModflowPar.set_mult">[docs]</a>    <span class="k">def</span> <span class="nf">set_mult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing mult package and set mult data for a model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; ml.mfpar.set_mult(ml, ext_unit_dict)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mult</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mult_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;mult&quot;</span><span class="p">:</span>
+                <span class="n">mult</span> <span class="o">=</span> <span class="n">item</span>
+                <span class="n">mult_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="k">if</span> <span class="n">mult_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mult</span> <span class="o">=</span> <span class="n">ModflowMlt</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">mult</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mult</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> package load...success&quot;</span><span class="p">)</span>
+                <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">mult_key</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">remove_package</span><span class="p">(</span><span class="s2">&quot;MULT&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">o</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MULT package load...failed</span><span class="se">\n</span><span class="s2">      </span><span class="si">{</span><span class="n">o</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="ModflowPar.set_pval"><a class="viewcode-back" href="../../../source/flopy.modflow.mfpar.html#flopy.modflow.mfpar.ModflowPar.set_pval">[docs]</a>    <span class="k">def</span> <span class="nf">set_pval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing pval package and set pval data for a model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; ml.mfpar.set_pval(ml, ext_unit_dict)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">pval_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;pval&quot;</span><span class="p">:</span>
+                <span class="n">pval</span> <span class="o">=</span> <span class="n">item</span>
+                <span class="n">pval_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="k">if</span> <span class="n">pval_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pval</span> <span class="o">=</span> <span class="n">ModflowPval</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">pval</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pval</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> package load...success&quot;</span><span class="p">)</span>
+                <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">pval_key</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">remove_package</span><span class="p">(</span><span class="s2">&quot;PVAL&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">o</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   PVAL package load...failed</span><span class="se">\n</span><span class="s2">      </span><span class="si">{</span><span class="n">o</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="ModflowPar.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfpar.html#flopy.modflow.mfpar.ModflowPar.load">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">npar</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load property parameters from an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : file handle</span>
+
+<span class="sd">        npar : int</span>
+<span class="sd">            The number of parameters.</span>
+
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag to control output. (default is False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list : list object of unique par_types in file f</span>
+<span class="sd">        dictionary : dictionary object with parameters in file f</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt;par_types, parm_dict = flopy.modflow.mfpar.ModflowPar.load(f, np)</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># read parameter data</span>
+        <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">parm_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">par_types</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">nprm</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npar</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">parnam</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;   loading parameter &quot;</span><span class="si">{</span><span class="n">parnam</span><span class="si">}</span><span class="s1">&quot;...&#39;</span><span class="p">)</span>
+                <span class="n">partyp</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">partyp</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+                    <span class="n">par_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partyp</span><span class="p">)</span>
+                <span class="n">parval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">nclu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">nc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nclu</span><span class="p">):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">lay</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+                    <span class="n">mltarr</span> <span class="o">=</span> <span class="n">s</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+                    <span class="n">zonarr</span> <span class="o">=</span> <span class="n">s</span>
+                    <span class="n">iarr</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">iv</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">:]:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">iz</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">iz</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">iarr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="k">break</span>
+
+                    <span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">lay</span><span class="p">,</span> <span class="n">mltarr</span><span class="p">,</span> <span class="n">zonarr</span><span class="p">,</span> <span class="n">iarr</span><span class="p">])</span>
+                <span class="c1"># add parnam to parm_dict</span>
+                <span class="n">parm_dict</span><span class="p">[</span><span class="n">parnam</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;partyp&quot;</span><span class="p">:</span> <span class="n">partyp</span><span class="p">,</span>
+                    <span class="s2">&quot;parval&quot;</span><span class="p">:</span> <span class="n">parval</span><span class="p">,</span>
+                    <span class="s2">&quot;nclu&quot;</span><span class="p">:</span> <span class="n">nclu</span><span class="p">,</span>
+                    <span class="s2">&quot;clusters&quot;</span><span class="p">:</span> <span class="n">clusters</span><span class="p">,</span>
+                <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">par_types</span><span class="p">,</span> <span class="n">parm_dict</span></div>
+
+<div class="viewcode-block" id="ModflowPar.parameter_fill"><a class="viewcode-back" href="../../../source/flopy.modflow.mfpar.html#flopy.modflow.mfpar.ModflowPar.parameter_fill">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">parameter_fill</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">findkey</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill an array with parameters using zone, mult, and pval data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+
+<span class="sd">        shape : tuple</span>
+<span class="sd">            The shape of the returned data array. Typically shape is (nrow, ncol)</span>
+
+<span class="sd">        findkey : string</span>
+<span class="sd">            the parameter array to be constructed,</span>
+
+<span class="sd">        parm_dict : dict</span>
+<span class="sd">            dictionary that includes all of the parameter data for a package</span>
+
+<span class="sd">        findlayer : int</span>
+<span class="sd">            Layer that will be filled. Not required for array boundary condition data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        data : numpy array</span>
+<span class="sd">            Filled array resulting from applications of zone, mult, pval, and</span>
+<span class="sd">            parameter data.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        for lpf and upw:</span>
+
+<span class="sd">        &gt;&gt;&gt; data = flopy.modflow.mfpar.ModflowPar.parameter_fill(m, (nrow, ncol), &#39;vkcb&#39;,</span>
+<span class="sd">        &gt;&gt;&gt; .....................................................parm_dict, findlayer=1)</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">tdict</span> <span class="ow">in</span> <span class="n">parm_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">partyp</span><span class="p">,</span> <span class="n">parval</span> <span class="o">=</span> <span class="n">tdict</span><span class="p">[</span><span class="s2">&quot;partyp&quot;</span><span class="p">],</span> <span class="n">tdict</span><span class="p">[</span><span class="s2">&quot;parval&quot;</span><span class="p">]</span>
+            <span class="n">nclu</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">tdict</span><span class="p">[</span><span class="s2">&quot;nclu&quot;</span><span class="p">],</span> <span class="n">tdict</span><span class="p">[</span><span class="s2">&quot;clusters&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">pval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parval</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">pv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">pval</span><span class="o">.</span><span class="n">pval_dict</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">pv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parval</span><span class="p">)</span>
+            <span class="c1"># print partyp, parval, nclu, clusters</span>
+            <span class="k">if</span> <span class="n">partyp</span> <span class="o">==</span> <span class="n">findkey</span><span class="p">:</span>
+                <span class="k">for</span> <span class="p">[</span><span class="n">layer</span><span class="p">,</span> <span class="n">mltarr</span><span class="p">,</span> <span class="n">zonarr</span><span class="p">,</span> <span class="n">izones</span><span class="p">]</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">:</span>
+                    <span class="c1"># print layer, mltarr, zonarr, izones</span>
+                    <span class="n">foundlayer</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">if</span> <span class="n">findlayer</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">foundlayer</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">layer</span> <span class="o">==</span> <span class="p">(</span><span class="n">findlayer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                            <span class="n">foundlayer</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">foundlayer</span><span class="p">:</span>
+                        <span class="n">model</span><span class="o">.</span><span class="n">parameter_load</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">mltarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                            <span class="n">mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">mult</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">mult</span><span class="o">.</span><span class="n">mult_dict</span><span class="p">[</span><span class="n">mltarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()][</span>
+                                <span class="p">:,</span> <span class="p">:</span>
+                            <span class="p">]</span>
+                        <span class="k">if</span> <span class="n">zonarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+                            <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">pv</span> <span class="o">*</span> <span class="n">mult</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">mult_save</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mult</span><span class="p">)</span>
+                            <span class="n">za</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">zone_dict</span><span class="p">[</span><span class="n">zonarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()][</span>
+                                <span class="p">:,</span> <span class="p">:</span>
+                            <span class="p">]</span>
+                            <span class="c1"># build a multiplier for all of the izones</span>
+                            <span class="n">mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">iz</span> <span class="ow">in</span> <span class="n">izones</span><span class="p">:</span>
+                                <span class="n">filtarr</span> <span class="o">=</span> <span class="n">za</span> <span class="o">==</span> <span class="n">iz</span>
+                                <span class="n">mult</span><span class="p">[</span><span class="n">filtarr</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mult_save</span><span class="p">[</span><span class="n">filtarr</span><span class="p">])</span>
+                            <span class="c1"># calculate parameter value for this cluster</span>
+                            <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">pv</span> <span class="o">*</span> <span class="n">mult</span>
+                        <span class="c1"># add data</span>
+                        <span class="n">data</span> <span class="o">+=</span> <span class="n">cluster_data</span>
+
+        <span class="k">return</span> <span class="n">data</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

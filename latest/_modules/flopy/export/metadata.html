@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.export.metadata &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.export.metadata</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.export.metadata</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">import_optional_dependency</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">get_url_text</span>
+
+
+<div class="viewcode-block" id="acdd"><a class="viewcode-back" href="../../../source/flopy.export.metadata.html#flopy.export.metadata.acdd">[docs]</a><span class="k">class</span> <span class="nc">acdd</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Translate ScienceBase global metadata attributes to CF and ACDD</span>
+<span class="sd">    global attributes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    sciencebase_id : str</span>
+<span class="sd">        Unique identifier for ScienceBase record</span>
+<span class="sd">        (e.g. 582da7efe4b04d580bd37be8)</span>
+<span class="sd">    model : flopy model object</span>
+<span class="sd">        Model object</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    https://www.sciencebase.gov/catalog/</span>
+<span class="sd">    https://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#description-of-file-contents</span>
+<span class="sd">    https://wiki.esipfed.org/Attribute_Convention_for_Data_Discovery</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sciencebase_id</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">sciencebase_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_grid</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_time</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">modeltime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sciencebase_url</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;https://www.sciencebase.gov/catalog/item/</span><span class="si">{</span><span class="n">sciencebase_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sciencebase_metadata</span><span class="p">(</span><span class="n">sciencebase_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># stuff Jeremy mentioned</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abstract</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">authors</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">c</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;contacts&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;Originator&quot;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="c1"># report image?</span>
+
+        <span class="c1"># keys that are the same in sbjson and acdd;</span>
+        <span class="c1"># or additional attributes to carry over</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;summary&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;citation&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># highly recommended global attributes</span>
+        <span class="c1"># https://wiki.esipfed.org/Attribute_Convention_for_Data_Discovery</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;tags&quot;</span><span class="p">]]</span>
+
+        <span class="c1"># recommended global attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naming_authority</span> <span class="o">=</span> <span class="s2">&quot;ScienceBase&quot;</span>  <span class="c1"># org. that provides the id</span>
+        <span class="c1"># self.history = None # This is a character array with a line for each invocation of a program that has modified the dataset.</span>
+        <span class="c1"># Well-behaved generic netCDF applications should append a line containing:</span>
+        <span class="c1"># date, time of day, user name, program name and command arguments.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">model_ws</span>
+        <span class="p">)</span>  <span class="c1"># The method of production of the original data.</span>
+        <span class="c1"># If it was model-generated, source should name the model and its version.</span>
+        <span class="c1"># self.processing_level = None # 	A textual description of the processing (or quality control) level of the data.</span>
+        <span class="c1"># self.comment = None #	Miscellaneous information about the data, not captured elsewhere.</span>
+        <span class="c1"># This attribute is defined in the CF Conventions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acknowledgement</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_xml_attribute</span><span class="p">(</span><span class="s2">&quot;datacred&quot;</span><span class="p">)</span>
+        <span class="c1"># self.license = None #</span>
+        <span class="c1"># self.standard_name_vocabulary = None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">date_created</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;provenance&quot;</span><span class="p">][</span><span class="s2">&quot;linkProcess&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;dateCreated&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">creator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">creator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">creator_email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">creator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">)</span>
+        <span class="c1"># self.creator_url = self.sb[&#39;webLinks&#39;][0].get(&#39;uri&#39;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">creator_institution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">creator</span><span class="p">[</span><span class="s2">&quot;organization&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;displayText&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">institution</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">creator_institution</span>
+        <span class="p">)</span>  <span class="c1"># also in CF convention for global attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">publisher_name</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;contacts&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;publisher&quot;</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">publisher_email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;provenance&quot;</span><span class="p">][</span><span class="s2">&quot;linkProcess&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;processedBy&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">publisher_url</span> <span class="o">=</span> <span class="s2">&quot;https://www2.usgs.gov/water/&quot;</span>  <span class="c1"># self.sb[&#39;provenance&#39;][&#39;linkProcess&#39;].get(&#39;linkReference&#39;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_bounds_crs</span> <span class="o">=</span> <span class="s2">&quot;EPSG:4326&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lat_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;minY&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lat_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;maxY&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lon_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;minX&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lon_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;maxX&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_vertical_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_grid</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_vertical_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_grid</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_vertical_positive</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;up&quot;</span>  <span class="c1"># assumed to always be up for GW models</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage_duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;duration&quot;</span><span class="p">)</span>
+        <span class="c1"># because the start/end date formats aren&#39;t consistent between models</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage_resolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;resolution&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata_link</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sciencebase_url</span>
+
+    <span class="k">def</span> <span class="nf">_get_xml_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xmlroot</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">attr</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;spatial&quot;</span><span class="p">][</span><span class="s2">&quot;boundingBox&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">creator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">d</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;contacts&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;point of contact&quot;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">creator_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">urlname</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">creator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://www.usgs.gov/staff-profiles/</span><span class="si">{</span><span class="n">urlname</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="c1"># check if it exists</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="n">get_url_text</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">txt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">url</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;unknown&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">geospatial_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Describes the data&#39;s 2D or 3D geospatial extent in OGC&#39;s Well-Known</span>
+<span class="sd">        Text (WKT) Geometry format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;((</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2">, </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{3}</span><span class="s2">, </span><span class="si">{1}</span><span class="s2"> </span><span class="si">{3}</span><span class="s2">, </span><span class="si">{1}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2">, </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2">))&quot;</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="s2">&quot;POLYGON &quot;</span> <span class="o">+</span> <span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lon_min</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lon_max</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lat_min</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geospatial_lat_max</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">bounds</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">geospatial_bounds_vertical_crs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The vertical coordinate reference system (CRS) for the Z axis of</span>
+<span class="sd">        the point coordinates in the geospatial_bounds attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">epsg</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;NGVD29&quot;</span><span class="p">:</span> <span class="s2">&quot;EPSG:5702&quot;</span><span class="p">,</span> <span class="s2">&quot;NAVD88&quot;</span><span class="p">:</span> <span class="s2">&quot;EPSG:5703&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">epsg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertical_datum</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">references</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">citation</span><span class="p">]</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;uri&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;webLinks&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;link&quot;</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">r</span> <span class="o">+</span> <span class="n">links</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pd</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;pandas&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+        <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">]</span>
+        <span class="n">tc</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">]:</span>
+            <span class="n">tc</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dateString&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">l</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()][</span>
+                <span class="mi">0</span>
+            <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_time</span><span class="o">.</span><span class="n">steady_state</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># replace with times from model reference</span>
+            <span class="n">tc</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_time</span><span class="o">.</span><span class="n">start_datetime</span>
+            <span class="n">strt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_time</span><span class="o">.</span><span class="n">start_datetime</span><span class="p">)</span>
+            <span class="n">mlen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_time</span><span class="o">.</span><span class="n">perlen</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">tunits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_time</span><span class="o">.</span><span class="n">time_units</span>
+            <span class="n">tc</span><span class="p">[</span><span class="s2">&quot;duration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mlen</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">tunits</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">strt</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">mlen</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;d&quot;</span><span class="p">)</span>
+            <span class="n">tc</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tc</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">vertical_datum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Try to parse the vertical datum from the xml info</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">altdatum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_xml_attribute</span><span class="p">(</span><span class="s2">&quot;altdatum&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">altdatum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;88&quot;</span> <span class="ow">in</span> <span class="n">altdatum</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;NAVD88&quot;</span>
+            <span class="k">elif</span> <span class="s2">&quot;29&quot;</span> <span class="ow">in</span> <span class="n">altdatum</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;NGVD29&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xmlroot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ElementTree root element object for xml metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sciencebase_xml_metadata</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xmlfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sb</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;key&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="acdd.get_sciencebase_metadata"><a class="viewcode-back" href="../../../source/flopy.export.metadata.html#flopy.export.metadata.acdd.get_sciencebase_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">get_sciencebase_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets metadata json text for given ID from sciencebase.gov; loads</span>
+<span class="sd">        into python dictionary. Fetches the reference text using the url:</span>
+<span class="sd">        https://www.sciencebase.gov/catalog/item/&lt;ID&gt;?format=json</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ID : str</span>
+<span class="sd">            ScienceBase ID string;</span>
+<span class="sd">            e.g. 582da7efe4b04d580bd37be8 for Dane County Model</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        metadata : dict</span>
+<span class="sd">            Dictionary of metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">urlbase</span> <span class="o">=</span> <span class="s2">&quot;https://www.sciencebase.gov/catalog/item/</span><span class="si">{}</span><span class="s2">?format=json&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">urlbase</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+        <span class="kn">import</span> <span class="nn">json</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Need an internet connection to get metadata from ScienceBase.&quot;</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">get_url_text</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">error_msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="acdd.get_sciencebase_xml_metadata"><a class="viewcode-back" href="../../../source/flopy.export.metadata.html#flopy.export.metadata.acdd.get_sciencebase_xml_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">get_sciencebase_xml_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets xml from sciencebase.gov, using XML url obtained</span>
+<span class="sd">        from json using get_sciencebase_metadata().</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ID : str</span>
+<span class="sd">            ScienceBase ID string;</span>
+<span class="sd">            e.g. 582da7efe4b04d580bd37be8 for Dane County Model</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        metadata : dict</span>
+<span class="sd">            Dictionary of metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># use defusedxml to removed XML security vulnerabilities</span>
+        <span class="n">ET</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;defusedxml.ElementTree&quot;</span><span class="p">)</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmlfile</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Need an internet connection to get metadata from ScienceBase.&quot;</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">get_url_text</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">error_msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ET</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

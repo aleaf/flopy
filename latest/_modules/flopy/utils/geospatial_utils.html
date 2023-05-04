@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.geospatial_utils &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.geospatial_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.geospatial_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">import_optional_dependency</span>
+<span class="kn">from</span> <span class="nn">..utils.geometry</span> <span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Shape</span>
+
+<span class="n">geojson</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;geojson&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span><span class="p">)</span>
+<span class="n">geojson_classes</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">if</span> <span class="n">geojson</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">geojson_classes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;polygon&quot;</span><span class="p">:</span> <span class="n">geojson</span><span class="o">.</span><span class="n">Polygon</span><span class="p">,</span>
+        <span class="s2">&quot;multipolygon&quot;</span><span class="p">:</span> <span class="n">geojson</span><span class="o">.</span><span class="n">MultiPolygon</span><span class="p">,</span>
+        <span class="s2">&quot;point&quot;</span><span class="p">:</span> <span class="n">geojson</span><span class="o">.</span><span class="n">Point</span><span class="p">,</span>
+        <span class="s2">&quot;multipoint&quot;</span><span class="p">:</span> <span class="n">geojson</span><span class="o">.</span><span class="n">MultiPoint</span><span class="p">,</span>
+        <span class="s2">&quot;linestring&quot;</span><span class="p">:</span> <span class="n">geojson</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span>
+        <span class="s2">&quot;multilinestring&quot;</span><span class="p">:</span> <span class="n">geojson</span><span class="o">.</span><span class="n">MultiLineString</span><span class="p">,</span>
+    <span class="p">}</span>
+
+<span class="n">shape_types</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;multipolygon&quot;</span><span class="p">:</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;polygon&quot;</span><span class="p">:</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;point&quot;</span><span class="p">:</span> <span class="s2">&quot;Point&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;multipoint&quot;</span><span class="p">:</span> <span class="s2">&quot;MultiPoint&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;linestring&quot;</span><span class="p">:</span> <span class="s2">&quot;LineString&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;multilinestring&quot;</span><span class="p">:</span> <span class="s2">&quot;MultiLineString&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="GeoSpatialUtil"><a class="viewcode-back" href="../../../source/flopy.utils.geospatial_utils.html#flopy.utils.geospatial_utils.GeoSpatialUtil">[docs]</a><span class="k">class</span> <span class="nc">GeoSpatialUtil</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Geospatial utils are a unifying method to provide conversion between</span>
+<span class="sd">    commonly used geospatial input types</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj : geospatial object</span>
+<span class="sd">        obj can accept any of the following objects:</span>
+<span class="sd">            shapefile.Shape object</span>
+<span class="sd">            flopy.utils.geometry objects</span>
+<span class="sd">            list of vertices</span>
+<span class="sd">            geojson geometry objects</span>
+<span class="sd">            shapely.geometry objects</span>
+
+<span class="sd">    shapetype : str</span>
+<span class="sd">        shapetype is required when a list of vertices is supplied for obj</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">shapetype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span>
+            <span class="s2">&quot;shapefile&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__obj</span> <span class="o">=</span> <span class="n">obj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_geojson</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shapely</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">shapetype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">shapetype</span> <span class="o">=</span> <span class="n">shapetype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)):</span>
+            <span class="n">geo_interface</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">__geo_interface__</span>
+            <span class="k">if</span> <span class="n">geo_interface</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GeometryCollection&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;GeometryCollections are not supported&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="n">geo_interface</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">shapetype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">shapetype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shape_types</span><span class="p">:</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s2">&quot;shapetype must be one of the following: &quot;</span> <span class="o">+</span> <span class="s2">&quot; , &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">geojson_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">shape_types</span><span class="p">[</span><span class="n">shapetype</span><span class="p">],</span>
+                <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">),</span>
+            <span class="p">}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Shape</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__obj</span><span class="o">.</span><span class="n">__geo_interface__</span>
+
+        <span class="k">if</span> <span class="n">geojson</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">geojson</span><span class="o">.</span><span class="n">Feature</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                    <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
+                <span class="p">}</span>
+
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">obj</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">Point</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">MultiPoint</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">Polygon</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">MultiPolygon</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">MultiLineString</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                    <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
+                <span class="p">}</span>
+
+        <span class="n">shapely_geo</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapely.geometry&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">shapely_geo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">obj</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">Point</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiPoint</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">Polygon</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiPolygon</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiLineString</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">__geo_interface__</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reader is not installed for collection type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">__geo_interface__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Geojson standard representation of a geometry</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shapetype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Shapetype string for a geometry</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of vertices to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">pts</span><span class="p">:</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">t</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="n">pts</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shapely</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a shapely.geometry object to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            shapely.geometry.&lt;shape&gt;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shapely_geo</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapely.geometry&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shapely</span> <span class="o">=</span> <span class="n">shapely_geo</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shapely</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">geojson</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a geojson object to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            geojson.&lt;shape&gt;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;geojson&quot;</span><span class="p">)</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">geojson_classes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_geojson</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geojson</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a shapefile.Shape object to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            shapefile.shape</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Shape</span><span class="o">.</span><span class="n">_from_geojson</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">flopy_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a flopy geometry object to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            flopy.utils.geometry.&lt;Shape&gt;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span> <span class="o">=</span> <span class="n">Shape</span><span class="o">.</span><span class="n">from_geojson</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__geo_interface</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span></div>
+
+
+<div class="viewcode-block" id="GeoSpatialCollection"><a class="viewcode-back" href="../../../source/flopy.utils.geospatial_utils.html#flopy.utils.geospatial_utils.GeoSpatialCollection">[docs]</a><span class="k">class</span> <span class="nc">GeoSpatialCollection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The GeoSpatialCollection class allows a user to convert between</span>
+<span class="sd">    Collection objects from common geospatial libraries.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj : collection object</span>
+<span class="sd">        obj can accept the following types</span>
+
+<span class="sd">        str : shapefile path</span>
+<span class="sd">        PathLike : shapefile path</span>
+<span class="sd">        shapefile.Reader object</span>
+<span class="sd">        list of [shapefile.Shape, shapefile.Shape,]</span>
+<span class="sd">        shapefile.Shapes object</span>
+<span class="sd">        flopy.utils.geometry.Collection object</span>
+<span class="sd">        list of [flopy.utils.geometry, ...] objects</span>
+<span class="sd">        geojson.GeometryCollection object</span>
+<span class="sd">        geojson.FeatureCollection object</span>
+<span class="sd">        shapely.GeometryCollection object</span>
+<span class="sd">        list of [[vertices], ...]</span>
+
+<span class="sd">    shapetype : list</span>
+<span class="sd">        optional list of shapetypes that is required when vertices are</span>
+<span class="sd">        supplied to the class as the obj parameter</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">shapetype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span>
+            <span class="s2">&quot;shapefile&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span>
+        <span class="p">)</span>
+        <span class="n">shapely_geo</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span>
+            <span class="s2">&quot;shapely.geometry&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__obj</span> <span class="o">=</span> <span class="n">obj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_geojson</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shapely</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Collection</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Shape</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">shapely_geo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                    <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">(</span>
+                        <span class="n">shapely_geo</span><span class="o">.</span><span class="n">Point</span><span class="p">,</span>
+                        <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiPoint</span><span class="p">,</span>
+                        <span class="n">shapely_geo</span><span class="o">.</span><span class="n">Polygon</span><span class="p">,</span>
+                        <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiPolygon</span><span class="p">,</span>
+                        <span class="n">shapely_geo</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span>
+                        <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiLineString</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">):</span>
+                    <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">shapetype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">err</span> <span class="o">=</span> <span class="s2">&quot;a list of shapetypes must be provided&quot;</span>
+                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shapetype</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">shapetype</span> <span class="o">=</span> <span class="p">[</span><span class="n">shapetype</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">geom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">shapetype</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+                    <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span>
+                <span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">shapes</span><span class="p">():</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Reader</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">shapes</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">geojson</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">obj</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">GeometryCollection</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">FeatureCollection</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">MultiLineString</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">MultiPoint</span><span class="p">,</span>
+                    <span class="n">geojson</span><span class="o">.</span><span class="n">MultiPolygon</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">):</span>
+                <span class="k">for</span> <span class="n">geom</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">geometries</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">geom</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">shapely_geo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">obj</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">GeometryCollection</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiPoint</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiLineString</span><span class="p">,</span>
+                    <span class="n">shapely_geo</span><span class="o">.</span><span class="n">MultiPolygon</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">):</span>
+                <span class="k">for</span> <span class="n">geom</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">geoms</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">geom</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reader is not installed for collection type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterator method that allows the user to get a list of GeoSpatialUtil</span>
+<span class="sd">        objects from the GeoSpatialCollection object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            GeoSpatialUtil</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shapetype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of shapetypes to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list of str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">shapetype</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapetype</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property returns a multidimensional list of vertices</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list of vertices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">points</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shapely</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property that returns a shapely.geometry.collection.GeometryCollection</span>
+<span class="sd">        object to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            shapely.geometry.collection.GeometryCollection object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shapely_geo</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;shapely.geometry&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shapely</span> <span class="o">=</span> <span class="n">shapely_geo</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">GeometryCollection</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">shapely</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shapely</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">geojson</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property that returns a geojson.GeometryCollection object to the user</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            geojson.GeometryCollection</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">geojson</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span><span class="s2">&quot;geojson&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_geojson</span> <span class="o">=</span> <span class="n">geojson</span><span class="o">.</span><span class="n">GeometryCollection</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">geojson</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geojson</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property that returns a shapefile.Shapes object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            shapefile.Shapes object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__shapefile</span><span class="o">.</span><span class="n">Shapes</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">geom</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">flopy_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property that returns a flopy.util.geometry.Collection object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            flopy.util.geometry.Collectionnos object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span> <span class="o">=</span> <span class="n">Collection</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">flopy_geometry</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__collection</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flopy_geometry</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

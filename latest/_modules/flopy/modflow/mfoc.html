@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfoc &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfoc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfoc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfoc module.  Contains the ModflowOc class. Note that the user can access</span>
+<span class="sd">the ModflowOc class as `flopy.modflow.ModflowOc`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/oc.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+
+
+<div class="viewcode-block" id="ModflowOc"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc">[docs]</a><span class="k">class</span> <span class="nc">ModflowOc</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Output Control Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    ihedfm : int</span>
+<span class="sd">        is a code for the format in which heads will be printed.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    iddnfm : int</span>
+<span class="sd">        is a code for the format in which drawdown will be printed.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    chedfm : string</span>
+<span class="sd">        is a character value that specifies the format for saving heads.</span>
+<span class="sd">        The format must contain 20 characters or less and must be a valid</span>
+<span class="sd">        Fortran format that is enclosed in parentheses. The format must be</span>
+<span class="sd">        enclosed in apostrophes if it contains one or more blanks or commas.</span>
+<span class="sd">        The optional word LABEL after the format is used to indicate that</span>
+<span class="sd">        each layer of output should be preceded with a line that defines the</span>
+<span class="sd">        output (simulation time, the layer being output, and so forth). If</span>
+<span class="sd">        there is no record specifying CHEDFM, then heads are written to a</span>
+<span class="sd">        binary (unformatted) file. Binary files are usually more compact than</span>
+<span class="sd">        text files, but they are not generally transportable among different</span>
+<span class="sd">        computer operating systems or different Fortran compilers.</span>
+<span class="sd">        (default is None)</span>
+<span class="sd">    cddnfm : string</span>
+<span class="sd">        is a character value that specifies the format for saving drawdown.</span>
+<span class="sd">        The format must contain 20 characters or less and must be a valid</span>
+<span class="sd">        Fortran format that is enclosed in parentheses. The format must be</span>
+<span class="sd">        enclosed in apostrophes if it contains one or more blanks or commas.</span>
+<span class="sd">        The optional word LABEL after the format is used to indicate that</span>
+<span class="sd">        each layer of output should be preceded with a line that defines the</span>
+<span class="sd">        output (simulation time, the layer being output, and so forth). If</span>
+<span class="sd">        there is no record specifying CDDNFM, then drawdowns are written to a</span>
+<span class="sd">        binary (unformatted) file. Binary files are usually more compact than</span>
+<span class="sd">        text files, but they are not generally transportable among different</span>
+<span class="sd">        computer operating systems or different Fortran compilers.</span>
+<span class="sd">        (default is None)</span>
+<span class="sd">    cboufm : string</span>
+<span class="sd">        is a character value that specifies the format for saving ibound.</span>
+<span class="sd">        The format must contain 20 characters or less and must be a valid</span>
+<span class="sd">        Fortran format that is enclosed in parentheses. The format must be</span>
+<span class="sd">        enclosed in apostrophes if it contains one or more blanks or commas.</span>
+<span class="sd">        The optional word LABEL after the format is used to indicate that</span>
+<span class="sd">        each layer of output should be preceded with a line that defines the</span>
+<span class="sd">        output (simulation time, the layer being output, and so forth). If</span>
+<span class="sd">        there is no record specifying CBOUFM, then ibounds are written to a</span>
+<span class="sd">        binary (unformatted) file. Binary files are usually more compact than</span>
+<span class="sd">        text files, but they are not generally transportable among different</span>
+<span class="sd">        computer operating systems or different Fortran compilers.</span>
+<span class="sd">        (default is None)</span>
+<span class="sd">    stress_period_data : dictionary of lists</span>
+<span class="sd">        Dictionary key is a tuple with the zero-based period and step</span>
+<span class="sd">        (IPEROC, ITSOC) for each print/save option list. If stress_period_data</span>
+<span class="sd">        is None, then heads are saved for the last time step of each stress</span>
+<span class="sd">        period. (default is None)</span>
+
+<span class="sd">        The list can have any valid MODFLOW OC print/save option:</span>
+<span class="sd">            PRINT HEAD</span>
+<span class="sd">            PRINT DRAWDOWN</span>
+<span class="sd">            PRINT BUDGET</span>
+<span class="sd">            SAVE HEAD</span>
+<span class="sd">            SAVE DRAWDOWN</span>
+<span class="sd">            SAVE BUDGET</span>
+<span class="sd">            SAVE IBOUND</span>
+
+<span class="sd">            The lists can also include (1) DDREFERENCE in the list to reset</span>
+<span class="sd">            drawdown reference to the period and step and (2) a list of layers</span>
+<span class="sd">            for PRINT HEAD, SAVE HEAD, PRINT DRAWDOWN, SAVE DRAWDOWN, and</span>
+<span class="sd">            SAVE IBOUND.</span>
+
+<span class="sd">        stress_period_data = {(0,1):[&#39;save head&#39;]}) would save the head for</span>
+<span class="sd">        the second timestep in the first stress period.</span>
+
+<span class="sd">    compact : boolean</span>
+<span class="sd">        Save results in compact budget form. (default is True).</span>
+<span class="sd">    extension : list of strings</span>
+<span class="sd">        (default is [&#39;oc&#39;, &#39;hds&#39;, &#39;ddn&#39;, &#39;cbc&#39;, &#39;ibo&#39;]).</span>
+<span class="sd">    unitnumber : list of ints</span>
+<span class="sd">        (default is [14, 51, 52, 53, 0]).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the head, drawdown, budget (not</span>
+<span class="sd">        used), and ibound output files. If filenames=None the package name</span>
+<span class="sd">        will be created using the model name and package extension and the</span>
+<span class="sd">        output file names will be created using the model name and extensions.</span>
+<span class="sd">        If a single string is passed the package will be set to the string and</span>
+<span class="sd">        output names will be created using the model name and head, drawdown,</span>
+<span class="sd">        budget, and ibound extensions. To define the names for all package</span>
+<span class="sd">        files (input and output) the length of the list of strings should be 5.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The &quot;words&quot; method for specifying output control is the only option</span>
+<span class="sd">    available.  Also, the &quot;compact&quot; budget should normally be used as it</span>
+<span class="sd">    produces files that are typically much smaller.  The compact budget form is</span>
+<span class="sd">    also a requirement for using the MODPATH particle tracking program.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; spd = {(0, 0): [&#39;print head&#39;],</span>
+<span class="sd">    ...   (0, 1): [],</span>
+<span class="sd">    ...   (0, 249): [&#39;print head&#39;],</span>
+<span class="sd">    ...   (0, 250): [],</span>
+<span class="sd">    ...   (0, 499): [&#39;print head&#39;, &#39;save ibound&#39;],</span>
+<span class="sd">    ...   (0, 500): [],</span>
+<span class="sd">    ...   (0, 749): [&#39;print head&#39;, &#39;ddreference&#39;],</span>
+<span class="sd">    ...   (0, 750): [],</span>
+<span class="sd">    ...   (0, 999): [&#39;print head&#39;]}</span>
+<span class="sd">    &gt;&gt;&gt; oc = flopy.modflow.ModflowOc(m, stress_period_data=spd, cboufm=&#39;(20i5)&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">ihedfm</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">iddnfm</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">chedfm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cddnfm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cboufm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">compact</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stress_period_data</span><span class="o">=</span><span class="p">{(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="p">[</span><span class="s2">&quot;save head&quot;</span><span class="p">]},</span>
+        <span class="n">extension</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;hds&quot;</span><span class="p">,</span> <span class="s2">&quot;ddn&quot;</span><span class="p">,</span> <span class="s2">&quot;cbc&quot;</span><span class="p">,</span> <span class="s2">&quot;ibo&quot;</span><span class="p">],</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;LABEL&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowOc</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unitnumber</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unitnumber</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unitnumber</span><span class="p">),</span> <span class="mi">6</span><span class="p">):</span>
+                    <span class="n">unitnumber</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># support structured and unstructured dis</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">stress_period_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stress_period_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="p">(</span><span class="n">kper</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span> <span class="p">[</span><span class="s2">&quot;save head&quot;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dis</span><span class="o">.</span><span class="n">nper</span><span class="p">)</span>
+            <span class="p">}</span>
+
+        <span class="c1"># process kwargs</span>
+        <span class="k">if</span> <span class="s2">&quot;save_every&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">save_every</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;save_every&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">save_every</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">save_every</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;save_types&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">save_types</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;save_types&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">save_types</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">save_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">save_types</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">save_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;save head&quot;</span><span class="p">,</span> <span class="s2">&quot;print budget&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;save_start&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">save_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;save_start&quot;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">save_start</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">stress_period_data</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dis</span><span class="o">.</span><span class="n">nper</span><span class="p">):</span>
+                <span class="n">icnt</span> <span class="o">=</span> <span class="n">save_start</span>
+                <span class="k">for</span> <span class="n">kstp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dis</span><span class="o">.</span><span class="n">nstp</span><span class="p">[</span><span class="n">kper</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="n">icnt</span> <span class="o">==</span> <span class="n">save_every</span><span class="p">:</span>
+                        <span class="n">stress_period_data</span><span class="p">[(</span><span class="n">kper</span><span class="p">,</span> <span class="n">kstp</span><span class="p">)]</span> <span class="o">=</span> <span class="n">save_types</span>
+                        <span class="n">icnt</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">stress_period_data</span><span class="p">[(</span><span class="n">kper</span><span class="p">,</span> <span class="n">kstp</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">icnt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># set output unit numbers based on oc settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">savehead</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saveddn</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">savebud</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saveibnd</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">stress_period_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="n">tlwr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="s2">&quot;save head&quot;</span> <span class="ow">in</span> <span class="n">tlwr</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">savehead</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">unitnumber</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">51</span>
+                <span class="k">if</span> <span class="s2">&quot;save drawdown&quot;</span> <span class="ow">in</span> <span class="n">tlwr</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">saveddn</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">unitnumber</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">52</span>
+                <span class="k">if</span> <span class="s2">&quot;save budget&quot;</span> <span class="ow">in</span> <span class="n">tlwr</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">savebud</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">filenames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">unitnumber</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">53</span>
+                <span class="k">if</span> <span class="s2">&quot;save ibound&quot;</span> <span class="ow">in</span> <span class="n">tlwr</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">saveibnd</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">54</span>
+
+        <span class="c1"># do not create head, ddn, or cbc output files if output is not</span>
+        <span class="c1"># specified in the oc stress_period_data</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">savehead</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveddn</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">savebud</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveibnd</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuhead</span> <span class="o">=</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuddn</span> <span class="o">=</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iubud</span> <span class="o">=</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuibnd</span> <span class="o">=</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+        <span class="c1"># add output files</span>
+        <span class="c1"># head file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">savehead</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">unitnumber</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="n">chedfm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># drawdown file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveddn</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">unitnumber</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="n">cddnfm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># budget file</span>
+        <span class="c1"># Nothing is needed for the budget file</span>
+
+        <span class="c1"># ibound file</span>
+        <span class="n">ibouun</span> <span class="o">=</span> <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveibnd</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="n">cboufm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;oc.html&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ihedfm</span> <span class="o">=</span> <span class="n">ihedfm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iddnfm</span> <span class="o">=</span> <span class="n">iddnfm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chedfm</span> <span class="o">=</span> <span class="n">chedfm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cddnfm</span> <span class="o">=</span> <span class="n">cddnfm</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ibouun</span> <span class="o">=</span> <span class="n">ibouun</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cboufm</span> <span class="o">=</span> <span class="n">cboufm</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">compact</span> <span class="o">=</span> <span class="n">compact</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span> <span class="o">=</span> <span class="n">stress_period_data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowOc.check"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">checktype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check package data for common errors.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str or file handle</span>
+<span class="sd">            String defining file name or file handle for summary file</span>
+<span class="sd">            of check method output. If a string is passed a file handle</span>
+<span class="sd">            is created. If f is None, check method does not write</span>
+<span class="sd">            results to a summary file. (default is None)</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag used to determine if check method results are</span>
+<span class="sd">            written to the screen.</span>
+<span class="sd">        level : int</span>
+<span class="sd">            Check method analysis level. If level=0, summary checks are</span>
+<span class="sd">            performed. If level=1, full checks are performed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow.load(&#39;model.nam&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; m.oc.check()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">checktype</span><span class="p">)</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                <span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="s2">&quot;OC&quot;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;DIS package not available&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># generate possible actions expected</span>
+            <span class="n">expected_actions</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">first</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;PRINT&quot;</span><span class="p">,</span> <span class="s2">&quot;SAVE&quot;</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">second</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;HEAD&quot;</span><span class="p">,</span> <span class="s2">&quot;DRAWDOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;BUDGET&quot;</span><span class="p">,</span> <span class="s2">&quot;IBOUND&quot;</span><span class="p">]:</span>
+                    <span class="n">expected_actions</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">])</span>
+            <span class="c1"># remove exception</span>
+            <span class="k">del</span> <span class="n">expected_actions</span><span class="p">[</span><span class="n">expected_actions</span><span class="o">.</span><span class="n">index</span><span class="p">([</span><span class="s2">&quot;PRINT&quot;</span><span class="p">,</span> <span class="s2">&quot;IBOUND&quot;</span><span class="p">])]</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dis</span><span class="o">.</span><span class="n">nper</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">kstp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dis</span><span class="o">.</span><span class="n">nstp</span><span class="p">[</span><span class="n">kper</span><span class="p">]):</span>
+                    <span class="n">kperkstp</span> <span class="o">=</span> <span class="p">(</span><span class="n">kper</span><span class="p">,</span> <span class="n">kstp</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">kperkstp</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                        <span class="k">del</span> <span class="n">keys</span><span class="p">[</span><span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">kperkstp</span><span class="p">)]</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">kperkstp</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                            <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                            <span class="n">words</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                                    <span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+                                    <span class="n">package</span><span class="o">=</span><span class="s2">&quot;OC&quot;</span><span class="p">,</span>  <span class="c1"># value=kperkstp,</span>
+                                    <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;action </span><span class="si">{</span><span class="n">action</span><span class="si">!r}</span><span class="s2"> ignored; too few words&quot;</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">words</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">expected_actions</span><span class="p">:</span>
+                                <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                                    <span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+                                    <span class="n">package</span><span class="o">=</span><span class="s2">&quot;OC&quot;</span><span class="p">,</span>  <span class="c1"># value=kperkstp,</span>
+                                    <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;action </span><span class="si">{</span><span class="n">action</span><span class="si">!r}</span><span class="s2"> ignored&quot;</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="c1"># TODO: check data list of layers for some actions</span>
+            <span class="k">for</span> <span class="n">kperkstp</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="c1"># repeat as many times as remaining keys not used</span>
+                <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span>
+                    <span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+                    <span class="n">package</span><span class="o">=</span><span class="s2">&quot;OC&quot;</span><span class="p">,</span>  <span class="c1"># value=kperkstp,</span>
+                    <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;action(s) defined in OC stress_period_data ignored &quot;</span>
+                    <span class="s2">&quot;as they are not part the stress periods defined by DIS&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">chk</span></div>
+
+<div class="viewcode-block" id="ModflowOc.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f_oc</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write options</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;HEAD PRINT FORMAT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ihedfm</span><span class="si">:</span><span class="s2">3.0f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chedfm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;HEAD SAVE FORMAT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">chedfm</span><span class="si">:</span><span class="s2">20s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">savehead</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;HEAD SAVE UNIT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iuhead</span><span class="si">:</span><span class="s2">5.0f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DRAWDOWN PRINT FORMAT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iddnfm</span><span class="si">:</span><span class="s2">3.0f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cddnfm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;DRAWDOWN SAVE FORMAT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cddnfm</span><span class="si">:</span><span class="s2">20s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveddn</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;DRAWDOWN SAVE UNIT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iuddn</span><span class="si">:</span><span class="s2">5.0f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveibnd</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cboufm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;IBOUND SAVE FORMAT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cboufm</span><span class="si">:</span><span class="s2">20s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;IBOUND SAVE UNIT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iuibnd</span><span class="si">:</span><span class="s2">5.0f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compact</span><span class="p">:</span>
+            <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;COMPACT BUDGET AUX</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># add a line separator between header and stress</span>
+        <span class="c1">#  period data</span>
+        <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write the transient sequence described by the data dict</span>
+        <span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">,</span> <span class="n">nl</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+        <span class="n">nstp</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nstp</span>
+
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ddnref</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kstp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstp</span><span class="p">[</span><span class="n">kper</span><span class="p">]):</span>
+                <span class="n">kperkstp</span> <span class="o">=</span> <span class="p">(</span><span class="n">kper</span><span class="p">,</span> <span class="n">kstp</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">kperkstp</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">kperkstp</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span>
+                    <span class="n">lines</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="s2">&quot;DDREFERENCE&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                                <span class="n">ddnref</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">lines</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;period </span><span class="si">{</span><span class="n">kper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> step </span><span class="si">{</span><span class="n">kstp</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ddnref</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+                    <span class="n">f_oc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">ddnref</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="n">lines</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># close oc file</span>
+        <span class="n">f_oc</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_singlebudgetunit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">budgetunit</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">budgetunit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">budgetunit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">next_ext_unit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iubud</span> <span class="o">=</span> <span class="n">budgetunit</span>
+
+    <span class="k">def</span> <span class="nf">_set_budgetunit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">iubud</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">packagelist</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="s2">&quot;ipakcb&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">iubud</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">iubud</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">iubud</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">iubud</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">iubud</span> <span class="o">=</span> <span class="n">iubud</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iubud</span> <span class="o">=</span> <span class="n">iubud</span>
+
+<div class="viewcode-block" id="ModflowOc.get_budgetunit"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc.get_budgetunit">[docs]</a>    <span class="k">def</span> <span class="nf">get_budgetunit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the budget file unit number(s).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        iubud : integer ot list of integers</span>
+<span class="sd">            Unit number or list of cell-by-cell budget output unit numbers.</span>
+<span class="sd">            None is returned if ipakcb is less than one for all packages.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(m)</span>
+<span class="sd">        &gt;&gt;&gt; bas = flopy.modflow.ModflowBas(m)</span>
+<span class="sd">        &gt;&gt;&gt; lpf = flopy.modflow.ModflowLpf(m, ipakcb=100)</span>
+<span class="sd">        &gt;&gt;&gt; wel_data = {0: [[0, 0, 0, -1000.]]}</span>
+<span class="sd">        &gt;&gt;&gt; wel = flopy.modflow.ModflowWel(m, ipakcb=101,</span>
+<span class="sd">        ... stress_period_data=wel_data)</span>
+<span class="sd">        &gt;&gt;&gt; spd = {(0, 0): [&#39;save head&#39;, &#39;save budget&#39;]}</span>
+<span class="sd">        &gt;&gt;&gt; oc = flopy.modflow.ModflowOc(m, stress_period_data=spd)</span>
+<span class="sd">        &gt;&gt;&gt; oc.get_budgetunit()</span>
+<span class="sd">        [100, 101]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set iubud by iterating through the packages</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_budgetunit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iubud</span></div>
+
+<div class="viewcode-block" id="ModflowOc.reset_budgetunit"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc.reset_budgetunit">[docs]</a>    <span class="k">def</span> <span class="nf">reset_budgetunit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">budgetunit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the cell-by-cell budget unit (ipakcb) for every package that</span>
+<span class="sd">        can write cell-by-cell data when SAVE BUDGET is specified in the</span>
+<span class="sd">        OC file to the specified budgetunit.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        budgetunit : int, optional</span>
+<span class="sd">            Unit number for cell-by-cell output data. If budgetunit is None</span>
+<span class="sd">            then the next available external unit number is assigned. Default</span>
+<span class="sd">            is None</span>
+<span class="sd">        fname : string, optional</span>
+<span class="sd">            Filename to use for cell-by-cell output file. If fname=None the</span>
+<span class="sd">            cell-by-cell output file will be created using the model name and</span>
+<span class="sd">            a &#39;.cbc&#39; file extension. Default is None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(m)</span>
+<span class="sd">        &gt;&gt;&gt; bas = flopy.modflow.ModflowBas(m)</span>
+<span class="sd">        &gt;&gt;&gt; lpf = flopy.modflow.ModflowLpf(m, ipakcb=100)</span>
+<span class="sd">        &gt;&gt;&gt; wel_data = {0: [[0, 0, 0, -1000.]]}</span>
+<span class="sd">        &gt;&gt;&gt; wel = flopy.modflow.ModflowWel(m, ipakcb=101,</span>
+<span class="sd">        ... stress_period_data=wel_data)</span>
+<span class="sd">        &gt;&gt;&gt; spd = {(0, 0): [&#39;save head&#39;, &#39;save budget&#39;]}</span>
+<span class="sd">        &gt;&gt;&gt; oc = flopy.modflow.ModflowOc(m, stress_period_data=spd)</span>
+<span class="sd">        &gt;&gt;&gt; oc.reset_budgetunit(budgetunit=1053, fname=&#39;test.cbc&#39;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># remove existing output file</span>
+        <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">packagelist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="s2">&quot;ipakcb&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">remove_output</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">)</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># set the unit number used for all cell-by-cell output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_singlebudgetunit</span><span class="p">(</span><span class="n">budgetunit</span><span class="p">)</span>
+
+        <span class="c1"># add output file</span>
+        <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">packagelist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="s2">&quot;ipakcb&quot;</span><span class="p">):</span>
+                <span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iubud</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="n">pp</span><span class="o">.</span><span class="n">name</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="ModflowOc.get_ocoutput_units"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc.get_ocoutput_units">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_ocoutput_units</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get head and drawdown units from a OC file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ihedun : integer</span>
+<span class="sd">            Unit number of the head file.</span>
+<span class="sd">        fhead : str</span>
+<span class="sd">            File name of the head file. Is only defined if ext_unit_dict is</span>
+<span class="sd">            passed and the unit number is a valid key.</span>
+<span class="sd">            , headfilename, oc : ModflowOc object</span>
+<span class="sd">            ModflowOc object.</span>
+<span class="sd">        iddnun : integer</span>
+<span class="sd">            Unit number of the drawdown file.</span>
+<span class="sd">        fddn : str</span>
+<span class="sd">            File name of the drawdown file. Is only defined if ext_unit_dict is</span>
+<span class="sd">            passed and the unit number is a valid key.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; ihds, hf, iddn, df = flopy.modflow.ModflowOc.get_ocoutput_units(&#39;test.oc&#39;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># initialize</span>
+        <span class="n">ihedun</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">iddnun</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">fhead</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">fddn</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">numericformat</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># read header</span>
+        <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="p">[]:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ihedun</span><span class="p">,</span> <span class="n">iddnun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="n">numericformat</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+                <span class="c1"># exit so the remaining data can be read</span>
+                <span class="c1">#  from the file based on numericformat</span>
+                <span class="k">break</span>
+        <span class="c1"># read word formats</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">numericformat</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># skip blank line in the OC file</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lnlst</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># dataset 1 values</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;HEAD&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;UNIT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">ihedun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;DRAWDOWN&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;UNIT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">iddnun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="c1"># dataset 2</span>
+                <span class="k">elif</span> <span class="s2">&quot;PERIOD&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="k">break</span>
+        <span class="c1">#</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ihedun</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="p">:</span>
+                <span class="n">fhead</span> <span class="o">=</span> <span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">ihedun</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">iddnun</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="p">:</span>
+                <span class="n">fddn</span> <span class="o">=</span> <span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">iddnun</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># return</span>
+        <span class="k">return</span> <span class="n">ihedun</span><span class="p">,</span> <span class="n">fhead</span><span class="p">,</span> <span class="n">iddnun</span><span class="p">,</span> <span class="n">fddn</span></div>
+
+<div class="viewcode-block" id="ModflowOc.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfoc.html#flopy.modflow.mfoc.ModflowOc.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nstp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        nstp : int or list of ints</span>
+<span class="sd">            Integer of list of integers containing the number of time steps</span>
+<span class="sd">            in each stress period. If nstp is None, then nstp will be obtained</span>
+<span class="sd">            from the DIS or DISU packages attached to the model object. The</span>
+<span class="sd">            length of nstp must be equal to nper. (default is None).</span>
+<span class="sd">        nlay : int</span>
+<span class="sd">            The number of model layers.  If nlay is None, then nnlay will be</span>
+<span class="sd">            obtained from the model object. nlay only needs to be specified</span>
+<span class="sd">            if an empty model object is passed in and the oc file being loaded</span>
+<span class="sd">            is defined using numeric codes. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        oc : ModflowOc object</span>
+<span class="sd">            ModflowOc object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; oc = flopy.modflow.ModflowOc.load(&#39;test.oc&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading oc package file...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># set nper</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">nlay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">nper</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nlay</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;discretization package not defined for the model, &quot;</span>
+                <span class="s2">&quot;nper and nlay must be provided to the .load() method&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># set nstp</span>
+        <span class="k">if</span> <span class="n">nstp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;discretization package not defined for the model, &quot;</span>
+                    <span class="s2">&quot;a nstp list must be provided to the .load() method&quot;</span>
+                <span class="p">)</span>
+            <span class="n">nstp</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dis</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nstp</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="n">nstp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">nstp</span><span class="p">)]</span>
+
+        <span class="c1"># validate the size of nstp</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nstp</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nper</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;nstp must be a list with </span><span class="si">{</span><span class="n">nper</span><span class="si">}</span><span class="s2"> entries, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;provided nstp list has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">nstp</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># initialize</span>
+        <span class="n">ihedfm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">iddnfm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ihedun</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">iddnun</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ibouun</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">compact</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">chedfm</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">cddnfm</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">cboufm</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">numericformat</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">stress_period_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># read header</span>
+        <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="p">[]:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ihedfm</span><span class="p">,</span> <span class="n">iddnfm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">ihedun</span><span class="p">,</span> <span class="n">iddnun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="n">numericformat</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+                <span class="c1"># exit so the remaining data can be read</span>
+                <span class="c1">#  from the file based on numericformat</span>
+                <span class="k">break</span>
+            <span class="c1"># set pointer to current position in the OC file</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+
+        <span class="c1"># process each line</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">numericformat</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">iperoc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">itsoc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstp</span><span class="p">[</span><span class="n">iperoc</span><span class="p">]):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">incode</span><span class="p">,</span> <span class="n">ihddfl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">ibudfl</span><span class="p">,</span> <span class="n">icbcfl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="c1"># new print and save flags are needed if incode is not</span>
+                    <span class="c1">#  less than 0.</span>
+                    <span class="k">if</span> <span class="n">incode</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="c1"># use print options from the last time step</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">stress_period_data</span><span class="p">[(</span><span class="n">iperoc</span><span class="p">,</span> <span class="n">itsoc</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+                        <span class="k">continue</span>
+                    <span class="c1"># set print and save budget flags</span>
+                    <span class="k">if</span> <span class="n">ibudfl</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;PRINT BUDGET&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">icbcfl</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;SAVE BUDGET&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">incode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                        <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="n">hdpr</span><span class="p">,</span> <span class="n">ddpr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">hdsv</span><span class="p">,</span> <span class="n">ddsv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                        <span class="k">if</span> <span class="n">hdpr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;PRINT HEAD&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">ddpr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;PRINT DRAWDOWN&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">hdsv</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;SAVE HEAD&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">ddsv</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;SAVE DRAWDOWN&quot;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">incode</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">headprint</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                        <span class="n">headsave</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                        <span class="n">ddnprint</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                        <span class="n">ddnsave</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+                            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                            <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                            <span class="n">hdpr</span><span class="p">,</span> <span class="n">ddpr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                            <span class="n">hdsv</span><span class="p">,</span> <span class="n">ddsv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="n">hdpr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">headprint</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="k">if</span> <span class="n">ddpr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">ddnprint</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="k">if</span> <span class="n">hdsv</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">headsave</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="k">if</span> <span class="n">ddsv</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">ddnsave</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headprint</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PRINT HEAD</span><span class="si">{</span><span class="n">headprint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ddnprint</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PRINT DRAWDOWN</span><span class="si">{</span><span class="n">ddnprint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headsave</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SAVE HEAD</span><span class="si">{</span><span class="n">headsave</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ddnsave</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SAVE DRAWDOWN</span><span class="si">{</span><span class="n">ddnsave</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">stress_period_data</span><span class="p">[(</span><span class="n">iperoc</span><span class="p">,</span> <span class="n">itsoc</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iperoc</span><span class="p">,</span> <span class="n">itsoc</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">lnlst</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># added by JJS 12/12/14 to avoid error when there is a blank line in the OC file</span>
+                <span class="k">if</span> <span class="n">lnlst</span> <span class="o">==</span> <span class="p">[]:</span>
+                    <span class="k">continue</span>
+                <span class="c1"># end add</span>
+
+                <span class="c1"># dataset 1 values</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;HEAD&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;PRINT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;FORMAT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">ihedfm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;HEAD&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;FORMAT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">chedfm</span> <span class="o">=</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;HEAD&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;UNIT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">ihedun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;DRAWDOWN&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;PRINT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;FORMAT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">iddnfm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;DRAWDOWN&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;FORMAT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">cddnfm</span> <span class="o">=</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;DRAWDOWN&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;UNIT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">iddnun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;IBOUND&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;FORMAT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">cboufm</span> <span class="o">=</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="s2">&quot;IBOUND&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="ow">and</span> <span class="s2">&quot;UNIT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="p">):</span>
+                    <span class="n">ibouun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="s2">&quot;COMPACT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="n">compact</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="c1"># dataset 2</span>
+                <span class="k">elif</span> <span class="s2">&quot;PERIOD&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">iperoc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="c1"># create period step tuple</span>
+                            <span class="n">kperkstp</span> <span class="o">=</span> <span class="p">(</span><span class="n">iperoc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">itsoc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                            <span class="c1"># save data</span>
+                            <span class="n">stress_period_data</span><span class="p">[</span><span class="n">kperkstp</span><span class="p">]</span> <span class="o">=</span> <span class="n">lines</span>
+                        <span class="c1"># reset lines</span>
+                        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="c1"># turn off oc if required</span>
+                    <span class="k">if</span> <span class="n">iperoc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">itsoc</span> <span class="o">==</span> <span class="n">nstp</span><span class="p">[</span><span class="n">iperoc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
+                            <span class="n">iperoc1</span> <span class="o">=</span> <span class="n">iperoc</span> <span class="o">+</span> <span class="mi">1</span>
+                            <span class="n">itsoc1</span> <span class="o">=</span> <span class="mi">1</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">iperoc1</span> <span class="o">=</span> <span class="n">iperoc</span>
+                            <span class="n">itsoc1</span> <span class="o">=</span> <span class="n">itsoc</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">iperoc1</span><span class="p">,</span> <span class="n">itsoc1</span> <span class="o">=</span> <span class="n">iperoc</span><span class="p">,</span> <span class="n">itsoc</span>
+                        <span class="c1"># update iperoc and itsoc</span>
+                    <span class="n">iperoc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">itsoc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="c1"># do not used data that exceeds nper</span>
+                    <span class="k">if</span> <span class="n">iperoc</span> <span class="o">&gt;</span> <span class="n">nper</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="c1"># add a empty list if necessary</span>
+                    <span class="n">iempty</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">if</span> <span class="n">iperoc</span> <span class="o">!=</span> <span class="n">iperoc1</span><span class="p">:</span>
+                        <span class="n">iempty</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">itsoc</span> <span class="o">!=</span> <span class="n">itsoc1</span><span class="p">:</span>
+                            <span class="n">iempty</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">iempty</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="n">kperkstp</span> <span class="o">=</span> <span class="p">(</span><span class="n">iperoc1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">itsoc1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">stress_period_data</span><span class="p">[</span><span class="n">kperkstp</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="c1"># dataset 3</span>
+                <span class="k">elif</span> <span class="s2">&quot;PRINT&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="s2">&quot;SAVE&quot;</span> <span class="ow">in</span> <span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">lnlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error encountered in OC import.&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Creating default OC package.&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">ModflowOc</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+            <span class="c1"># store the last record in word</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># create period step tuple</span>
+                <span class="n">kperkstp</span> <span class="o">=</span> <span class="p">(</span><span class="n">iperoc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">itsoc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="c1"># save data</span>
+                <span class="n">stress_period_data</span><span class="p">[</span><span class="n">kperkstp</span><span class="p">]</span> <span class="o">=</span> <span class="n">lines</span>
+                <span class="c1"># add a empty list if necessary</span>
+                <span class="n">iempty</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="n">iperoc</span> <span class="o">!=</span> <span class="n">iperoc1</span><span class="p">:</span>
+                    <span class="n">iempty</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">itsoc</span> <span class="o">!=</span> <span class="n">itsoc1</span><span class="p">:</span>
+                        <span class="n">iempty</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">iempty</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="n">kperkstp</span> <span class="o">=</span> <span class="p">(</span><span class="n">iperoc1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">itsoc1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">stress_period_data</span><span class="p">[</span><span class="n">kperkstp</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># reset unit numbers</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">filetype</span> <span class="o">==</span> <span class="n">ModflowOc</span><span class="o">.</span><span class="n">_ftype</span><span class="p">():</span>
+                    <span class="n">unitnumber</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span>
+                    <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># initialize filenames list</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="n">fname</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="c1"># fill remainder of filenames list</span>
+        <span class="k">if</span> <span class="n">ihedun</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ihedun</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">ihedun</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;head file name will be generated by flopy&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">iddnun</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">iddnun</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">iddnun</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;drawdown file name will be generated by flopy&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ibouun</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">ibouun</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">filenames</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">ibouun</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ibound file name will be generated by flopy&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cboufm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cboufm</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># add unit numbers to pop_key_list</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">unitnumber</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">ihedfm</span><span class="o">=</span><span class="n">ihedfm</span><span class="p">,</span>
+            <span class="n">iddnfm</span><span class="o">=</span><span class="n">iddnfm</span><span class="p">,</span>
+            <span class="n">chedfm</span><span class="o">=</span><span class="n">chedfm</span><span class="p">,</span>
+            <span class="n">cddnfm</span><span class="o">=</span><span class="n">cddnfm</span><span class="p">,</span>
+            <span class="n">cboufm</span><span class="o">=</span><span class="n">cboufm</span><span class="p">,</span>
+            <span class="n">compact</span><span class="o">=</span><span class="n">compact</span><span class="p">,</span>
+            <span class="n">stress_period_data</span><span class="o">=</span><span class="n">stress_period_data</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;OC&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

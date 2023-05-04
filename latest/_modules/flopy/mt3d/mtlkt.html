@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mt3d.mtlkt &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mt3d.mtlkt</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mt3d.mtlkt</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">MfList</span><span class="p">,</span> <span class="n">Util2d</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;emorway&quot;</span>
+
+
+<div class="viewcode-block" id="Mt3dLkt"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtlkt.html#flopy.mt3d.mtlkt.Mt3dLkt">[docs]</a><span class="k">class</span> <span class="nc">Mt3dLkt</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MT3D-USGS LaKe Transport package class</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.mt3dms.mt.Mt3dms`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nlkinit : int</span>
+<span class="sd">        is equal to the number of simulated lakes as specified in the flow</span>
+<span class="sd">        simulation</span>
+<span class="sd">    mxlkbc : int</span>
+<span class="sd">        must be greater than or equal to the sum total of boundary conditions</span>
+<span class="sd">        applied to each lake</span>
+<span class="sd">    icbclk : int</span>
+<span class="sd">        is equal to the unit number on which lake-by-lake transport information</span>
+<span class="sd">        will be printed.  This unit number must appear in the NAM input file</span>
+<span class="sd">        required for every MT3D-USGS simulation.</span>
+<span class="sd">    ietlak : int</span>
+<span class="sd">        specifies whether or not evaporation as simulated in the flow solution</span>
+<span class="sd">        will act as a mass sink.</span>
+<span class="sd">        = 0, Mass does not exit the model via simulated lake evaporation</span>
+<span class="sd">        != 0, Mass may leave the lake via simulated lake evaporation</span>
+<span class="sd">    coldlak : array of floats</span>
+<span class="sd">        is a vector of real numbers representing the initial concentrations in</span>
+<span class="sd">        the simulated lakes.  The length of the vector is equal to the number</span>
+<span class="sd">        of simulated lakes, NLKINIT.  Initial lake concentrations should be</span>
+<span class="sd">        in the same order as the lakes appearing in the LAK input file</span>
+<span class="sd">        corresponding to the MODFLOW simulation.</span>
+<span class="sd">    ntmp : int</span>
+<span class="sd">        is an integer value corresponding to the number of specified lake</span>
+<span class="sd">        boundary conditions to follow.  For the first stress period, this</span>
+<span class="sd">        value must be greater than or equal to zero, but may be less than</span>
+<span class="sd">        zero in subsequent stress periods.</span>
+<span class="sd">    ilkbc : int</span>
+<span class="sd">        is the lake number for which the current boundary condition will be</span>
+<span class="sd">        specified</span>
+<span class="sd">    ilkbctyp : int</span>
+<span class="sd">        specifies what the boundary condition type is for ilakbc</span>
+<span class="sd">           1   a precipitation boundary. If precipitation directly to lakes</span>
+<span class="sd">               is simulated in the flow model and a non-zero concentration</span>
+<span class="sd">               (default is zero) is desired, use ISFBCTYP = 1;</span>
+<span class="sd">           2   a runoff boundary condition that is not the same thing as</span>
+<span class="sd">               runoff simulated in the UZF1 package and routed to a lake (or</span>
+<span class="sd">               stream) using the IRNBND array.  Users who specify runoff in</span>
+<span class="sd">               the LAK input via the RNF variable appearing in record set 9a</span>
+<span class="sd">               and want to assign a non-zero concentration (default is zero)</span>
+<span class="sd">               associated with this specified source, use ISFBCTYP=2;</span>
+<span class="sd">           3   a Pump boundary condition.  Users who specify a withdrawal</span>
+<span class="sd">               from a lake via the WTHDRW variable appearing in record set 9a</span>
+<span class="sd">               and want to assign a non-zero concentration (default is zero)</span>
+<span class="sd">               associated with this specified source, use ISFBCTYP=2;</span>
+<span class="sd">           4   an evaporation boundary condition.  In models where evaporation</span>
+<span class="sd">               is simulated directly from the surface of the lake, users can use</span>
+<span class="sd">               this boundary condition to specify a non-zero concentration</span>
+<span class="sd">               (default is zero) associated with the evaporation losses.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;lkt&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the lake output name will be created using</span>
+<span class="sd">        the model name and lake concentration observation extension</span>
+<span class="sd">        (for example, modflowtest.cbc and modflowtest.lkcobs.out), if icbclk</span>
+<span class="sd">        is a number greater than zero. If a single string is passed the</span>
+<span class="sd">        package will be set to the string and lake concentration observation</span>
+<span class="sd">        output name will be created using the model name and .lkcobs.out</span>
+<span class="sd">        extension, if icbclk is a number greater than zero. To define the</span>
+<span class="sd">        names for all package files (input and output) the length of the list</span>
+<span class="sd">        of strings should be 2. Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms()</span>
+<span class="sd">    &gt;&gt;&gt; lkt = flopy.mt3d.Mt3dLkt(mt)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nlkinit</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">mxlkbc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">icbclk</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ietlak</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">coldlak</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">lk_stress_period_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;lkt&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">iprn</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">Mt3dLkt</span><span class="o">.</span><span class="n">_reservedunit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">unitnumber</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">Mt3dLkt</span><span class="o">.</span><span class="n">_reservedunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">icbclk</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">if</span> <span class="n">icbclk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;lkcobs.out&quot;</span>
+            <span class="k">if</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fname</span><span class="p">:</span>  <span class="c1"># add extension</span>
+                    <span class="n">fname</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">icbclk</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">,</span>
+                <span class="n">extension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">icbclk</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set dimensions</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+
+        <span class="c1"># Set package specific parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlkinit</span> <span class="o">=</span> <span class="n">nlkinit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mxlkbc</span> <span class="o">=</span> <span class="n">mxlkbc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">icbclk</span> <span class="o">=</span> <span class="n">icbclk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ietlak</span> <span class="o">=</span> <span class="n">ietlak</span>
+
+        <span class="c1"># Set initial lake concentrations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coldlak</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">u2d</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlkinit</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">coldlak</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;coldlak&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">array_free_format</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">iprn</span><span class="o">=</span><span class="n">iprn</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coldlak</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u2d</span><span class="p">)</span>
+
+        <span class="c1"># next, handle multi-species when appropriate</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">base_name</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s2">&quot;coldlak&quot;</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coldlak</span><span class="p">]):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_name</span><span class="si">}{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;LKT: setting </span><span class="si">{</span><span class="n">base_name</span><span class="si">}</span><span class="s2"> for component </span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2"> &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;to zero, kwarg name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="mf">0.0</span>
+                    <span class="n">u2d</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlkinit</span><span class="p">,),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">val</span><span class="p">,</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">array_free_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">free_format</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">coldlak</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u2d</span><span class="p">)</span>
+
+        <span class="c1"># Set transient data</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">ncomp</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">lk_stress_period_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lk_stress_period_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lk_stress_period_data</span> <span class="o">=</span> <span class="n">MfList</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">lk_stress_period_data</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Check to make sure that all kwargs have been consumed</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;LKT error: unrecognized kwargs: &quot;</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Mt3dLkt.write_file"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtlkt.html#flopy.mt3d.mtlkt.Mt3dLkt.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Open file for writing</span>
+        <span class="n">f_lkt</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 1</span>
+        <span class="n">f_lkt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10}{:10}</span><span class="s2">          &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nlkinit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mxlkbc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">icbclk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ietlak</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;# NLKINIT, MXLKBC, ICBCLK, IETLAK</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Item 2</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coldlak</span><span class="p">)):</span>
+            <span class="n">f_lkt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coldlak</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Items 3-4</span>
+        <span class="c1"># (Loop through each stress period and write LKT information)</span>
+        <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">f_lkt</span><span class="o">.</span><span class="n">closed</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">f_lkt</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f_lkt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+
+            <span class="c1"># List of concentrations associated with fluxes in/out of lake</span>
+            <span class="c1"># (Evap, precip, specified runoff into the lake, specified</span>
+            <span class="c1"># withdrawal directly from the lake</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lk_stress_period_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lk_stress_period_data</span><span class="o">.</span><span class="n">write_transient</span><span class="p">(</span>
+                    <span class="n">f_lkt</span><span class="p">,</span> <span class="n">single_per</span><span class="o">=</span><span class="n">kper</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_lkt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">f_lkt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Mt3dLkt.load"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtlkt.html#flopy.mt3d.mtlkt.Mt3dLkt.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nlak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ncomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.mt3d.mt.Mt3dms`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nlak : int</span>
+<span class="sd">            number of lakes to be simulated</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            number of stress periods</span>
+<span class="sd">        ncomp : int</span>
+<span class="sd">            number of species to be simulated</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lkt :  MT3D-USGS object</span>
+<span class="sd">            MT3D-USGS object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; datadir = &#39;examples/data/mt3d_test/mfnwt_mt3dusgs/lkt&#39;</span>
+<span class="sd">        &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms.load(</span>
+<span class="sd">        ...     &#39;lkt_mt.nam&#39;, exe_name=&#39;mt3d-usgs_1.0.00.exe&#39;,</span>
+<span class="sd">        ...     model_ws=datadir, load_only=&#39;btn&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; lkt = flopy.mt3d.Mt3dLkt.load(&#39;test.lkt&#39;, mt)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading lkt package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set default nlay values</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Set dimensions if necessary</span>
+        <span class="k">if</span> <span class="n">nlay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">if</span> <span class="n">nrow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="k">if</span> <span class="n">ncol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncomp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ncomp</span>
+
+        <span class="c1"># Item 1 (NLKINIT,MXLKBC,ICBCLK,IETLAK)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;LKT package does not support comment lines&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading nlkinit,mxlkbc,icbclk,ietlak   &quot;</span><span class="p">)</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="n">nlkinit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">mxlkbc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">icbclk</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">ietlak</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NLKINIT </span><span class="si">{</span><span class="n">nlkinit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MXLKBC </span><span class="si">{</span><span class="n">mxlkbc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ICBCLK </span><span class="si">{</span><span class="n">icbclk</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IETLAK </span><span class="si">{</span><span class="n">ietlak</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ietlak</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Mass does not exit the model via simulated lake evaporation   &quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Mass exits the lake via simulated lake evaporation   &quot;</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Item 2 (COLDLAK - Initial concentration in this instance)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading initial concentration (COLDLAK)  &quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">free_format</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Using MODFLOW style array reader utilities to &quot;</span>
+                    <span class="s2">&quot;read COLDLAK&quot;</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">model</span><span class="o">.</span><span class="n">array_format</span> <span class="o">==</span> <span class="s2">&quot;mt3d&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;   Using historic MT3DMS array reader utilities to &quot;</span>
+                    <span class="s2">&quot;read COLDLAK&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">coldlak</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlkinit</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="s2">&quot;coldlak1&quot;</span><span class="p">,</span>
+            <span class="n">ext_unit_dict</span><span class="p">,</span>
+            <span class="n">array_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">array_format</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;coldlak</span><span class="si">{</span><span class="n">icomp</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">u2d</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlkinit</span><span class="p">,),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="n">array_format</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">array_format</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">u2d</span>
+
+        <span class="c1"># dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">Mt3dLkt</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">ncomp</span><span class="p">)</span>
+
+        <span class="c1"># Items 3-4</span>
+        <span class="n">lk_stress_period_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;   loading lkt boundary condition data for kper </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Item 3: NTMP: An integer value corresponding to the number of</span>
+            <span class="c1">#         specified lake boundary conditions to follow.</span>
+            <span class="c1">#         For the first stress period, this value must be greater</span>
+            <span class="c1">#         than or equal to zero, but may be less than zero in</span>
+            <span class="c1">#         subsequent stress periods.</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ntmp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">ntmp</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2"> lkt boundary conditions specified &quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">iper</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">ntmp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   ntmp &lt; 0 not allowed for first stress period   &quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">iper</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">ntmp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;   use lkt boundary conditions specified in last stress period   &quot;</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># Item 4: Read ntmp boundary conditions</span>
+            <span class="k">if</span> <span class="n">ntmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">current_lk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">ntmp</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ilkbnd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntmp</span><span class="p">):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">m_arr</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>  <span class="c1"># These items are free format</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">ivar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                        <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="n">ivar</span><span class="p">])</span>
+                    <span class="n">cbclk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_lk</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span>
+                    <span class="k">if</span> <span class="n">cbclk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">ilkvar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cbclk</span><span class="p">):</span>
+                            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m_arr</span><span class="p">[</span><span class="n">ilkvar</span> <span class="o">+</span> <span class="mi">2</span><span class="p">])</span>
+                    <span class="n">current_lk</span><span class="p">[</span><span class="n">ilkbnd</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">t</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_lk</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)]</span>
+                    <span class="p">)</span>
+                <span class="c1"># Convert ILKBC (node) index to zero-based</span>
+                <span class="n">current_lk</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">current_lk</span> <span class="o">=</span> <span class="n">current_lk</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span>
+                <span class="n">lk_stress_period_data</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_lk</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   No transient boundary conditions specified&quot;</span><span class="p">)</span>
+                <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lk_stress_period_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lk_stress_period_data</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">Mt3dLkt</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">icbclk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">icbclk</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">icbclk</span><span class="p">)</span>
+
+        <span class="c1"># Construct and return LKT package</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nlkinit</span><span class="o">=</span><span class="n">nlkinit</span><span class="p">,</span>
+            <span class="n">mxlkbc</span><span class="o">=</span><span class="n">mxlkbc</span><span class="p">,</span>
+            <span class="n">icbclk</span><span class="o">=</span><span class="n">icbclk</span><span class="p">,</span>
+            <span class="n">ietlak</span><span class="o">=</span><span class="n">ietlak</span><span class="p">,</span>
+            <span class="n">coldlak</span><span class="o">=</span><span class="n">coldlak</span><span class="p">,</span>
+            <span class="n">lk_stress_period_data</span><span class="o">=</span><span class="n">lk_stress_period_data</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Mt3dLkt.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.mt3d.mtlkt.html#flopy.mt3d.mtlkt.Mt3dLkt.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">ncomp</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a dtype for the recarray containing the list of boundary</span>
+<span class="sd">        conditions interacting with the lake (i.e., pumps, specified runoff...)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">type_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;ilkbctyp&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;cbclk0&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">ncomp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">icomp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncomp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">comp_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;cbclk(</span><span class="si">{</span><span class="n">icomp</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="n">type_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">comp_name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">type_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dtype</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;LKT&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">45</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_reservedunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">18</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,686 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "fa3c072e",
+   "metadata": {},
+   "source": [
+    "# MODFLOW 6: Multiple Models - How to create multiple models in a simulation\n",
+    "\n",
+    "This tutorial shows a simulation using two models, demonstrating how to use\n",
+    "exchanges and exchange subpackages.\n",
+    "\n",
+    "## Introduction to Multiple Models\n",
+    "MODFLOW-6 simulations can contain multiple models, which can be linked\n",
+    "through the groundwater exchange package, which can contain mover and\n",
+    "ghost node correction subpackages.\n",
+    "\n",
+    "The following code sets up a basic simulation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "46a9e957",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:26.486222Z",
+     "iopub.status.busy": "2023-05-04T15:51:26.485607Z",
+     "iopub.status.idle": "2023-05-04T15:51:26.493668Z",
+     "shell.execute_reply": "2023-05-04T15:51:26.492922Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# package import\n",
+    "from pathlib import Path\n",
+    "from tempfile import TemporaryDirectory"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "34737e9d",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:26.496709Z",
+     "iopub.status.busy": "2023-05-04T15:51:26.496090Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.262216Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.261391Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import flopy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "a75c2a4d",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.265842Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.265356Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.269484Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.268779Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# set up where simulation workspace will be stored\n",
+    "temp_dir = TemporaryDirectory()\n",
+    "workspace = temp_dir.name\n",
+    "name = \"tutorial09_mf6_data\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "48c5c8de",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.272310Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.271709Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.328732Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.327959Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create the FloPy simulation and tdis objects\n",
+    "sim = flopy.mf6.MFSimulation(\n",
+    "    sim_name=name, exe_name=\"mf6\", version=\"mf6\", sim_ws=workspace\n",
+    ")\n",
+    "tdis = flopy.mf6.modflow.mftdis.ModflowTdis(\n",
+    "    sim,\n",
+    "    pname=\"tdis\",\n",
+    "    time_units=\"DAYS\",\n",
+    "    nper=2,\n",
+    "    perioddata=[(1.0, 1, 1.0), (1.0, 1, 1.0)],\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c174cdf4",
+   "metadata": {},
+   "source": [
+    "## Groundwater Flow Model Setup\n",
+    "We will start by setting up two groundwater flow models that are part of the\n",
+    "same simulation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "b697ff1c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.332154Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.331512Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.343334Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.342692Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# set up first groundwater flow model\n",
+    "name_1 = \"ex_1_mod_1\"\n",
+    "model_nam_file = f\"{name_1}.nam\"\n",
+    "gwf = flopy.mf6.ModflowGwf(\n",
+    "    sim, modelname=name_1, model_nam_file=model_nam_file\n",
+    ")\n",
+    "# create the discretization package\n",
+    "bot = [-10.0, -50.0, -200.0]\n",
+    "delrow = delcol = 4.0\n",
+    "nlay = 3\n",
+    "nrow = 10\n",
+    "ncol = 10\n",
+    "dis = flopy.mf6.modflow.mfgwfdis.ModflowGwfdis(\n",
+    "    gwf,\n",
+    "    pname=\"dis-1\",\n",
+    "    nogrb=True,\n",
+    "    nlay=nlay,\n",
+    "    nrow=nrow,\n",
+    "    ncol=ncol,\n",
+    "    delr=delrow,\n",
+    "    delc=delcol,\n",
+    "    top=0.0,\n",
+    "    botm=bot,\n",
+    ")\n",
+    "# create npf package\n",
+    "npf = flopy.mf6.ModflowGwfnpf(\n",
+    "    gwf,\n",
+    "    pname=\"npf-1\",\n",
+    "    save_flows=True,\n",
+    "    icelltype=[1, 1, 1],\n",
+    "    k=10.0,\n",
+    "    k33=5.0,\n",
+    "    xt3doptions=\"xt3d rhs\",\n",
+    "    # rewet_record=\"REWET WETFCT 1.0 IWETIT 1 IHDWET 0\",\n",
+    ")\n",
+    "# create ic package\n",
+    "ic_package = flopy.mf6.modflow.mfgwfic.ModflowGwfic(gwf, strt=0.0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "0162d8c8",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.346202Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.345823Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.354670Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.354000Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create ghb package\n",
+    "ghb_spd = {0: [((0, 0, 0), -1.0, 1000.0)]}\n",
+    "ghb = flopy.mf6.modflow.mfgwfghb.ModflowGwfghb(\n",
+    "    gwf,\n",
+    "    print_input=True,\n",
+    "    print_flows=True,\n",
+    "    pname=\"ghb-1\",\n",
+    "    maxbound=1,\n",
+    "    stress_period_data=ghb_spd,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "2b0a7c9b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.357650Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.357269Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.366203Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.365560Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create wel package\n",
+    "welspd = {0: [((0, 5, ncol - 1), -100.0)]}\n",
+    "wel = flopy.mf6.ModflowGwfwel(\n",
+    "    gwf,\n",
+    "    print_input=True,\n",
+    "    print_flows=True,\n",
+    "    mover=True,\n",
+    "    stress_period_data=welspd,\n",
+    "    save_flows=False,\n",
+    "    pname=\"WEL-1\",\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "797edbb3",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.369889Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.368855Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.384008Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.383295Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# set up second groundwater flow model with a finer grid\n",
+    "name_1 = \"ex_1_mod_2\"\n",
+    "model_nam_file = f\"{name_1}.nam\"\n",
+    "gwf_2 = flopy.mf6.ModflowGwf(\n",
+    "    sim, modelname=name_1, model_nam_file=model_nam_file\n",
+    ")\n",
+    "# create the flopy iterative model solver (ims) package object\n",
+    "# by default flopy will register both models with the ims package.\n",
+    "ims = flopy.mf6.modflow.mfims.ModflowIms(\n",
+    "    sim, pname=\"ims\", complexity=\"SIMPLE\", linear_acceleration=\"BICGSTAB\"\n",
+    ")\n",
+    "# no need to create a new ims package.  flopy will automatically register\n",
+    "# create the discretization package\n",
+    "bot = [-10.0, -50.0, -200.0]\n",
+    "dis_2 = flopy.mf6.modflow.mfgwfdis.ModflowGwfdis(\n",
+    "    gwf_2,\n",
+    "    pname=\"dis-2\",\n",
+    "    nogrb=True,\n",
+    "    nlay=nlay,\n",
+    "    nrow=nrow * 2,\n",
+    "    ncol=ncol * 2,\n",
+    "    delr=delrow / 2.0,\n",
+    "    delc=delcol / 2.0,\n",
+    "    top=0.0,\n",
+    "    botm=bot,\n",
+    ")\n",
+    "# create npf package\n",
+    "npf_2 = flopy.mf6.ModflowGwfnpf(\n",
+    "    gwf_2,\n",
+    "    pname=\"npf-2\",\n",
+    "    save_flows=True,\n",
+    "    icelltype=[1, 1, 1],\n",
+    "    k=10.0,\n",
+    "    k33=5.0,\n",
+    "    xt3doptions=\"xt3d rhs\",\n",
+    "    # rewet_record=\"REWET WETFCT 1.0 IWETIT 1 IHDWET 0\",\n",
+    ")\n",
+    "# create ic package\n",
+    "ic_package_2 = flopy.mf6.modflow.mfgwfic.ModflowGwfic(gwf_2, strt=0.0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "e71f6c3b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.387146Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.386666Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.396010Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.395359Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create ghb package\n",
+    "ghb_spd = {0: [((0, 0, 19), -10.0, 1000.0)]}\n",
+    "ghb_2 = flopy.mf6.modflow.mfgwfghb.ModflowGwfghb(\n",
+    "    gwf_2,\n",
+    "    print_input=True,\n",
+    "    print_flows=True,\n",
+    "    pname=\"ghb-2\",\n",
+    "    maxbound=1,\n",
+    "    stress_period_data=ghb_spd,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "2b8b40c7",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.398721Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.398333Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.411168Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.410512Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create lak package\n",
+    "lakpd = [(0, -2.0, 1)]\n",
+    "lakecn = [(0, 0, (0, 5, 0), \"HORIZONTAL\", 1.0, -5.0, 0.0, 10.0, 10.0)]\n",
+    "lak_2 = flopy.mf6.ModflowGwflak(\n",
+    "    gwf_2,\n",
+    "    pname=\"lak-2\",\n",
+    "    print_input=True,\n",
+    "    mover=True,\n",
+    "    nlakes=1,\n",
+    "    noutlets=0,\n",
+    "    ntables=0,\n",
+    "    packagedata=lakpd,\n",
+    "    connectiondata=lakecn,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a47ba6b5",
+   "metadata": {},
+   "source": [
+    "## Connecting the Flow Models\n",
+    "The two groundwater flow models created above are now part of the same\n",
+    "simulation, but they are not connected. To connect them we will use the\n",
+    "gwfgwf package and two of its subpackages, gnc and mvr."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3a3af43c",
+   "metadata": {},
+   "source": [
+    "Use exchangedata to define how the two models are connected.  In this\n",
+    "example we are connecting the right edge of the first model to the left edge\n",
+    "of the second model. The second model is 2x the discretization, so each cell\n",
+    "in the first model is connected to two cells in the second model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "ce3de361",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.414126Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.413733Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.418764Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.418107Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "gwfgwf_data = []\n",
+    "row_2 = 0\n",
+    "for row in range(0, nrow):\n",
+    "    gwfgwf_data.append([(0, ncol - 1, row), (0, 0, row_2), 1, 2.03, 1.01, 2.0])\n",
+    "    row_2 += 1\n",
+    "    gwfgwf_data.append([(0, ncol - 1, row), (0, 0, row_2), 1, 2.03, 1.01, 2.0])\n",
+    "    row_2 += 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "d6ddd0b5",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.421714Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.421200Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.427476Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.426855Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# create the gwfgwf package\n",
+    "gwfgwf = flopy.mf6.ModflowGwfgwf(\n",
+    "    sim,\n",
+    "    exgtype=\"GWF6-GWF6\",\n",
+    "    nexg=len(gwfgwf_data),\n",
+    "    exgmnamea=gwf.name,\n",
+    "    exgmnameb=gwf_2.name,\n",
+    "    exchangedata=gwfgwf_data,\n",
+    "    filename=\"mod1_mod2.gwfgwf\",\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "23e17bd6",
+   "metadata": {},
+   "source": [
+    "Due to the two model's different cell sizes, the cell centers of the first\n",
+    "model do not align with the cell centers in the second model. To correct for\n",
+    "this we will use the ghost node correction package (gnc)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "66012471",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.430456Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.429951Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.437629Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.436995Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "gnc_data = []\n",
+    "col_2 = 0\n",
+    "weight_close = 1.0 / 1.25\n",
+    "weight_far = 0.25 / 1.25\n",
+    "for col in range(0, ncol):\n",
+    "    if col == 0:\n",
+    "        gnc_data.append(\n",
+    "            (\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, 0, col_2),\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, nrow - 1, 0),\n",
+    "                1.00,\n",
+    "                0.0,\n",
+    "            )\n",
+    "        )\n",
+    "    else:\n",
+    "        gnc_data.append(\n",
+    "            (\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, 0, col_2),\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, nrow - 1, col - 1),\n",
+    "                weight_close,\n",
+    "                weight_far,\n",
+    "            )\n",
+    "        )\n",
+    "    col_2 += 1\n",
+    "    if col == ncol - 1:\n",
+    "        gnc_data.append(\n",
+    "            (\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, 0, col_2),\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, nrow - 1, 0),\n",
+    "                1.00,\n",
+    "                0.0,\n",
+    "            )\n",
+    "        )\n",
+    "    else:\n",
+    "        gnc_data.append(\n",
+    "            (\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, 0, col_2),\n",
+    "                (0, nrow - 1, col),\n",
+    "                (0, nrow - 1, col + 1),\n",
+    "                weight_close,\n",
+    "                weight_far,\n",
+    "            )\n",
+    "        )\n",
+    "    col_2 += 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "72da3c29",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.440458Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.439909Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.446357Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.445703Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# set up gnc package\n",
+    "fname = \"gwfgwf.input.gnc\"\n",
+    "gwfgwf.gnc.initialize(\n",
+    "    filename=fname,\n",
+    "    print_input=True,\n",
+    "    print_flows=True,\n",
+    "    numgnc=ncol * 2,\n",
+    "    numalphaj=2,\n",
+    "    gncdata=gnc_data,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7d12bb55",
+   "metadata": {},
+   "source": [
+    "The extraction well at the right-hand side of the first model is pumping\n",
+    "the water it extracts into a nearby lake at the left-hand side of the\n",
+    "second model. Using the mover (mvr) package, water extracted from the first\n",
+    "model's wel package is moved to the second model's lak package."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "7db41c82",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.449214Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.448848Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.455719Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.455068Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "package_data = [(gwf.name, \"WEL-1\"), (gwf_2.name, \"lak-2\")]\n",
+    "period_data = [(gwf.name, \"WEL-1\", 0, gwf_2.name, \"lak-2\", 0, \"FACTOR\", 1.0)]\n",
+    "fname = \"gwfgwf.input.mvr\"\n",
+    "gwfgwf.mvr.initialize(\n",
+    "    filename=fname,\n",
+    "    modelnames=True,\n",
+    "    print_input=True,\n",
+    "    print_flows=True,\n",
+    "    maxpackages=2,\n",
+    "    maxmvr=1,\n",
+    "    packages=package_data,\n",
+    "    perioddata=period_data,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "979c9a55",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.458812Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.458278Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.722584Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.721899Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "writing simulation...\n",
+      "  writing simulation name file...\n",
+      "  writing simulation tdis package...\n",
+      "  writing solution package ims...\n",
+      "  writing package mod1_mod2.gwfgwf...\n",
+      "  writing package gwfgwf.input.gnc...\n",
+      "  writing package gwfgwf.input.mvr...\n",
+      "  writing model ex_1_mod_1...\n",
+      "    writing model name file...\n",
+      "    writing package dis-1...\n",
+      "    writing package npf-1...\n",
+      "    writing package ic...\n",
+      "    writing package ghb-1...\n",
+      "    writing package wel-1...\n",
+      "INFORMATION: maxbound in ('gwf6', 'wel', 'dimensions') changed to 1 based on size of stress_period_data\n",
+      "  writing model ex_1_mod_2...\n",
+      "    writing model name file...\n",
+      "    writing package dis-2...\n",
+      "    writing package npf-2...\n",
+      "    writing package ic...\n",
+      "    writing package ghb-2...\n",
+      "    writing package lak-2...\n",
+      "FloPy is using the following executable to run the model: ../../home/runner/.local/bin/modflow/mf6\n",
+      "                                   MODFLOW 6\n",
+      "                U.S. GEOLOGICAL SURVEY MODULAR HYDROLOGIC MODEL\n",
+      "                        VERSION 6.4.1 Release 12/09/2022\n",
+      "\n",
+      "   MODFLOW 6 compiled Apr 12 2023 19:02:29 with Intel(R) Fortran Intel(R) 64\n",
+      "   Compiler Classic for applications running on Intel(R) 64, Version 2021.7.0\n",
+      "                             Build 20220726_000000\n",
+      "\n",
+      "This software has been approved for release by the U.S. Geological \n",
+      "Survey (USGS). Although the software has been subjected to rigorous \n",
+      "review, the USGS reserves the right to update the software as needed \n",
+      "pursuant to further analysis and review. No warranty, expressed or \n",
+      "implied, is made by the USGS or the U.S. Government as to the \n",
+      "functionality of the software and related material nor shall the \n",
+      "fact of release constitute any such warranty. Furthermore, the \n",
+      "software is released on condition that neither the USGS nor the U.S. \n",
+      "Government shall be held liable for any damages resulting from its \n",
+      "authorized or unauthorized use. Also refer to the USGS Water \n",
+      "Resources Software User Rights Notice for complete use, copyright, \n",
+      "and distribution information.\n",
+      "\n",
+      " \n",
+      " Run start date and time (yyyy/mm/dd hh:mm:ss): 2023/05/04 15:51:27\n",
+      " \n",
+      " Writing simulation list file: mfsim.lst\n",
+      " Using Simulation name file: mfsim.nam\n",
+      " \n",
+      "    Solving:  Stress period:     1    Time step:     1\n",
+      "    Solving:  Stress period:     2    Time step:     1\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      " \n",
+      " Run end date and time (yyyy/mm/dd hh:mm:ss): 2023/05/04 15:51:27\n",
+      " Elapsed run time:  0.237 Seconds\n",
+      " \n",
+      " Normal termination of simulation.\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "(True, [])"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "sim.write_simulation()\n",
+    "sim.run_simulation()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "746e896d",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-05-04T15:51:27.725632Z",
+     "iopub.status.busy": "2023-05-04T15:51:27.725229Z",
+     "iopub.status.idle": "2023-05-04T15:51:27.730048Z",
+     "shell.execute_reply": "2023-05-04T15:51:27.729415Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    temp_dir.cleanup()\n",
+    "except PermissionError:\n",
+    "    # can occur on windows: https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryDirectory\n",
+    "    pass"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

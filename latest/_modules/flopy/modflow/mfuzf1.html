@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfuzf1 &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfuzf1</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfuzf1</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfuzf1 module.  Contains the ModflowUzf1 class. Note that the user can access</span>
+<span class="sd">the ModflowUzf1 class as `flopy.modflow.ModflowUzf1`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/uzf_-_unsaturated_zone_flow_pa_3.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Transient2d</span><span class="p">,</span> <span class="n">Util2d</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span><span class="p">,</span> <span class="n">multi_line_strip</span><span class="p">,</span> <span class="n">pop_item</span>
+<span class="kn">from</span> <span class="nn">..utils.optionblock</span> <span class="kn">import</span> <span class="n">OptionBlock</span>
+
+
+<div class="viewcode-block" id="ModflowUzf1"><a class="viewcode-back" href="../../../source/flopy.modflow.mfuzf1.html#flopy.modflow.mfuzf1.ModflowUzf1">[docs]</a><span class="k">class</span> <span class="nc">ModflowUzf1</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Unsaturated Zone Flow 1 Boundary Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nuztop : integer</span>
+<span class="sd">        used to define which cell in a vertical column that recharge and</span>
+<span class="sd">        discharge is simulated. (default is 1)</span>
+
+<span class="sd">        1   Recharge to and discharge from only the top model layer. This</span>
+<span class="sd">            option assumes land surface is defined as top of layer 1.</span>
+<span class="sd">        2   Recharge to and discharge from the specified layer in variable</span>
+<span class="sd">            IUZFBND. This option assumes land surface is defined as top of</span>
+<span class="sd">            layer specified in IUZFBND.</span>
+<span class="sd">        3   Recharge to and discharge from the highest active cell in each</span>
+<span class="sd">            vertical column. Land surface is determined as top of layer</span>
+<span class="sd">            specified in IUZFBND. A constant head node intercepts any recharge</span>
+<span class="sd">            and prevents deeper percolation.</span>
+
+<span class="sd">    iuzfopt : integer</span>
+<span class="sd">        equal to 1 or 2. A value of 1 indicates that the vertical hydraulic</span>
+<span class="sd">        conductivity will be specified within the UZF1 Package input file using</span>
+<span class="sd">        array VKS. A value of 2 indicates that the vertical hydraulic</span>
+<span class="sd">        conductivity will be specified within either the BCF or LPF Package</span>
+<span class="sd">        input file. (default is 0)</span>
+<span class="sd">    irunflg : integer</span>
+<span class="sd">        specifies whether ground water that discharges to land surface will</span>
+<span class="sd">        be routed to stream segments or lakes as specified in the IRUNBND</span>
+<span class="sd">        array (IRUNFLG not equal to zero) or if ground-water discharge is</span>
+<span class="sd">        removed from the model simulation and accounted for in the</span>
+<span class="sd">        ground-water budget as a loss of water (IRUNFLG=0). The</span>
+<span class="sd">        Streamflow-Routing (SFR2) and(or) the Lake (LAK3) Packages must be</span>
+<span class="sd">        active if IRUNFLG is not zero. (default is 0)</span>
+<span class="sd">    ietflg : integer</span>
+<span class="sd">        specifies whether or not evapotranspiration (ET) will be simulated.</span>
+<span class="sd">        ET will not be simulated if IETFLG is zero, otherwise it will be</span>
+<span class="sd">        simulated. (default is 0)</span>
+<span class="sd">    ipakcb : integer</span>
+<span class="sd">        flag for writing ground-water recharge, ET, and ground-water</span>
+<span class="sd">        discharge to land surface rates to a separate unformatted file using</span>
+<span class="sd">        subroutine UBUDSV. If ipakcb&gt;0, it is the unit number to which the</span>
+<span class="sd">        cell-by-cell rates will be written when &#39;SAVE BUDGET&#39; or a non-zero</span>
+<span class="sd">        value for ICBCFL is specified in Output Control. If ipakcb less than</span>
+<span class="sd">        or equal to 0, cell-by-cell rates will not be written to a file.</span>
+<span class="sd">        (default is 57)</span>
+<span class="sd">    iuzfcb2 : integer</span>
+<span class="sd">        flag for writing ground-water recharge, ET, and ground-water</span>
+<span class="sd">        discharge to land surface rates to a separate unformatted file using</span>
+<span class="sd">        module UBDSV3. If IUZFCB2&gt;0, it is the unit number to which</span>
+<span class="sd">        cell-by-cell rates will be written when &#39;SAVE BUDGET&#39; or a non-zero</span>
+<span class="sd">        value for ICBCFL is specified in Output Control. If IUZFCB2 less than</span>
+<span class="sd">        or equal to 0, cell-by-cell rates will not be written to file.</span>
+<span class="sd">        (default is 0)</span>
+<span class="sd">    ntrail2 : integer</span>
+<span class="sd">        equal to the number of trailing waves used to define the</span>
+<span class="sd">        water-content profile following a decrease in the infiltration rate.</span>
+<span class="sd">        The number of trailing waves varies depending on the problem, but a</span>
+<span class="sd">        range between 10 and 20 is usually adequate. More trailing waves may</span>
+<span class="sd">        decrease mass-balance error and will increase computational</span>
+<span class="sd">        requirements and memory usage. (default is 10)</span>
+<span class="sd">    nsets : integer</span>
+<span class="sd">        equal to the number of wave sets used to simulate multiple</span>
+<span class="sd">        infiltration periods. The number of wave sets should be set to 20 for</span>
+<span class="sd">        most problems involving time varying infiltration. The total number of</span>
+<span class="sd">        waves allowed within an unsaturated zone cell is equal to</span>
+<span class="sd">        NTRAIL2*NSETS2. An error will occur if the number of waves in a cell</span>
+<span class="sd">        exceeds this value. (default is 20)</span>
+<span class="sd">    surfdep : float</span>
+<span class="sd">        The average height of undulations, D (Figure 1 in UZF documentation),</span>
+<span class="sd">        in the land surface altitude. (default is 1.0)</span>
+<span class="sd">    iuzfbnd : integer</span>
+<span class="sd">        used to define the aerial extent of the active model in which recharge</span>
+<span class="sd">        and discharge will be simulated. (default is 1)</span>
+<span class="sd">    irunbnd : integer</span>
+<span class="sd">        used to define the stream segments within the Streamflow-Routing</span>
+<span class="sd">        (SFR2) Package or lake numbers in the Lake (LAK3) Package that</span>
+<span class="sd">        overland runoff from excess infiltration and ground-water</span>
+<span class="sd">        discharge to land surface will be added. A positive integer value</span>
+<span class="sd">        identifies the stream segment and a negative integer value identifies</span>
+<span class="sd">        the lake number. (default is 0)</span>
+<span class="sd">    vks : float</span>
+<span class="sd">        used to define the saturated vertical hydraulic conductivity of the</span>
+<span class="sd">        unsaturated zone (LT-1). (default is 1.0E-6)</span>
+<span class="sd">    eps : float</span>
+<span class="sd">        values for each model cell used to define the Brooks-Corey epsilon of</span>
+<span class="sd">        the unsaturated zone. Epsilon is used in the relation of water</span>
+<span class="sd">        content to hydraulic conductivity (Brooks and Corey, 1966).</span>
+<span class="sd">        (default is 3.5)</span>
+<span class="sd">    thts : float</span>
+<span class="sd">        used to define the saturated water content of the unsaturated zone in</span>
+<span class="sd">        units of volume of water to total volume (L3L-3). (default is 0.35)</span>
+<span class="sd">    thtr : float</span>
+<span class="sd">        used to define the residual water content for each vertical column of</span>
+<span class="sd">        cells in units of volume of water to total volume (L3L-3). THTR is</span>
+<span class="sd">        the irreducible water content and the unsaturated water content</span>
+<span class="sd">        cannot drain to water contents less than THTR. This variable is not</span>
+<span class="sd">        included unless the key word SPECIFYTHTR is specified. (default is</span>
+<span class="sd">        0.15)</span>
+<span class="sd">    thti : float</span>
+<span class="sd">        used to define the initial water content for each vertical column of</span>
+<span class="sd">        cells in units of volume of water at start of simulation to total</span>
+<span class="sd">        volume (L3L-3). THTI should not be specified for steady-state</span>
+<span class="sd">        simulations. (default is 0.20)</span>
+<span class="sd">    row_col_iftunit_iuzopt : list</span>
+<span class="sd">        used to specify where information will be printed for each time step.</span>
+<span class="sd">        row and col are zero-based. IUZOPT specifies what that information</span>
+<span class="sd">        will be. (default is [])</span>
+<span class="sd">        IUZOPT is</span>
+
+<span class="sd">        1   Prints time, ground-water head, and thickness of unsaturated zone,</span>
+<span class="sd">            and cumulative volumes of infiltration, recharge, storage, change</span>
+<span class="sd">            in storage and ground-water discharge to land surface.</span>
+<span class="sd">        2   Same as option 1 except rates of infiltration, recharge, change in</span>
+<span class="sd">            storage, and ground-water discharge also are printed.</span>
+<span class="sd">        3   Prints time, ground-water head, thickness of unsaturated zone,</span>
+<span class="sd">            followed by a series of depths and water contents in the</span>
+<span class="sd">            unsaturated zone.</span>
+
+<span class="sd">    nwt_11_fmt : boolean</span>
+<span class="sd">        flag indicating whether or not to utilize a newer (MODFLOW-NWT</span>
+<span class="sd">        version 1.1 or later) format style, i.e., uzf1 optional variables</span>
+<span class="sd">        appear line-by-line rather than in a specific order on a single</span>
+<span class="sd">        line. True means that optional variables (e.g., SPECIFYTHTR,</span>
+<span class="sd">        SPECIFYTHTI, NOSURFLEAK) appear on new lines. True also supports</span>
+<span class="sd">        a number of newer optional variables (e.g., SPECIFYSURFK,</span>
+<span class="sd">        REJECTSURFK, SEEPSURFK). False means that optional variables</span>
+<span class="sd">        appear on one line.  (default is False)</span>
+<span class="sd">    specifythtr : boolean</span>
+<span class="sd">        key word for specifying optional input variable THTR (default is 0)</span>
+<span class="sd">    specifythti : boolean</span>
+<span class="sd">        key word for specifying optional input variable THTI. (default is 0)</span>
+<span class="sd">    nosurfleak : boolean</span>
+<span class="sd">        key word for inactivating calculation of surface leakage.</span>
+<span class="sd">        (default is 0)</span>
+<span class="sd">    specifysurfk : boolean</span>
+<span class="sd">        (MODFLOW-NWT version 1.1 and MODFLOW-2005 1.12 or later)</span>
+<span class="sd">        An optional character variable. When SPECIFYSURFK is specified,</span>
+<span class="sd">        the variable SURFK is specified in Data Set 4b.</span>
+<span class="sd">    rejectsurfk : boolean</span>
+<span class="sd">        (MODFLOW-NWT version 1.1 and MODFLOW-2005 1.12 or later)</span>
+<span class="sd">        An optional character variable. When REJECTSURFK is specified,</span>
+<span class="sd">        SURFK instead of VKS is used for calculating rejected infiltration.</span>
+<span class="sd">        REJECTSURFK only is included if SPECIFYSURFK is included.</span>
+<span class="sd">    seepsurfk : boolean</span>
+<span class="sd">        (MODFLOW-NWT version 1.1 and MODFLOW-2005 1.12 or later)</span>
+<span class="sd">        An optional character variable. When SEEPSURFK is specified,</span>
+<span class="sd">        SURFK instead of VKS is used for calculating surface leakage.</span>
+<span class="sd">        SEEPSURFK only is included if SPECIFYSURFK is included.</span>
+<span class="sd">    etsquare : float (smoothfact)</span>
+<span class="sd">        (MODFLOW-NWT version 1.1 and MODFLOW-2005 1.12 or later)</span>
+<span class="sd">        An optional character variable. When ETSQUARE is specified,</span>
+<span class="sd">        groundwater ET is simulated using a constant potential ET rate,</span>
+<span class="sd">        and is smoothed over a specified smoothing interval.</span>
+<span class="sd">        This option is recommended only when using the NWT solver.</span>
+
+<span class="sd">        etsquare is activated in flopy by specifying a real value</span>
+<span class="sd">        for smoothfact (default is None).</span>
+<span class="sd">        For example, if the interval factor (smoothfact)</span>
+<span class="sd">        is specified as smoothfact=0.1 (recommended),</span>
+<span class="sd">        then the smoothing interval will be calculated as:</span>
+<span class="sd">        SMOOTHINT = 0.1*EXTDP and  is applied over the range for groundwater</span>
+<span class="sd">        head (h):</span>
+<span class="sd">        *   h &lt; CELTOP-EXTDP, ET is zero;</span>
+<span class="sd">        *   CELTOP-EXTDP &lt; h &lt; CELTOP-EXTDP+SMOOTHINT, ET is smoothed;</span>
+<span class="sd">        CELTOP-EXTDP+SMOOTHINT &lt; h, ET is equal to potential ET.</span>
+<span class="sd">    uzgage : dict of lists or list of lists</span>
+<span class="sd">        Dataset 8 in UZF Package documentation. Each entry in the dict</span>
+<span class="sd">        is keyed by iftunit.</span>
+<span class="sd">            Dict of lists: If iftunit is negative, the list is empty.</span>
+<span class="sd">            If iftunit is positive, the list includes [IUZROW, IUZCOL, IUZOPT]</span>
+<span class="sd">            List of lists:</span>
+<span class="sd">            Lists follow the format described in the documentation:</span>
+<span class="sd">            [[IUZROW, IUZCOL, IFTUNIT, IUZOPT]] or [[-IFTUNIT]]</span>
+<span class="sd">    netflux : list of [Unitrech (int), Unitdis (int)]</span>
+<span class="sd">        (MODFLOW-NWT version 1.1 and MODFLOW-2005 1.12 or later)</span>
+<span class="sd">        An optional character variable. When NETFLUX is specified,</span>
+<span class="sd">        the sum of recharge (L3/T) and the sum of discharge (L3/T) is written</span>
+<span class="sd">        to separate unformatted files using module UBDSV3.</span>
+
+<span class="sd">        netflux is activated in flopy by specifying a list for</span>
+<span class="sd">        Unitrech and Unitdis (default is None).</span>
+<span class="sd">        Unitrech and Unitdis are the unit numbers to which these values</span>
+<span class="sd">        are written when “SAVE BUDGET” is specified in Output Control.</span>
+<span class="sd">        Values written to Unitrech are the sum of recharge values</span>
+<span class="sd">        for the UZF, SFR2, and LAK packages, and values written to Unitdis</span>
+<span class="sd">        are the sum of discharge values for the UZF, SFR2, and LAK packages.</span>
+<span class="sd">        Values are averaged over the period between output times.</span>
+
+<span class="sd">        [NETFLUX unitrech unitdis]</span>
+<span class="sd">    finf : float, 2-D array, or dict of {kper:value}</span>
+<span class="sd">        where kper is the zero-based stress period</span>
+<span class="sd">        to assign a value to.  Value should be cast-able to Util2d instance</span>
+<span class="sd">        can be a scalar, list, or ndarray is the array value is constant in</span>
+<span class="sd">        time.</span>
+<span class="sd">        Used to define the infiltration rates (LT-1) at land surface for each</span>
+<span class="sd">        vertical column of cells. If FINF is specified as being greater than</span>
+<span class="sd">        the vertical hydraulic conductivity then FINF is set equal to the</span>
+<span class="sd">        vertical unsaturated hydraulic conductivity. Excess water is routed</span>
+<span class="sd">        to streams or lakes when IRUNFLG is not zero, and if SFR2 or LAK3 is</span>
+<span class="sd">        active. (default is 1.0E-8)</span>
+<span class="sd">    pet : float, 2-D array, or dict of {kper:value}</span>
+<span class="sd">        where kper is the zero-based stress period</span>
+<span class="sd">        to assign a value to.  Value should be cast-able to Util2d instance</span>
+<span class="sd">        can be a scalar, list, or ndarray is the array value is constant in</span>
+<span class="sd">        time.</span>
+<span class="sd">        Used to define the ET demand rates (L1T-1) within the ET extinction</span>
+<span class="sd">        depth interval for each vertical column of cells. (default is 5.0E-8)</span>
+<span class="sd">    extdp : float, 2-D array, or dict of {kper:value}</span>
+<span class="sd">        where kper is the zero-based stress period</span>
+<span class="sd">        to assign a value to.  Value should be cast-able to Util2d instance</span>
+<span class="sd">        can be a scalar, list, or ndarray is the array value is constant in</span>
+<span class="sd">        time.</span>
+<span class="sd">        Used to define the ET extinction depths. The quantity of ET removed</span>
+<span class="sd">        from a cell is limited by the volume of water stored in the</span>
+<span class="sd">        unsaturated zone above the extinction depth. If ground water is</span>
+<span class="sd">        within the ET extinction depth, then the rate removed is based</span>
+<span class="sd">        on a linear decrease in the maximum rate at land surface and zero at</span>
+<span class="sd">        the ET extinction depth. The linear decrease is the same method used</span>
+<span class="sd">        in the Evapotranspiration Package (McDonald and Harbaugh, 1988, chap.</span>
+<span class="sd">        10). (default is 15.0)</span>
+<span class="sd">    extwc : float, 2-D array, or dict of {kper:value}</span>
+<span class="sd">        where kper is the zero-based stress period</span>
+<span class="sd">        to assign a value to.  Value should be cast-able to Util2d instance</span>
+<span class="sd">        can be a scalar, list, or ndarray is the array value is constant in</span>
+<span class="sd">        time.</span>
+<span class="sd">        Used to define the extinction water content below which ET cannot be</span>
+<span class="sd">        removed from the unsaturated zone.  EXTWC must have a value between</span>
+<span class="sd">        (THTS-Sy) and THTS, where Sy is the specific yield specified in</span>
+<span class="sd">        either the LPF or BCF Package. (default is 0.1)</span>
+<span class="sd">     air_entry : float, 2-D array, or dict of {kper: value}</span>
+<span class="sd">        where kper is the zero-based stress period.</span>
+<span class="sd">        Used to define the air entry pressure of the unsaturated zone in</span>
+<span class="sd">        MODFLOW-NWT simulations</span>
+<span class="sd">    hroot : float, 2-D array, or dict of {kper: value}</span>
+<span class="sd">        where kper is the zero-based stress period.</span>
+<span class="sd">        Used to define the pressure potential at roots in the unsaturated</span>
+<span class="sd">        zone in MODFLOW-NWT simulations</span>
+<span class="sd">    rootact : float, 2-D array, or dict of {kper: value}</span>
+<span class="sd">        where kper is the zero-based stress period.</span>
+<span class="sd">        Used to define the root activity in the unsaturated</span>
+<span class="sd">        zone in MODFLOW-NWT simulations</span>
+<span class="sd">    uzfbud_ext : list</span>
+<span class="sd">        appears to be used for sequential naming of budget output files</span>
+<span class="sd">        (default is [])</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;uzf&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output, uzf output, and uzf</span>
+<span class="sd">        observation names will be created using the model name and .cbc,</span>
+<span class="sd">        uzfcb2.bin, and  .uzf#.out extensions (for example, modflowtest.cbc,</span>
+<span class="sd">        and modflowtest.uzfcd2.bin), if ipakcbc, iuzfcb2, and len(uzgag) are</span>
+<span class="sd">        numbers greater than zero. For uzf observations the file extension is</span>
+<span class="sd">        created using the uzf observation file unit number (for example, for</span>
+<span class="sd">        uzf observations written to unit 123 the file extension would be</span>
+<span class="sd">        .uzf123.out). If a single string is passed the package name will be</span>
+<span class="sd">        set to the string and other uzf output files will be set to the model</span>
+<span class="sd">        name with the appropriate output file extensions. To define the names</span>
+<span class="sd">        for all package files (input and output) the length of the list of</span>
+<span class="sd">        strings should be 3 + len(uzgag). Default is None.</span>
+<span class="sd">    surfk : float</span>
+<span class="sd">        An optional array of positive real values used to define the hydraulic</span>
+<span class="sd">        conductivity (LT-1). SURFK is used for calculating the rejected</span>
+<span class="sd">        infiltration and/or surface leakage. IF SURFK is set greater than</span>
+<span class="sd">        VKS then it is set equal to VKS. Only used if SEEPSURFK is True.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nuzgag : integer (deprecated - counter is set based on length of uzgage)</span>
+<span class="sd">        equal to the number of cells (one per vertical column) that will be</span>
+<span class="sd">        specified for printing detailed information on the unsaturated zone</span>
+<span class="sd">        water budget and water content. A gage also may be used to print</span>
+<span class="sd">        the budget summed over all model cells.  (default is None)</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; ml = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; uzf = flopy.modflow.ModflowUzf1(ml, ...)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;specifythtr&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;specifythti&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;nosurfleak&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;specifysurfk&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;rejectsurfk&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;seepsurfk&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;capillaryuzet&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;etsquare&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;smoothfact&quot;</span><span class="p">:</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_float</span><span class="p">},</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;netflux&quot;</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">nested</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">n_nested</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="n">OptionBlock</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="p">(</span><span class="s2">&quot;unitrech&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                            <span class="p">(</span><span class="s2">&quot;unitdis&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_int</span><span class="p">),</span>
+                        <span class="p">]</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;savefinf&quot;</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">simple_flag</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nuztop</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">iuzfopt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">irunflg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ietflg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">iuzfcb2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ntrail2</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">nsets</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">surfdep</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">iuzfbnd</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">irunbnd</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">vks</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
+        <span class="n">thts</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span>
+        <span class="n">thtr</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span>
+        <span class="n">thti</span><span class="o">=</span><span class="mf">0.20</span><span class="p">,</span>
+        <span class="n">specifythtr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">specifythti</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">nosurfleak</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">finf</span><span class="o">=</span><span class="mf">1.0e-8</span><span class="p">,</span>
+        <span class="n">pet</span><span class="o">=</span><span class="mf">5.0e-8</span><span class="p">,</span>
+        <span class="n">extdp</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>
+        <span class="n">extwc</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">air_entry</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">hroot</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">rootact</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">nwt_11_fmt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">specifysurfk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">rejectsurfk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">seepsurfk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">etsquare</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">netflux</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">capillaryuzet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">nuzgag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">uzgag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;uzf&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">surfk</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowUzf1</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">nlen</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">uzgag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nlen</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">uzgag</span><span class="p">)</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="n">nlen</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with cbc output, if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="nb">abs</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">),</span> <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">iuzfcb2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="nb">abs</span><span class="p">(</span><span class="n">iuzfcb2</span><span class="p">),</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;uzfcb2.bin&quot;</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iuzfcb2</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">ipos</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">uzgag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># convert to dict</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">uzgag</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">uzgag</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">uzgag</span> <span class="o">=</span> <span class="n">d</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">uzgag</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">iu</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                    <span class="n">iu</span><span class="p">,</span>
+                    <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="n">ipos</span><span class="p">],</span>
+                    <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">extension</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;uzf</span><span class="si">{</span><span class="n">iu</span><span class="si">}</span><span class="s2">.out&quot;</span><span class="p">,</span>
+                    <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+                <span class="p">)</span>
+                <span class="n">ipos</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># handle case where iftunit is listed in the values</span>
+                <span class="c1"># (otherwise, iftunit will be written instead of iuzopt)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="n">uzgag</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">value</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">uzgag</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;RCH&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;EVT&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;WARNING!</span><span class="se">\n</span><span class="s2"> The RCH and EVT packages should not be &quot;</span>
+                <span class="s2">&quot;active when the UZF1 package is active!&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf2000&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;WARNING!</span><span class="se">\n</span><span class="s2">The UZF1 package is only compatible &quot;</span>
+                <span class="s2">&quot;with MODFLOW-2005 and MODFLOW-NWT!&quot;</span>
+            <span class="p">)</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;uzf_-_unsaturated_zone_flow_pa_3.html&quot;</span>
+
+        <span class="c1"># Data Set 1a</span>
+        <span class="k">if</span> <span class="n">nwt_11_fmt</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;nwt_11_fmt has been deprecated,&quot;</span>
+                <span class="s2">&quot; and will be removed in the next release&quot;</span>
+                <span class="s2">&quot; please provide a flopy.utils.OptionBlock object&quot;</span>
+                <span class="s2">&quot; to the options argument&quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nwt_11_fmt</span> <span class="o">=</span> <span class="n">nwt_11_fmt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specifythtr</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">specifythtr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specifythti</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">specifythti</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nosurfleak</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">nosurfleak</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specifysurfk</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">specifysurfk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rejectsurfk</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">rejectsurfk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seepsurfk</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">seepsurfk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capillaryuzet</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">capillaryuzet</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">etsquare</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smoothfact</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">etsquare</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">etsquare</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;etsquare must be specified by entering a real &quot;</span>
+                    <span class="s2">&quot;number for smoothfact.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">etsquare</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">smoothfact</span> <span class="o">=</span> <span class="n">etsquare</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">netflux</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unitrech</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unitdis</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">netflux</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;netflux must be a length=2 sequence of unitrech, unitdis&quot;</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">netflux</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="n">e</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">netflux</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unitrech</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unitdis</span> <span class="o">=</span> <span class="n">netflux</span>
+
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">specifythti</span><span class="p">,</span>
+                <span class="n">specifythtr</span><span class="p">,</span>
+                <span class="n">nosurfleak</span><span class="p">,</span>
+                <span class="n">specifysurfk</span><span class="p">,</span>
+                <span class="n">rejectsurfk</span><span class="p">,</span>
+                <span class="n">seepsurfk</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">etsquare</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">netflux</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">options</span> <span class="o">=</span> <span class="n">OptionBlock</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">ModflowUzf1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;nwt&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+
+        <span class="c1"># Data Set 1b</span>
+        <span class="c1"># NUZTOP IUZFOPT IRUNFLG IETFLG ipakcb IUZFCB2 [NTRAIL2 NSETS2] NUZGAG SURFDEP</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nuztop</span> <span class="o">=</span> <span class="n">nuztop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span> <span class="o">=</span> <span class="n">iuzfopt</span>
+        <span class="c1"># The Streamflow-Routing (SFR2) and(or) the Lake (LAK3) Packages</span>
+        <span class="c1"># must be active if IRUNFLG is not zero.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irunflg</span> <span class="o">=</span> <span class="n">irunflg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ietflg</span> <span class="o">=</span> <span class="n">ietflg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuzfcb2</span> <span class="o">=</span> <span class="n">iuzfcb2</span>
+        <span class="k">if</span> <span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ntrail2</span> <span class="o">=</span> <span class="n">ntrail2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nsets</span> <span class="o">=</span> <span class="n">nsets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surfdep</span> <span class="o">=</span> <span class="n">surfdep</span>
+
+        <span class="c1"># Data Set 2</span>
+        <span class="c1"># IUZFBND (NCOL, NROW) -- U2DINT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuzfbnd</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">iuzfbnd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;iuzfbnd&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># If IRUNFLG &gt; 0: Read item 3</span>
+        <span class="c1"># Data Set 3</span>
+        <span class="c1"># [IRUNBND (NCOL, NROW)] -- U2DINT</span>
+        <span class="k">if</span> <span class="n">irunflg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">irunbnd</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">irunbnd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;irunbnd&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># IF the absolute value of IUZFOPT = 1: Read item 4.</span>
+        <span class="c1"># Data Set 4</span>
+        <span class="c1"># [VKS (NCOL, NROW)] -- U2DREL</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">iuzfopt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vks</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">vks</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;vks&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">seepsurfk</span> <span class="ow">or</span> <span class="n">specifysurfk</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surfk</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">surfk</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;surfk&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Data Set 5</span>
+            <span class="c1"># EPS (NCOL, NROW) -- U2DREL</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;eps&quot;</span><span class="p">)</span>
+            <span class="c1"># Data Set 6a</span>
+            <span class="c1"># THTS (NCOL, NROW) -- U2DREL</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thts</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">thts</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;thts&quot;</span>
+            <span class="p">)</span>
+            <span class="c1"># Data Set 6b</span>
+            <span class="c1"># THTS (NCOL, NROW) -- U2DREL</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifythtr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">thtr</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">thtr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;thtr&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># Data Set 7</span>
+            <span class="c1"># [THTI (NCOL, NROW)] -- U2DREL</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thti</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">thti</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;thti&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Data Set 8</span>
+        <span class="c1"># {IFTUNIT: [IUZROW, IUZCOL, IUZOPT]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_uzgag</span> <span class="o">=</span> <span class="n">uzgag</span>
+
+        <span class="c1"># Dataset 9, 11, 13 and 15 will be written automatically in the</span>
+        <span class="c1"># write_file function</span>
+        <span class="c1"># Data Set 10</span>
+        <span class="c1"># [FINF (NCOL, NROW)] – U2DREL</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">finf</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">finf</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;finf&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ietflg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pet</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">pet</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;pet&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extdp</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">extdp</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;extdp&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extwc</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">extwc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;extwc&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">capillaryuzet</span> <span class="ow">and</span> <span class="s2">&quot;nwt&quot;</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">air_entry</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">air_entry</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;air_entry&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hroot</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">hroot</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;hroot&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rootact</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">rootact</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;rootact&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;uzgag&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Uzgag must be set by the constructor modifying this &quot;</span>
+                <span class="s2">&quot;attribute requires creating a new ModflowUzf1 instance&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nuzgag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of uzf gages</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nuzgag : int</span>
+<span class="sd">            Number of uzf gages</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uzgag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uzgag</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">uzgag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the uzf gage data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        uzgag : dict</span>
+<span class="sd">            Dictionary containing uzf gage data for each gage</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uzgag</span>
+
+    <span class="k">def</span> <span class="nf">_2list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="c1"># input as a 3D array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span><span class="p">[</span><span class="n">per</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">per</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+        <span class="c1"># input is not a 3D array, and not a list</span>
+        <span class="c1"># (could be numeric value or 2D array)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span><span class="p">]</span>
+        <span class="c1"># input was already a list</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lst</span> <span class="o">=</span> <span class="n">arg</span>
+        <span class="k">return</span> <span class="n">lst</span>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cells that have uzf (developed for</span>
+<span class="sd">        MT3DMS SSM package).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            maximum number of uzf cells</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="k">return</span> <span class="n">nrow</span> <span class="o">*</span> <span class="n">ncol</span>
+
+    <span class="k">def</span> <span class="nf">_write_1a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f_uzf</span><span class="p">):</span>
+        <span class="c1"># the nwt_11_fmt code is slated for removal (deprecated!)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">nwt_11_fmt</span><span class="p">:</span>
+            <span class="n">specify_temp</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifythtr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">specify_temp</span> <span class="o">+=</span> <span class="s2">&quot;SPECIFYTHTR &quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifythti</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">specify_temp</span> <span class="o">+=</span> <span class="s2">&quot;SPECIFYTHTI &quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nosurfleak</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">specify_temp</span> <span class="o">+=</span> <span class="s2">&quot;NOSURFLEAK&quot;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specifythtr</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifythti</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nosurfleak</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">specify_temp</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">specify_temp</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;options</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="s2">&quot;specifythtr&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;specifythti&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;nosurfleak&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;specifysurfk&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rejectsurfk&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;seepsurfk&quot;</span><span class="p">,</span>
+            <span class="p">]:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">txt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">etsquare</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;etsquare </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">smoothfact</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">netflux</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;netflux </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">unitrech</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">unitdis</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;end</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowUzf1.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfuzf1.html#flopy.modflow.mfuzf1.ModflowUzf1.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="c1"># Open file for writing</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">f_uzf</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_uzf</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_uzf</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 1a</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="n">OptionBlock</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mfnwt&quot;</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">update_from_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">write_options</span><span class="p">(</span><span class="n">f_uzf</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_1a</span><span class="p">(</span><span class="n">f_uzf</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 1b</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot; #NUZTOP IUZFOPT IRUNFLG IETFLG ipakcb IUZFCB2 NTRAIL NSETS NUZGAGES&quot;</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}{:15.6E}{:100s}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nuztop</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">irunflg</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ietflg</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iuzfcb2</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ntrail2</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nsets</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nuzgag</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">surfdep</span><span class="p">,</span>
+                    <span class="n">comment</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot; #NUZTOP IUZFOPT IRUNFLG IETFLG ipakcb IUZFCB2 NUZGAGES&quot;</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}{:15.6E}{:100s}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nuztop</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">irunflg</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ietflg</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iuzfcb2</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nuzgag</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">surfdep</span><span class="p">,</span>
+                    <span class="n">comment</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iuzfbnd</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">irunflg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">irunbnd</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="c1"># IF the absolute value of IUZFOPT = 1: Read item 4.</span>
+        <span class="c1"># Data Set 4</span>
+        <span class="c1"># [VKS (NCOL, NROW)] -- U2DREL</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vks</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Dataset 4b modflow 2005 v. 1.12 and modflow-nwt v. 1.1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seepsurfk</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifysurfk</span><span class="p">:</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfk</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Data Set 5</span>
+            <span class="c1"># EPS (NCOL, NROW) -- U2DREL</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+            <span class="c1"># Data Set 6a</span>
+            <span class="c1"># THTS (NCOL, NROW) -- U2DREL</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thts</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+            <span class="c1"># Data Set 6b</span>
+            <span class="c1"># THTR (NCOL, NROW) -- U2DREL</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifythtr</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thtr</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+            <span class="c1"># Data Set 7</span>
+            <span class="c1"># [THTI (NCOL, NROW)] -- U2DREL</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">specifythti</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+            <span class="p">):</span>
+                <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thti</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+        <span class="c1"># If NUZGAG&gt;0: Item 8 is repeated NUZGAG times</span>
+        <span class="c1"># Data Set 8</span>
+        <span class="c1"># [IUZROW] [IUZCOL] IFTUNIT [IUZOPT]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nuzgag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">iftunit</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">uzgag</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">iftunit</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot; #IUZROW IUZCOL IFTUNIT IUZOPT&quot;</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">iftunit</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+                        <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">comment</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot; #IFTUNIT&quot;</span>
+                    <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iftunit</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">comment</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">write_transient</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">invar</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+            <span class="n">comment</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; #</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> for stress period </span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">invar</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="n">comment</span><span class="si">:</span><span class="s2">20s</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">invar</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_uzf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;finf&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ietflg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;pet&quot;</span><span class="p">)</span>
+                <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;extdp&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;extwc&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">capillaryuzet</span>
+                <span class="ow">and</span> <span class="s2">&quot;nwt&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;air_entry&quot;</span><span class="p">)</span>
+                <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;hroot&quot;</span><span class="p">)</span>
+                <span class="n">write_transient</span><span class="p">(</span><span class="s2">&quot;rootact&quot;</span><span class="p">)</span>
+
+        <span class="n">f_uzf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowUzf1.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfuzf1.html#flopy.modflow.mfuzf1.ModflowUzf1.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        uzf : ModflowUZF1 object</span>
+<span class="sd">            ModflowUZF1 object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; uzf = flopy.modflow.ModflowUZF1.load(&#39;test.uzf&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading uzf package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="c1"># determine problem dimensions</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="c1"># dataset 1a</span>
+        <span class="n">specifythtr</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">specifythti</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">nosurfleak</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">specifysurfk</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">capillaryuzet</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">etsquare</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">netflux</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">rejectsurfk</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">seepsurfk</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mfnwt&quot;</span> <span class="ow">and</span> <span class="s2">&quot;options&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="n">OptionBlock</span><span class="o">.</span><span class="n">load_options</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ModflowUzf1</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;specifythtr&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;specifythti&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;nosurfleak&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;specifysurfk&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rejectsurfk&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;seepsurfk&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;etsquare&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;netflux&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;savefinf&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="n">options</span> <span class="o">=</span> <span class="n">OptionBlock</span><span class="p">(</span>
+                        <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">ModflowUzf1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="p">)</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">multi_line_strip</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">specifythtr</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">specifythtr</span>
+            <span class="n">specifythti</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">specifythti</span>
+            <span class="n">nosurfleak</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">nosurfleak</span>
+            <span class="n">rejectsurfk</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">rejectsurfk</span>
+            <span class="n">seepsurfk</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">seepsurfk</span>
+            <span class="n">specifysurfk</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">specifysurfk</span>
+            <span class="n">capillaryuzet</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">capillaryuzet</span>
+
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">etsquare</span><span class="p">:</span>
+                <span class="n">etsquare</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">smoothfact</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">netflux</span><span class="p">:</span>
+                <span class="n">netflux</span> <span class="o">=</span> <span class="p">[</span><span class="n">options</span><span class="o">.</span><span class="n">unitrech</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">unitdis</span><span class="p">]</span>
+
+        <span class="c1"># dataset 1b</span>
+        <span class="p">(</span>
+            <span class="n">nuztop</span><span class="p">,</span>
+            <span class="n">iuzfopt</span><span class="p">,</span>
+            <span class="n">irunflg</span><span class="p">,</span>
+            <span class="n">ietflg</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">iuzfcb2</span><span class="p">,</span>
+            <span class="n">ntrail2</span><span class="p">,</span>
+            <span class="n">nsets2</span><span class="p">,</span>
+            <span class="n">nuzgag</span><span class="p">,</span>
+            <span class="n">surfdep</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">_parse1</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;finf&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="c1"># datasets 10, 12, 14, 16 are lists of util2d arrays</span>
+            <span class="s2">&quot;pet&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;extdp&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;extwc&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;air_entry&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;hroot&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;rootact&quot;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="p">}</span>
+
+        <span class="k">def</span> <span class="nf">load_util2d</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> array...&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">per</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arrays</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">per</span><span class="p">]</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+
+        <span class="c1"># dataset 2</span>
+        <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;iuzfbnd&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="c1"># dataset 3</span>
+        <span class="k">if</span> <span class="n">irunflg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;irunbnd&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="c1"># dataset 4</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">iuzfopt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;vks&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># dataset 4b</span>
+        <span class="k">if</span> <span class="n">seepsurfk</span> <span class="ow">or</span> <span class="n">specifysurfk</span><span class="p">:</span>
+            <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;surfk&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># dataset 5</span>
+            <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;eps&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="c1"># dataset 6</span>
+            <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;thts&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">specifythtr</span><span class="p">:</span>
+                <span class="c1"># dataset 6b (residual water content)</span>
+                <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;thtr&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">specifythti</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">model</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="o">.</span><span class="n">array</span><span class="p">):</span>
+                <span class="c1"># dataset 7 (initial water content;</span>
+                <span class="c1">#            only read if not steady-state)</span>
+                <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;thti&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># dataset 8</span>
+        <span class="n">uzgag</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">nuzgag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nuzgag</span><span class="p">):</span>
+                <span class="n">iuzrow</span><span class="p">,</span> <span class="n">iuzcol</span><span class="p">,</span> <span class="n">iftunit</span><span class="p">,</span> <span class="n">iuzopt</span> <span class="o">=</span> <span class="n">_parse8</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">iuzrow</span><span class="p">,</span> <span class="n">iuzcol</span><span class="p">]</span> <span class="k">if</span> <span class="n">iftunit</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
+                <span class="n">tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iftunit</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">iuzopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iuzopt</span><span class="p">)</span>
+                <span class="n">uzgag</span><span class="p">[</span><span class="n">iftunit</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp</span>
+
+        <span class="c1"># dataset 9</span>
+        <span class="k">for</span> <span class="n">per</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stress period </span><span class="si">{</span><span class="n">per</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+            <span class="n">nuzf1</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+            <span class="c1"># dataset 10</span>
+            <span class="k">if</span> <span class="n">nuzf1</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;finf&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ietflg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># dataset 11</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                <span class="n">nuzf2</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">nuzf2</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># dataset 12</span>
+                    <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;pet&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+                <span class="c1"># dataset 13</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                <span class="n">nuzf3</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">nuzf3</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># dataset 14</span>
+                    <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;extdp&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+                <span class="c1"># dataset 15</span>
+                <span class="k">if</span> <span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                    <span class="n">nuzf4</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nuzf4</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># dataset 16</span>
+                        <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;extwc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">capillaryuzet</span> <span class="ow">and</span> <span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># dataset 17</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                    <span class="n">nuzf5</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nuzf5</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># dataset 18</span>
+                        <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;air_entry&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+
+                    <span class="c1"># dataset 19</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                    <span class="n">nuzf6</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nuzf6</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># dataset 20</span>
+                        <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;hroot&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+
+                    <span class="c1"># dataset21</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                    <span class="n">nuzf7</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nuzf7</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># dataset 22</span>
+                        <span class="n">load_util2d</span><span class="p">(</span><span class="s2">&quot;rootact&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">per</span><span class="o">=</span><span class="n">per</span><span class="p">)</span>
+
+        <span class="c1"># close the file</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span> <span class="o">+</span> <span class="n">nuzgag</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowUzf1</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">iuzfcb2</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">iuzfcb2</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">iuzfcb2</span><span class="p">))</span>
+
+            <span class="n">ipos</span> <span class="o">=</span> <span class="mi">3</span>
+            <span class="k">if</span> <span class="n">nuzgag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">uzgag</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="n">ipos</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">iu</span><span class="p">))</span>
+                    <span class="n">ipos</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># create uzf object</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nuztop</span><span class="o">=</span><span class="n">nuztop</span><span class="p">,</span>
+            <span class="n">iuzfopt</span><span class="o">=</span><span class="n">iuzfopt</span><span class="p">,</span>
+            <span class="n">irunflg</span><span class="o">=</span><span class="n">irunflg</span><span class="p">,</span>
+            <span class="n">ietflg</span><span class="o">=</span><span class="n">ietflg</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">iuzfcb2</span><span class="o">=</span><span class="n">iuzfcb2</span><span class="p">,</span>
+            <span class="n">ntrail2</span><span class="o">=</span><span class="n">ntrail2</span><span class="p">,</span>
+            <span class="n">nsets</span><span class="o">=</span><span class="n">nsets2</span><span class="p">,</span>
+            <span class="n">surfdep</span><span class="o">=</span><span class="n">surfdep</span><span class="p">,</span>
+            <span class="n">uzgag</span><span class="o">=</span><span class="n">uzgag</span><span class="p">,</span>
+            <span class="n">specifythtr</span><span class="o">=</span><span class="n">specifythtr</span><span class="p">,</span>
+            <span class="n">specifythti</span><span class="o">=</span><span class="n">specifythti</span><span class="p">,</span>
+            <span class="n">nosurfleak</span><span class="o">=</span><span class="n">nosurfleak</span><span class="p">,</span>
+            <span class="n">etsquare</span><span class="o">=</span><span class="n">etsquare</span><span class="p">,</span>
+            <span class="n">netflux</span><span class="o">=</span><span class="n">netflux</span><span class="p">,</span>
+            <span class="n">seepsurfk</span><span class="o">=</span><span class="n">seepsurfk</span><span class="p">,</span>
+            <span class="n">specifysurfk</span><span class="o">=</span><span class="n">specifysurfk</span><span class="p">,</span>
+            <span class="n">rejectsurfk</span><span class="o">=</span><span class="n">rejectsurfk</span><span class="p">,</span>
+            <span class="n">capillaryuzet</span><span class="o">=</span><span class="n">capillaryuzet</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">arrays</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;UZF&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">19</span></div>
+
+
+<span class="k">def</span> <span class="nf">_parse1a</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line</span><span class="p">]</span>
+    <span class="n">specifythtr</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s2">&quot;specifythtr&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="k">else</span> <span class="kc">False</span>
+    <span class="n">specifythti</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s2">&quot;specifythti&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="k">else</span> <span class="kc">False</span>
+    <span class="n">nosurfleak</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s2">&quot;nosurfleak&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="k">else</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">specifythtr</span><span class="p">,</span> <span class="n">specifythti</span><span class="p">,</span> <span class="n">nosurfleak</span>
+
+
+<span class="k">def</span> <span class="nf">_parse1</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="n">ntrail2</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">nsets2</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">nuztop</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">iuzfopt</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">irunflg</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">ietflag</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">ipakcb</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">iuzfcb2</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">iuzfopt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ntrail2</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">nsets2</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">nuzgag</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">surfdep</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">nuztop</span><span class="p">,</span>
+        <span class="n">iuzfopt</span><span class="p">,</span>
+        <span class="n">irunflg</span><span class="p">,</span>
+        <span class="n">ietflag</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="p">,</span>
+        <span class="n">iuzfcb2</span><span class="p">,</span>
+        <span class="n">ntrail2</span><span class="p">,</span>
+        <span class="n">nsets2</span><span class="p">,</span>
+        <span class="n">nuzgag</span><span class="p">,</span>
+        <span class="n">surfdep</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_parse8</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="n">iuzrow</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">iuzcol</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">iuzopt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
+    <span class="p">):</span>
+        <span class="n">iuzrow</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">iuzcol</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">iftunit</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">iuzopt</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">iftunit</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">iuzrow</span><span class="p">,</span> <span class="n">iuzcol</span><span class="p">,</span> <span class="n">iftunit</span><span class="p">,</span> <span class="n">iuzopt</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

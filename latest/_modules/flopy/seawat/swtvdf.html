@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.seawat.swtvdf &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.seawat.swtvdf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.seawat.swtvdf</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util3d</span>
+<span class="kn">from</span> <span class="nn">..utils.util_array</span> <span class="kn">import</span> <span class="n">Transient3d</span>
+
+
+<div class="viewcode-block" id="SeawatVdf"><a class="viewcode-back" href="../../../source/flopy.seawat.swtvdf.html#flopy.seawat.swtvdf.SeawatVdf">[docs]</a><span class="k">class</span> <span class="nc">SeawatVdf</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SEAWAT Variable-Density Flow Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.seawat.swt.Seawat`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    mtdnconc (or mt3drhoflg) : int</span>
+<span class="sd">        is the MT3DMS species number that will be used in the equation of</span>
+<span class="sd">        state to compute fluid density. This input variable was formerly</span>
+<span class="sd">        referred to as MTDNCONC (Langevin and others, 2003).</span>
+<span class="sd">        If MT3DRHOFLG = 0, fluid density is specified using items 6 and 7,</span>
+<span class="sd">        and flow will be uncoupled with transport if the IMT Process is active.</span>
+<span class="sd">        If MT3DRHOFLG &gt; 0, fluid density is calculated using the MT3DMS</span>
+<span class="sd">        species number that corresponds with MT3DRHOFLG. A value for</span>
+<span class="sd">        MT3DRHOFLG greater than zero indicates that flow will be coupled with</span>
+<span class="sd">        transport.</span>
+<span class="sd">        If MT3DRHOFLG = -1, fluid density is calculated using one or more</span>
+<span class="sd">        MT3DMS species. Items 4a, 4b, and 4c will be read instead of item 4.</span>
+<span class="sd">        The dependence of fluid density on pressure head can only be activated</span>
+<span class="sd">        when MT3DRHOFLG = -1. A value for MT3DRHOFLG of -1 indicates that flow</span>
+<span class="sd">        will be coupled with transport.</span>
+<span class="sd">    mfnadvfd : int</span>
+<span class="sd">        is a flag that determines the method for calculating the internodal</span>
+<span class="sd">        density values used to conserve fluid mass.</span>
+<span class="sd">        If MFNADVFD = 2, internodal conductance values used to conserve fluid</span>
+<span class="sd">        mass are calculated using a central-in-space algorithm.</span>
+<span class="sd">        If MFNADVFD &lt;&gt; 2, internodal conductance values used to conserve fluid</span>
+<span class="sd">        mass are calculated using an upstream-weighted algorithm.</span>
+<span class="sd">    nswtcpl : int</span>
+<span class="sd">        is a flag used to determine the flow and transport coupling procedure.</span>
+<span class="sd">        If NSWTCPL = 0 or 1, flow and transport will be explicitly coupled</span>
+<span class="sd">        using a one-timestep lag. The explicit coupling option is normally</span>
+<span class="sd">        much faster than the iterative option and is recommended for most</span>
+<span class="sd">        applications.</span>
+<span class="sd">        If NSWTCPL &gt; 1, NSWTCPL is the maximum number of non-linear coupling</span>
+<span class="sd">        iterations for the flow and transport solutions. SEAWAT-2000 will stop</span>
+<span class="sd">        execution after NSWTCPL iterations if convergence between flow and</span>
+<span class="sd">        transport has not occurred.</span>
+<span class="sd">        If NSWTCPL = -1, the flow solution will be recalculated only for: The</span>
+<span class="sd">        first transport step of the simulation, or</span>
+<span class="sd">        The last transport step of the MODFLOW timestep, or</span>
+<span class="sd">        The maximum density change at a cell is greater than DNSCRIT.</span>
+<span class="sd">    iwtable : int</span>
+<span class="sd">        is a flag used to activate the variable-density water-table corrections</span>
+<span class="sd">        (Guo and Langevin, 2002, eq. 82). If IWTABLE = 0, the water-table</span>
+<span class="sd">        correction will not be applied.</span>
+<span class="sd">        If IWTABLE &gt; 0, the water-table correction will be applied.</span>
+<span class="sd">    densemin : float</span>
+<span class="sd">        is the minimum fluid density. If the resulting density value</span>
+<span class="sd">        calculated with the equation of state is less than DENSEMIN, the</span>
+<span class="sd">        density value is set to DENSEMIN.</span>
+<span class="sd">        If DENSEMIN = 0, the computed fluid density is not limited by</span>
+<span class="sd">        DENSEMIN (this is the option to use for most simulations).</span>
+<span class="sd">        If DENSEMIN &gt; 0, a computed fluid density less than DENSEMIN is</span>
+<span class="sd">        automatically reset to DENSEMIN.</span>
+<span class="sd">    densemax : float</span>
+<span class="sd">        is the maximum fluid density. If the resulting density value</span>
+<span class="sd">        calculated with the equation of state is greater than DENSEMAX, the</span>
+<span class="sd">        density value is set to DENSEMAX.</span>
+<span class="sd">        If DENSEMAX = 0, the computed fluid density is not limited by</span>
+<span class="sd">        DENSEMAX (this is the option to use for most simulations).</span>
+<span class="sd">        If DENSEMAX &gt; 0, a computed fluid density larger than DENSEMAX is</span>
+<span class="sd">        automatically reset to DENSEMAX.</span>
+<span class="sd">    dnscrit : float</span>
+<span class="sd">        is a user-specified density value. If NSWTCPL is greater than 1,</span>
+<span class="sd">        DNSCRIT is the convergence crite- rion, in units of fluid density,</span>
+<span class="sd">        for convergence between flow and transport. If the maximum fluid</span>
+<span class="sd">        density difference between two consecutive implicit coupling</span>
+<span class="sd">        iterations is not less than DNSCRIT, the program will continue to</span>
+<span class="sd">        iterate on the flow and transport equations, or will terminate if</span>
+<span class="sd">        NSWTCPL is reached. If NSWTCPL is -1, DNSCRIT is the maximum density</span>
+<span class="sd">        threshold, in units of fluid density. If the fluid density change</span>
+<span class="sd">        (between the present transport timestep and the last flow solution) at</span>
+<span class="sd">        one or more cells is greater than DNSCRIT, then SEAWAT_V4 will update</span>
+<span class="sd">        the flow field (by solving the flow equation with the updated density</span>
+<span class="sd">        field).</span>
+<span class="sd">    denseref : float</span>
+<span class="sd">        is the fluid density at the reference concentration, temperature, and</span>
+<span class="sd">        pressure. For most simulations, DENSEREF is specified as the density</span>
+<span class="sd">        of freshwater at 25 degrees C and at a reference pressure of zero.</span>
+<span class="sd">    drhodc : float</span>
+<span class="sd">        formerly referred to as DENSESLP (Langevin and others, 2003), is the</span>
+<span class="sd">        slope of the linear equation of state that relates fluid density to</span>
+<span class="sd">        solute concentration. In SEAWAT_V4, separate values for DRHODC can be</span>
+<span class="sd">        entered for as many MT3DMS species as desired. If DRHODC is not</span>
+<span class="sd">        specified for a species, then that species does not affect fluid</span>
+<span class="sd">        density. Any measurement unit can be used for solute concentration,</span>
+<span class="sd">        provided DENSEREF and DRHODC are set properly. DRHODC can be</span>
+<span class="sd">        approximated by the user by dividing the density difference over the</span>
+<span class="sd">        range of end- member fluids by the difference in concentration between</span>
+<span class="sd">        the end-member fluids.</span>
+<span class="sd">    drhodprhd : float</span>
+<span class="sd">        is the slope of the linear equation of state that relates fluid</span>
+<span class="sd">        density to the height of the pressure head (in terms of the reference</span>
+<span class="sd">        density). Note that DRHODPRHD can be calculated from the volumetric</span>
+<span class="sd">        expansion coefficient for pressure using equation 15. If the</span>
+<span class="sd">        simulation is formulated in terms of kilograms and meters, DRHODPRHD</span>
+<span class="sd">        has an approximate value of 4.46 x 10-3 kg/m4. A value of zero, which</span>
+<span class="sd">        is typically used for most problems, inactivates the dependence of</span>
+<span class="sd">        fluid density on pressure.</span>
+<span class="sd">    prhdref : float</span>
+<span class="sd">        is the reference pressure head. This value should normally be set to</span>
+<span class="sd">        zero.</span>
+<span class="sd">    nsrhoeos : int</span>
+<span class="sd">        is the number of MT3DMS species to be used in the equation of state</span>
+<span class="sd">        for fluid density. This value is read only if MT3DRHOFLG = -1.</span>
+<span class="sd">    mtrhospec : int</span>
+<span class="sd">        is the MT3DMS species number corresponding to the adjacent DRHODC and</span>
+<span class="sd">        CRHOREF.</span>
+<span class="sd">    crhoref : float</span>
+<span class="sd">        is the reference concentration (C0) for species, MTRHOSPEC. For most</span>
+<span class="sd">        simulations, CRHOREF should be specified as zero. If MT3DRHOFLG &gt; 0,</span>
+<span class="sd">        CRHOREF is assumed to equal zero (as was done in previous versions of</span>
+<span class="sd">        SEAWAT).</span>
+<span class="sd">    firstdt : float</span>
+<span class="sd">        is the length of the first transport timestep used to start the</span>
+<span class="sd">        simulation if both of the following two condi- tions are met:</span>
+<span class="sd">        1. The IMT Process is active, and 2. transport timesteps are</span>
+<span class="sd">        calculated as a function of the user-specified Courant number (the</span>
+<span class="sd">        MT3DMS input variable, PERCEL, is greater than zero).</span>
+<span class="sd">    indense : int</span>
+<span class="sd">        is a flag. INDENSE is read only if MT3DRHOFLG is equal to zero.</span>
+<span class="sd">        If INDENSE &lt; 0, values for the DENSE array will be reused from the</span>
+<span class="sd">        previous stress period. If it is the first stress period, values for</span>
+<span class="sd">        the DENSE array will be set to DENSEREF.</span>
+<span class="sd">        If INDENSE = 0, values for the DENSE array will be set to DENSEREF.</span>
+<span class="sd">        If INDENSE &gt;= 1, values for the DENSE array will be read from item 7.</span>
+<span class="sd">        If INDENSE = 2, values read for the DENSE array are assumed to</span>
+<span class="sd">        represent solute concentration, and will be converted to density</span>
+<span class="sd">        values using the equation of state.</span>
+<span class="sd">    dense : Transient3d</span>
+<span class="sd">        A float or array of floats (nlay, nrow, ncol) should be assigned as</span>
+<span class="sd">        values to a dictionary related to keys of period number.  dense</span>
+<span class="sd">        is the fluid density array read for each layer using the MODFLOW-2000</span>
+<span class="sd">        U2DREL array reader. The DENSE array is read only if MT3DRHOFLG is</span>
+<span class="sd">        equal to zero. The DENSE array may also be entered in terms of solute</span>
+<span class="sd">        concentration, or any other units, if INDENSE is set to 2 and the</span>
+<span class="sd">        constants used in the density equation of state are specified</span>
+<span class="sd">        appropriately.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;vdf&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is 37).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    In swt_4 mtdnconc became mt3drhoflg. If the latter one is defined in</span>
+<span class="sd">    kwargs, it will overwrite mtdnconc. Same goes for denseslp, which has</span>
+<span class="sd">    become drhodc.</span>
+
+<span class="sd">    When loading an existing SEAWAT model that has DENSE specified as</span>
+<span class="sd">    concentrations, the load process will convert those concentrations into</span>
+<span class="sd">    density values using the equation of state.  This is only relevant when</span>
+<span class="sd">    mtdnconc (or mt3drhoflg) is set to zero.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.seawat.Seawat()</span>
+<span class="sd">    &gt;&gt;&gt; lpf = flopy.seawat.SeawatVdf(m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">unitnumber</span> <span class="o">=</span> <span class="mi">37</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">mtdnconc</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">mfnadvfd</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nswtcpl</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">iwtable</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">densemin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">densemax</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">dnscrit</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span>
+        <span class="n">denseref</span><span class="o">=</span><span class="mf">1.000</span><span class="p">,</span>
+        <span class="n">denseslp</span><span class="o">=</span><span class="mf">0.025</span><span class="p">,</span>
+        <span class="n">crhoref</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">firstdt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+        <span class="n">indense</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">dense</span><span class="o">=</span><span class="mf">1.000</span><span class="p">,</span>
+        <span class="n">nsrhoeos</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">drhodprhd</span><span class="o">=</span><span class="mf">4.46e-3</span><span class="p">,</span>
+        <span class="n">prhdref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;vdf&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">SeawatVdf</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtdnconc</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;mt3drhoflg&quot;</span><span class="p">,</span> <span class="n">mtdnconc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfnadvfd</span> <span class="o">=</span> <span class="n">mfnadvfd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nswtcpl</span> <span class="o">=</span> <span class="n">nswtcpl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iwtable</span> <span class="o">=</span> <span class="n">iwtable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">densemin</span> <span class="o">=</span> <span class="n">densemin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">densemax</span> <span class="o">=</span> <span class="n">densemax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dnscrit</span> <span class="o">=</span> <span class="n">dnscrit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsrhoeos</span> <span class="o">=</span> <span class="n">nsrhoeos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denseref</span> <span class="o">=</span> <span class="n">denseref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denseslp</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;drhodc&quot;</span><span class="p">,</span> <span class="n">denseslp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crhoref</span> <span class="o">=</span> <span class="n">crhoref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drhodprhd</span> <span class="o">=</span> <span class="n">drhodprhd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prhdref</span> <span class="o">=</span> <span class="n">prhdref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">firstdt</span> <span class="o">=</span> <span class="n">firstdt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indense</span> <span class="o">=</span> <span class="n">indense</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtdnconc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dense</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">dense</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dense_&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># dense not needed for most cases so setting to None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dense</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="SeawatVdf.write_file"><a class="viewcode-back" href="../../../source/flopy.seawat.swtvdf.html#flopy.seawat.swtvdf.SeawatVdf.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f_vdf</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 1</span>
+        <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%10i%10i%10i%10i</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mtdnconc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfnadvfd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nswtcpl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iwtable</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># item 2</span>
+        <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">densemin</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">densemax</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># item 3</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nswtcpl</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">nswtcpl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%10f</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dnscrit</span><span class="p">))</span>
+
+        <span class="c1"># item 4</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtdnconc</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsrhoeos</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">denseref</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">denseslp</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">denseref</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">denseslp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtdnconc</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%10.4f%10.4f%10.4f</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">denseref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drhodprhd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prhdref</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%10i</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsrhoeos</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsrhoeos</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">%10i%10.4f%10.4f</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">denseslp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crhoref</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsrhoeos</span><span class="p">):</span>
+                    <span class="n">mtrhospec</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">i</span>
+                    <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">%10i%10.4f%10.4f</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="n">mtrhospec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">denseslp</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">crhoref</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># item 5</span>
+        <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%10f</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">firstdt</span><span class="p">))</span>
+
+        <span class="c1"># Transient DENSE array</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtdnconc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+            <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+                <span class="n">itmp</span><span class="p">,</span> <span class="n">file_entry_dense</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">kper</span><span class="p">)</span>
+
+                <span class="c1"># item 6 (and possibly 7)</span>
+                <span class="k">if</span> <span class="n">itmp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%10i</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indense</span><span class="p">))</span>
+                    <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_dense</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f_vdf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%10i</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">itmp</span><span class="p">))</span>
+
+        <span class="n">f_vdf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="SeawatVdf.load"><a class="viewcode-back" href="../../../source/flopy.seawat.swtvdf.html#flopy.seawat.swtvdf.SeawatVdf.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.seawat.swt.Seawat`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vdf : SeawatVdf object</span>
+<span class="sd">            SeawatVdf object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; mf = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(mf)</span>
+<span class="sd">        &gt;&gt;&gt; mt = flopy.mt3d.Mt3dms()</span>
+<span class="sd">        &gt;&gt;&gt; swt = flopy.seawat.Seawat(modflowmodel=mf, mt3dmsmodel=mt)</span>
+<span class="sd">        &gt;&gt;&gt; vdf = flopy.seawat.SeawatVdf.load(&#39;test.vdf&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading vdf package file...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open file, if necessary</span>
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 0 -- comment line</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Determine problem dimensions</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">npertemp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="n">npertemp</span>
+
+        <span class="c1"># Item 1: MT3DRHOFLG MFNADVFD NSWTCPL IWTABLE - line already read above</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading MT3DRHOFLG MFNADVFD NSWTCPL IWTABLE...&quot;</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">mt3drhoflg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">mfnadvfd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nswtcpl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">iwtable</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MT3DRHOFLG </span><span class="si">{</span><span class="n">mt3drhoflg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   MFNADVFD </span><span class="si">{</span><span class="n">mfnadvfd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NSWTCPL </span><span class="si">{</span><span class="n">nswtcpl</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IWTABLE </span><span class="si">{</span><span class="n">iwtable</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 2 -- DENSEMIN DENSEMAX</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading DENSEMIN DENSEMAX...&quot;</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">densemin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">densemax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Item 3 -- DNSCRIT</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading DNSCRIT...&quot;</span><span class="p">)</span>
+        <span class="n">dnscrit</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">nswtcpl</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">nswtcpl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">dnscrit</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Item 4 -- DENSEREF DRHODC</span>
+        <span class="n">drhodprhd</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">prhdref</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">nsrhoeos</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mtrhospec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">crhoref</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">mt3drhoflg</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading DENSEREF DRHODC(1)...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">denseref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">drhodc</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">nsrhoeos</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading DENSEREF DRHODPRHD PRHDREF...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">denseref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">drhodprhd</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">prhdref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading NSRHOEOS...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">nsrhoeos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    loading MTRHOSPEC DRHODC CRHOREF...&quot;</span><span class="p">)</span>
+            <span class="n">mtrhospec</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">drhodc</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">crhoref</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsrhoeos</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">mtrhospec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">drhodc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="n">crhoref</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+        <span class="c1"># Item 5 -- FIRSTDT</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading FIRSTDT...&quot;</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">firstdt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Items 6 and 7 -- INDENSE DENSE</span>
+        <span class="n">indense</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">dense</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">mt3drhoflg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Create dense as a Transient3D record</span>
+            <span class="n">dense</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;   loading INDENSE for stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">...&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">indense</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">indense</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;DENSE_StressPeriod_</span><span class="si">{</span><span class="n">iper</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">indense</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">array</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">denseref</span> <span class="o">+</span> <span class="n">drhodc</span> <span class="o">*</span> <span class="n">t</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                            <span class="n">model</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                            <span class="n">t</span><span class="p">,</span>
+                            <span class="n">name</span><span class="p">,</span>
+                            <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="n">dense</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+
+            <span class="n">dense</span> <span class="o">=</span> <span class="n">Transient3d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">dense</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dense_&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Set indense = 1 because all concentrations converted to density</span>
+            <span class="n">indense</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">SeawatVdf</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Construct and return vdf package</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">mt3drhoflg</span><span class="o">=</span><span class="n">mt3drhoflg</span><span class="p">,</span>
+            <span class="n">mfnadvfd</span><span class="o">=</span><span class="n">mfnadvfd</span><span class="p">,</span>
+            <span class="n">nswtcpl</span><span class="o">=</span><span class="n">nswtcpl</span><span class="p">,</span>
+            <span class="n">iwtable</span><span class="o">=</span><span class="n">iwtable</span><span class="p">,</span>
+            <span class="n">densemin</span><span class="o">=</span><span class="n">densemin</span><span class="p">,</span>
+            <span class="n">densemax</span><span class="o">=</span><span class="n">densemax</span><span class="p">,</span>
+            <span class="n">dnscrit</span><span class="o">=</span><span class="n">dnscrit</span><span class="p">,</span>
+            <span class="n">denseref</span><span class="o">=</span><span class="n">denseref</span><span class="p">,</span>
+            <span class="n">drhodc</span><span class="o">=</span><span class="n">drhodc</span><span class="p">,</span>
+            <span class="n">drhodprhd</span><span class="o">=</span><span class="n">drhodprhd</span><span class="p">,</span>
+            <span class="n">prhdref</span><span class="o">=</span><span class="n">prhdref</span><span class="p">,</span>
+            <span class="n">nsrhoeos</span><span class="o">=</span><span class="n">nsrhoeos</span><span class="p">,</span>
+            <span class="n">mtrhospec</span><span class="o">=</span><span class="n">mtrhospec</span><span class="p">,</span>
+            <span class="n">crhoref</span><span class="o">=</span><span class="n">crhoref</span><span class="p">,</span>
+            <span class="n">firstdt</span><span class="o">=</span><span class="n">firstdt</span><span class="p">,</span>
+            <span class="n">indense</span><span class="o">=</span><span class="n">indense</span><span class="p">,</span>
+            <span class="n">dense</span><span class="o">=</span><span class="n">dense</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;VDF&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">37</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

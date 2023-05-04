@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.utils.binaryfile_utils &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.utils.binaryfile_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.utils.binaryfile_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">...utils</span> <span class="kn">import</span> <span class="n">binaryfile</span> <span class="k">as</span> <span class="n">bf</span>
+<span class="kn">from</span> <span class="nn">...utils</span> <span class="kn">import</span> <span class="n">import_optional_dependency</span>
+
+
+<div class="viewcode-block" id="MFOutput"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.binaryfile_utils.html#flopy.mf6.utils.binaryfile_utils.MFOutput">[docs]</a><span class="k">class</span> <span class="nc">MFOutput</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper class for Binary Arrays. This class enables directly getting slices</span>
+<span class="sd">    from the binary output. It is intended to be called from the __getitem__</span>
+<span class="sd">    method of the  SimulationDict() class.  Implemented to conserve memory.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path: binary file path location</span>
+<span class="sd">    mfdict: SimulationDict() object</span>
+<span class="sd">    key: dict key ex. (&#39;flow15&#39;,&#39;CBC&#39;,&#39;FLOW RIGHT FACE&#39;)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Xarray of [n,n,n,n] dimension</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">    -----</span>
+<span class="sd">    &gt;&gt;&gt; val = MFOutput(mfdict, path, key)</span>
+<span class="sd">    &gt;&gt;&gt; return val.data</span>
+
+<span class="sd">    User interaction:</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    &gt;&gt;&gt; data[(&#39;flow15&#39;,&#39;CBC&#39;,&#39;FLOW RIGHT FACE&#39;)][:,0,1,:]</span>
+<span class="sd">    or</span>
+<span class="sd">    &gt;&gt;&gt; data[(&#39;flow15&#39;,&#39;CBC&#39;,&#39;FLOW RIGHT FACE&#39;)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mfdict</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span> <span class="o">=</span> <span class="n">mfdict</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">MFOutputRequester</span><span class="p">(</span><span class="n">mfdict</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">querybinarydata</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[[[]]]])</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="MFOutputRequester"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.binaryfile_utils.html#flopy.mf6.utils.binaryfile_utils.MFOutputRequester">[docs]</a><span class="k">class</span> <span class="nc">MFOutputRequester</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MFOutputRequest class is a helper function to enable the user to query</span>
+<span class="sd">    binary data from the SimulationDict() object on the fly without</span>
+<span class="sd">    actually storing it in the SimulationDict() object.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mfdict: dict</span>
+<span class="sd">        local instance of the SimulationDict() object</span>
+<span class="sd">    path:</span>
+<span class="sd">        pointer to the MFSimulationPath object</span>
+<span class="sd">    key: tuple</span>
+<span class="sd">        user requested data key</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">    -------</span>
+<span class="sd">    MFOutputRequester.querybinarydata</span>
+<span class="sd">        returns: Xarray object</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; data = MFOutputRequester(mfdict, path, key)</span>
+<span class="sd">    &gt;&gt;&gt; data.querybinarydata</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mfdict</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span> <span class="o">=</span> <span class="n">mfdict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># get the binary file locations, create a dictionary key to look them</span>
+        <span class="c1"># up from, store in self.dataDict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_getbinaryfilepaths</span><span class="p">()</span>
+
+        <span class="c1"># check if supplied key exists, and model grid type</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;disv&quot;</span><span class="p">,</span> <span class="s2">&quot;dimensions&quot;</span><span class="p">,</span> <span class="s2">&quot;nvert&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">querybinarydata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_querybinarydata_vertices</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">,</span> <span class="n">key</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;disu&quot;</span><span class="p">,</span> <span class="s2">&quot;connectiondata&quot;</span><span class="p">,</span> <span class="s2">&quot;iac&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">querybinarydata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_querybinarydata_unstructured</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">querybinarydata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_querybinarydata</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;HDS&quot;</span><span class="p">,</span> <span class="s2">&quot;IamAdummy&quot;</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Valid Keys Are:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">valid_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">valid_key</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_querybinarydata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="c1"># Basic definition to get output from modflow binary files for</span>
+        <span class="c1"># simulations using a structured grid</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">bintype</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">bindata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_binary_file_object</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">bintype</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;CBC&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="c1"># imeth == 6</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_alldata</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_querybinarydata_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mfdict</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="c1"># Basic definition to get output data from binary output files for</span>
+        <span class="c1"># simulations that define grid by vertices</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">bintype</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">bindata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_binary_file_object</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">bintype</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;CBC&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;FLOW-JA-FACE&quot;</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="c1"># uncomment line to remove extra dimensions from data</span>
+                <span class="c1"># data data.shape = (len(times), -1)</span>
+                <span class="k">return</span> <span class="n">data</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="c1"># imeth == 6</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_alldata</span><span class="p">())</span>
+
+        <span class="c1"># uncomment line to remove extra dimensions from data</span>
+        <span class="c1"># data = _reshape_binary_data(data, &#39;V&#39;)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_querybinarydata_unstructured</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="c1"># get unstructured binary data in numpy array format.</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">bintype</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">bindata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_binary_file_object</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">bintype</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;CBC&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bindata</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">full3D</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">bindata</span><span class="o">.</span><span class="n">get_alldata</span><span class="p">()</span>
+
+        <span class="c1"># remove un-needed dimensions</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_reshape_binary_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;U&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;FLOW-JA-FACE&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_get_binary_file_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">bintype</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="c1"># simple method that trys to open the binary file object using Flopy</span>
+        <span class="k">if</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;CBC&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">bf</span><span class="o">.</span><span class="n">CellBudgetFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;HDS&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">bf</span><span class="o">.</span><span class="n">HeadFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;DDN&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">bf</span><span class="o">.</span><span class="n">HeadFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;drawdown&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">bintype</span> <span class="o">==</span> <span class="s2">&quot;UCN&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">bf</span><span class="o">.</span><span class="n">UcnFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;single&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_vertices</span><span class="p">(</span><span class="n">mfdict</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Depreciated! Consider removing from code.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key: binary query dictionary key</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        information defining specified vertices for all model cells to be added</span>
+<span class="sd">        to xarray as coordinates.</span>
+<span class="sd">        cellid: (list) corresponds to the modflow CELL2d cell number</span>
+<span class="sd">        xcyc: (n x 2) dimensional Pandas object of tuples defining the CELL2d</span>
+<span class="sd">        center coordinates</span>
+<span class="sd">        nverts: (list) number of xy vertices corresponding to a cell</span>
+<span class="sd">        xv: (n x nverts) dimensional Pandas object of tuples. Contains x</span>
+<span class="sd">        vertices for a cell</span>
+<span class="sd">        yv: (n x nverts) dimensional Pandas object of tuples. Contains y</span>
+<span class="sd">        vertices for a cell</span>
+<span class="sd">        topv: (n x nlayers) dimensional Pandas object of cell top elevations</span>
+<span class="sd">        corresponding to a row column location</span>
+<span class="sd">        botmv: (n x nlayers) dimensional Pandas object of cell bottom</span>
+<span class="sd">        elevations corresponding to a row column location</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pd</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span>
+            <span class="s2">&quot;pandas&quot;</span><span class="p">,</span>
+            <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;MFOutputRequester._get_vertices() requires pandas.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">mname</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">cellid</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELL2D&quot;</span><span class="p">,</span> <span class="s2">&quot;cell2d_num&quot;</span><span class="p">)]</span>
+
+        <span class="n">cellxc</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELL2D&quot;</span><span class="p">,</span> <span class="s2">&quot;xc&quot;</span><span class="p">)]</span>
+        <span class="n">cellyc</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELL2D&quot;</span><span class="p">,</span> <span class="s2">&quot;yc&quot;</span><span class="p">)]</span>
+        <span class="n">xcyc</span> <span class="o">=</span> <span class="p">[(</span><span class="n">cellxc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cellyc</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cellxc</span><span class="p">))]</span>
+        <span class="n">xcyc</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">xcyc</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;object&quot;</span><span class="p">)</span>
+
+        <span class="n">nverts</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELL2D&quot;</span><span class="p">,</span> <span class="s2">&quot;nvert&quot;</span><span class="p">)]</span>
+        <span class="n">vertnums</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELL2D&quot;</span><span class="p">,</span> <span class="s2">&quot;iv&quot;</span><span class="p">)]</span>
+        <span class="n">vertid</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;VERTICES&quot;</span><span class="p">,</span> <span class="s2">&quot;vert_num&quot;</span><span class="p">)]</span>
+        <span class="n">vertx</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;VERTICES&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)]</span>
+        <span class="n">verty</span> <span class="o">=</span> <span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;VERTICES&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)]</span>
+        <span class="c1"># get vertices that correspond to CellID list</span>
+        <span class="n">xv</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">yv</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">vertnums</span><span class="p">:</span>
+            <span class="n">tempx</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tempy</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">vert</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">vertid</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">vert</span><span class="p">)</span>
+                <span class="n">tempx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertx</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+                <span class="n">tempy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">verty</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="n">xv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tempx</span><span class="p">)</span>
+            <span class="n">yv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tempy</span><span class="p">)</span>
+        <span class="n">xv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">xv</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;object&quot;</span><span class="p">)</span>
+        <span class="n">yv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">yv</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;object&quot;</span><span class="p">)</span>
+
+        <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELLDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">)])</span>
+        <span class="n">botm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mfdict</span><span class="p">[(</span><span class="n">mname</span><span class="p">,</span> <span class="s2">&quot;DISV8&quot;</span><span class="p">,</span> <span class="s2">&quot;CELLDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;botm&quot;</span><span class="p">)])</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">botm</span> <span class="o">=</span> <span class="n">botm</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="c1"># get cell top and bottom by layer</span>
+        <span class="n">topv</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="o">*</span><span class="n">botm</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">botmv</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">botm</span><span class="p">))</span>
+        <span class="n">topv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">topv</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;object&quot;</span><span class="p">)</span>
+        <span class="n">botmv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">botmv</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;object&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cellid</span><span class="p">,</span> <span class="n">xcyc</span><span class="p">,</span> <span class="n">nverts</span><span class="p">,</span> <span class="n">xv</span><span class="p">,</span> <span class="n">yv</span><span class="p">,</span> <span class="n">topv</span><span class="p">,</span> <span class="n">botmv</span>
+
+    <span class="k">def</span> <span class="nf">_getbinaryfilepaths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># model paths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelpathdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">model_relative_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">modelpathdict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">get_model_path</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">sim_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">get_sim_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binarypathdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># check output control to see if a binary file is supposed to exist.</span>
+        <span class="c1"># Get path to that file</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelpathdict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;budget_filerecord&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">:</span>
+                <span class="n">cbc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;budget_filerecord&quot;</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">cbc</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">binarypathdict</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;CBC&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">sim_path</span><span class="p">,</span> <span class="n">cbc</span><span class="o">.</span><span class="n">get_data</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;head_filerecord&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">:</span>
+                <span class="n">hds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;head_filerecord&quot;</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">hds</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">binarypathdict</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;HDS&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">sim_path</span><span class="p">,</span> <span class="n">hds</span><span class="o">.</span><span class="n">get_data</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;drawdown_filerecord&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">:</span>
+                <span class="n">ddn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfdict</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;oc&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;drawdown_filerecord&quot;</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">ddn</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">binarypathdict</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;DDN&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">sim_path</span><span class="p">,</span> <span class="n">ddn</span><span class="o">.</span><span class="n">get_data</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setbinarykeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binarypathdict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_setbinarykeys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binarypathdict</span><span class="p">):</span>
+        <span class="c1"># check that if a binary file is supposed to exist, it does, and create</span>
+        <span class="c1"># a dictionary key to access that data</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">binarypathdict</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">binarypathdict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CBC&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">readcbc</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">CellBudgetFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">readcbc</span><span class="o">.</span><span class="n">get_unique_record_names</span><span class="p">():</span>
+                        <span class="n">name</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+                        <span class="c1"># store keys along with model name in ordered dict?</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">path</span>
+                    <span class="n">readcbc</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+            <span class="k">elif</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;HDS&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">readhead</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">HeadFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;HEAD&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">path</span>
+                    <span class="n">readhead</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+            <span class="k">elif</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;DDN&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">readddn</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">HeadFile</span><span class="p">(</span>
+                        <span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;drawdown&quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;DRAWDOWN&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">path</span>
+                    <span class="n">readddn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+            <span class="k">elif</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;UCN&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">readucn</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">UcnFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;single&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataDict</span><span class="p">[(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;CONCENTRATION&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">path</span>
+                    <span class="n">readucn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+<div class="viewcode-block" id="MFOutputRequester.getkeys"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.binaryfile_utils.html#flopy.mf6.utils.binaryfile_utils.MFOutputRequester.getkeys">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">getkeys</span><span class="p">(</span><span class="n">mfdict</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">print_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># use a dummy key to get valid binary output keys</span>
+        <span class="n">dummy_key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;HDS&quot;</span><span class="p">,</span> <span class="s2">&quot;IamAdummy&quot;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">MFOutputRequester</span><span class="p">(</span><span class="n">mfdict</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dummy_key</span><span class="p">)</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">dataDict</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">print_keys</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_reshape_binary_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># removes unnecessary dimensions from data returned by</span>
+    <span class="c1"># flopy.utils.binaryfile</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;U&quot;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="s2">&quot;Invalid dtype flag supplied, valid are dtype=&#39;U&#39;, dtype=&#39;V&#39;&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

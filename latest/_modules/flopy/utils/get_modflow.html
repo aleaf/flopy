@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.get_modflow &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.get_modflow</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.get_modflow</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;Download and install USGS MODFLOW and related programs.</span>
+
+<span class="sd">This script originates from FloPy: https://github.com/modflowpy/flopy</span>
+<span class="sd">This file can be downloaded and run independently outside FloPy.</span>
+<span class="sd">It requires Python 3.6 or later, and has no dependencies.</span>
+
+<span class="sd">See https://developer.github.com/v3/repos/releases/ for GitHub Releases API.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+<span class="kn">from</span> <span class="nn">importlib.util</span> <span class="kn">import</span> <span class="n">find_spec</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;run_main&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;CC0&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="n">owner</span> <span class="o">=</span> <span class="s2">&quot;MODFLOW-USGS&quot;</span>
+<span class="c1"># key is the repo name, value is the renamed file prefix for the download</span>
+<span class="n">renamed_prefix</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;modflow6&quot;</span><span class="p">:</span> <span class="s2">&quot;modflow6&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;executables&quot;</span><span class="p">:</span> <span class="s2">&quot;modflow_executables&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;modflow6-nightly-build&quot;</span><span class="p">:</span> <span class="s2">&quot;modflow6_nightly&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">available_repos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">renamed_prefix</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="n">available_ostags</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;linux&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;win32&quot;</span><span class="p">,</span> <span class="s2">&quot;win64&quot;</span><span class="p">]</span>
+<span class="n">max_http_tries</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="c1"># Check if this is running from flopy</span>
+<span class="n">within_flopy</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">spec</span> <span class="o">=</span> <span class="n">find_spec</span><span class="p">(</span><span class="s2">&quot;flopy&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">within_flopy</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parents</span>
+    <span class="p">)</span>
+<span class="k">del</span> <span class="n">spec</span>
+
+<span class="c1"># local flopy install location (selected with :flopy)</span>
+<span class="n">flopy_appdata_path</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%LOCALAPPDATA%\flopy&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;win&quot;</span><span class="p">)</span>
+    <span class="k">else</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.local&quot;</span> <span class="o">/</span> <span class="s2">&quot;share&quot;</span> <span class="o">/</span> <span class="s2">&quot;flopy&quot;</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_ostag</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine operating system tag from sys.platform.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;linux&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;linux&quot;</span>
+    <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;win&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;win&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;64&quot;</span> <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span> <span class="k">else</span> <span class="s2">&quot;32&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;darwin&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;mac&quot;</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;platform </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="si">!r}</span><span class="s2"> not supported&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_suffixes</span><span class="p">(</span><span class="n">ostag</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">ostag</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;win32&quot;</span><span class="p">,</span> <span class="s2">&quot;win64&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="s2">&quot;.exe&quot;</span><span class="p">,</span> <span class="s2">&quot;.dll&quot;</span>
+    <span class="k">elif</span> <span class="n">ostag</span> <span class="o">==</span> <span class="s2">&quot;linux&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;.so&quot;</span>
+    <span class="k">elif</span> <span class="n">ostag</span> <span class="o">==</span> <span class="s2">&quot;mac&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;.dylib&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;unrecognized ostag </span><span class="si">{</span><span class="n">ostag</span><span class="si">!r}</span><span class="s2">; choose one of </span><span class="si">{</span><span class="n">available_ostags</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{}):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get urllib.request.Request, with parameters and headers.</span>
+
+<span class="sd">    This bears GITHUB_TOKEN if it is set as an environment variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">+=</span> <span class="s2">&quot;?&quot;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data must be a dict&quot;</span><span class="p">)</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">github_token</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GITHUB_TOKEN&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">github_token</span><span class="p">:</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Authorization&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bearer </span><span class="si">{</span><span class="n">github_token</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_releases</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">per_page</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of available releases.&quot;&quot;&quot;</span>
+    <span class="n">req_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://api.github.com/repos/</span><span class="si">{</span><span class="n">owner</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">/releases&quot;</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">per_page</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">per_page</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">per_page</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;per_page must be between 1 and 100&quot;</span><span class="p">)</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;per_page&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">per_page</span>
+
+    <span class="n">request</span> <span class="o">=</span> <span class="n">get_request</span><span class="p">(</span><span class="n">req_url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">num_tries</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">num_tries</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">break</span>
+        <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">401</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GITHUB_TOKEN&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GITHUB_TOKEN env is invalid&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="k">elif</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">403</span> <span class="ow">and</span> <span class="s2">&quot;rate limit exceeded&quot;</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">reason</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;use GITHUB_TOKEN env to bypass rate limit (</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="k">elif</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">404</span><span class="p">,</span> <span class="mi">503</span><span class="p">)</span> <span class="ow">and</span> <span class="n">num_tries</span> <span class="o">&lt;</span> <span class="n">max_http_tries</span><span class="p">:</span>
+                <span class="c1"># GitHub sometimes returns this error for valid URLs, so retry</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;URL request </span><span class="si">{</span><span class="n">num_tries</span><span class="si">}</span><span class="s2"> did not work (</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot retrieve data from </span><span class="si">{</span><span class="n">req_url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+
+    <span class="n">releases</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">releases</span><span class="p">)</span><span class="si">}</span><span class="s2"> releases for </span><span class="si">{</span><span class="n">owner</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">avail_releases</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;latest&quot;</span><span class="p">]</span>
+    <span class="n">avail_releases</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">release</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">release</span> <span class="ow">in</span> <span class="n">releases</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">avail_releases</span>
+
+
+<span class="k">def</span> <span class="nf">get_release</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get info about a particular release.&quot;&quot;&quot;</span>
+    <span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://api.github.com/repos/</span><span class="si">{</span><span class="n">owner</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">req_url</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">api_url</span><span class="si">}</span><span class="s2">/releases/latest&quot;</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;latest&quot;</span>
+        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">api_url</span><span class="si">}</span><span class="s2">/releases/tags/</span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+    <span class="n">request</span> <span class="o">=</span> <span class="n">get_request</span><span class="p">(</span><span class="n">req_url</span><span class="p">)</span>
+    <span class="n">releases</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">num_tries</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">num_tries</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="n">remaining</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;x-ratelimit-remaining&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">remaining</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Only </span><span class="si">{</span><span class="n">remaining</span><span class="si">}</span><span class="s2"> GitHub API requests remaining &quot;</span>
+                        <span class="s2">&quot;before rate-limiting&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">401</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GITHUB_TOKEN&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GITHUB_TOKEN env is invalid&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="k">elif</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">403</span> <span class="ow">and</span> <span class="s2">&quot;rate limit exceeded&quot;</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">reason</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;use GITHUB_TOKEN env to bypass rate limit (</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="k">elif</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">404</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">releases</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">releases</span> <span class="o">=</span> <span class="n">get_releases</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">quiet</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">releases</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Release </span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2"> not found (choose from </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">releases</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">503</span> <span class="ow">and</span> <span class="n">num_tries</span> <span class="o">&lt;</span> <span class="n">max_http_tries</span><span class="p">:</span>
+                <span class="c1"># GitHub sometimes returns this error for valid URLs, so retry</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;URL request </span><span class="si">{</span><span class="n">num_tries</span><span class="si">}</span><span class="s2"> did not work (</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot retrieve data from </span><span class="si">{</span><span class="n">req_url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+
+    <span class="n">release</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+    <span class="n">tag_name</span> <span class="o">=</span> <span class="n">release</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fetched release </span><span class="si">{</span><span class="n">tag_name</span><span class="si">!r}</span><span class="s2"> info from </span><span class="si">{</span><span class="n">owner</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">release</span>
+
+
+<span class="k">def</span> <span class="nf">columns_str</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">line_chars</span><span class="o">=</span><span class="mi">79</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return str of columns of items, similar to &#39;ls&#39; command.&quot;&quot;&quot;</span>
+    <span class="n">item_chars</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">)</span>
+    <span class="n">num_cols</span> <span class="o">=</span> <span class="n">line_chars</span> <span class="o">//</span> <span class="n">item_chars</span>
+    <span class="k">if</span> <span class="n">num_cols</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">num_cols</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">num_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">//</span> <span class="n">num_cols</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">%</span> <span class="n">num_cols</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">num_rows</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">row_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_rows</span><span class="p">):</span>
+        <span class="n">row_items</span> <span class="o">=</span> <span class="n">items</span><span class="p">[</span><span class="n">row_num</span><span class="p">::</span><span class="n">num_rows</span><span class="p">]</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">item_chars</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">row_items</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_bindir_options</span><span class="p">(</span><span class="n">previous</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate install location options based on platform and filesystem access.&quot;&quot;&quot;</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># key is an option name, value is (optpath, optinfo)</span>
+    <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">previous</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="c1"># Make previous bindir as the first option</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;:prev&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">previous</span><span class="p">,</span> <span class="s2">&quot;previously selected bindir&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">within_flopy</span><span class="p">:</span>  <span class="c1"># don&#39;t check is_dir() or access yet</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;:flopy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">flopy_appdata_path</span> <span class="o">/</span> <span class="s2">&quot;bin&quot;</span><span class="p">,</span> <span class="s2">&quot;used by FloPy&quot;</span><span class="p">)</span>
+    <span class="c1"># Python bin (same for standard or conda varieties)</span>
+    <span class="n">py_bin</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+        <span class="s2">&quot;Scripts&quot;</span> <span class="k">if</span> <span class="n">get_ostag</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;win&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;bin&quot;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">py_bin</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">py_bin</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;:python&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">py_bin</span><span class="p">,</span> <span class="s2">&quot;used by Python&quot;</span><span class="p">)</span>
+    <span class="n">home_local_bin</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.local&quot;</span> <span class="o">/</span> <span class="s2">&quot;bin&quot;</span>
+    <span class="k">if</span> <span class="n">home_local_bin</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">home_local_bin</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;:home&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">home_local_bin</span><span class="p">,</span> <span class="s2">&quot;user-specific bindir&quot;</span><span class="p">)</span>
+    <span class="n">local_bin</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/usr&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;local&quot;</span> <span class="o">/</span> <span class="s2">&quot;bin&quot;</span>
+    <span class="k">if</span> <span class="n">local_bin</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">local_bin</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;:system&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">local_bin</span><span class="p">,</span> <span class="s2">&quot;system local bindir&quot;</span><span class="p">)</span>
+    <span class="c1"># Windows user</span>
+    <span class="n">windowsapps_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%LOCALAPPDATA%\Microsoft\WindowsApps&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">windowsapps_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">windowsapps_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;:windowsapps&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">windowsapps_dir</span><span class="p">,</span> <span class="s2">&quot;User App path&quot;</span><span class="p">)</span>
+
+    <span class="c1"># any other possible OS-specific hard-coded locations?</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;could not find any installable folders&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">options</span>
+
+
+<span class="k">def</span> <span class="nf">select_bindir</span><span class="p">(</span><span class="n">bindir</span><span class="p">,</span> <span class="n">previous</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">is_cli</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve an install location if provided, or prompt interactive user to select one.&quot;&quot;&quot;</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">get_bindir_options</span><span class="p">(</span><span class="n">previous</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bindir</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># auto-select mode</span>
+        <span class="c1"># match one option that starts with input, e.g. :Py -&gt; :python</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">opt</span> <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="n">options</span> <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">bindir</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sel</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">opt_avail</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">opt</span><span class="si">}</span><span class="s2">&#39; for &#39;</span><span class="si">{</span><span class="n">optpath</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="k">for</span> <span class="n">opt</span><span class="p">,</span> <span class="p">(</span><span class="n">optpath</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;invalid option &#39;</span><span class="si">{</span><span class="n">bindir</span><span class="si">}</span><span class="s2">&#39;, choose from: </span><span class="si">{</span><span class="n">opt_avail</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;auto-selecting option </span><span class="si">{</span><span class="n">sel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> for &#39;</span><span class="si">{</span><span class="n">bindir</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="n">sel</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_cli</span><span class="p">:</span>
+            <span class="n">opt_avail</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">opt</span><span class="si">}</span><span class="s2">&#39; for &#39;</span><span class="si">{</span><span class="n">optpath</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="k">for</span> <span class="n">opt</span><span class="p">,</span> <span class="p">(</span><span class="n">optpath</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;specify the option, choose from: </span><span class="si">{</span><span class="n">opt_avail</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">ioptions</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;select a number to extract executables to a directory:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">iopt</span><span class="p">,</span> <span class="n">opt</span> <span class="ow">in</span> <span class="n">ioptions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">optpath</span><span class="p">,</span> <span class="n">optinfo</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="n">opt</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">iopt</span><span class="si">}</span><span class="s2">: &#39;</span><span class="si">{</span><span class="n">optpath</span><span class="si">}</span><span class="s2">&#39; -- </span><span class="si">{</span><span class="n">optinfo</span><span class="si">}</span><span class="s2"> (&#39;</span><span class="si">{</span><span class="n">opt</span><span class="si">}</span><span class="s2">&#39;)&quot;</span><span class="p">)</span>
+        <span class="n">num_tries</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">num_tries</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;&gt; &quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">opt</span> <span class="o">=</span> <span class="n">ioptions</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;selecting option </span><span class="si">{</span><span class="n">opt</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="n">opt</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">num_tries</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;invalid option, try choosing option again&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="s2">&quot;invalid option, too many attempts&quot;</span>
+                    <span class="p">)</span> <span class="kn">from</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="run_main"><a class="viewcode-back" href="../../../source/flopy.utils.get_modflow.html#flopy.utils.get_modflow.run_main">[docs]</a><span class="k">def</span> <span class="nf">run_main</span><span class="p">(</span>
+    <span class="n">bindir</span><span class="p">,</span>
+    <span class="n">repo</span><span class="o">=</span><span class="s2">&quot;executables&quot;</span><span class="p">,</span>
+    <span class="n">release_id</span><span class="o">=</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span>
+    <span class="n">ostag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">subset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">downloads_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">_is_cli</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run main method to get MODFLOW and related programs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bindir : str or Path</span>
+<span class="sd">        Writable path to extract executables. Auto-select options start with a</span>
+<span class="sd">        colon character. See error message or other documentation for further</span>
+<span class="sd">        information on auto-select options.</span>
+<span class="sd">    repo : str, default &quot;executables&quot;</span>
+<span class="sd">        Name of GitHub repository. Choose one of &quot;executables&quot; (default),</span>
+<span class="sd">        &quot;modflow6&quot;, or &quot;modflow6-nightly-build&quot;.</span>
+<span class="sd">    release_id : str, default &quot;latest&quot;</span>
+<span class="sd">        GitHub release ID.</span>
+<span class="sd">    ostag : str, optional</span>
+<span class="sd">        Operating system tag; default is to automatically choose.</span>
+<span class="sd">    subset : list, set or str, optional</span>
+<span class="sd">        Optional subset of executables to extract, specified as a list (e.g.)</span>
+<span class="sd">        ``[&quot;mfnwt&quot;, &quot;mp6&quot;]`` or a comma-separated string &quot;mfnwt,mp6&quot;.</span>
+<span class="sd">    downloads_dir : str or Path, optional</span>
+<span class="sd">        Manually specify directory to download archives. Default is to use</span>
+<span class="sd">        home Downloads, if available, otherwise a temporary directory.</span>
+<span class="sd">    force : bool, default False</span>
+<span class="sd">        If True, always download archive. Default False will use archive if</span>
+<span class="sd">        previously downloaded in ``downloads_dir``.</span>
+<span class="sd">    quiet : bool, default False</span>
+<span class="sd">        If True, show fewer messages.</span>
+<span class="sd">    _is_cli : bool, default False</span>
+<span class="sd">        Control behavior of method if this is run as a command-line interface</span>
+<span class="sd">        or as a Python function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">meta_path</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">prev_bindir</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">flopy_bin</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">within_flopy</span><span class="p">:</span>
+        <span class="n">meta_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Store metadata and possibly &#39;bin&#39; in a user-writable path</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">flopy_appdata_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">flopy_appdata_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">flopy_bin</span> <span class="o">=</span> <span class="n">flopy_appdata_path</span> <span class="o">/</span> <span class="s2">&quot;bin&quot;</span>
+        <span class="n">meta_path</span> <span class="o">=</span> <span class="n">flopy_appdata_path</span> <span class="o">/</span> <span class="s2">&quot;get_modflow.json&quot;</span>
+        <span class="n">meta_path_exists</span> <span class="o">=</span> <span class="n">meta_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">meta_path_exists</span><span class="p">:</span>
+            <span class="n">del_meta_path</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">meta_list</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">meta_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot read flopy metadata file &#39;</span><span class="si">{</span><span class="n">meta_path</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                    <span class="n">meta_path</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">):</span>
+                    <span class="n">del_meta_path</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">prev_bindir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">meta_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;bindir&quot;</span><span class="p">])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+                <span class="n">del_meta_path</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">del_meta_path</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">meta_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+                    <span class="n">meta_path_exists</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;removed corrupt flopy metadata file &#39;</span><span class="si">{</span><span class="n">meta_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot remove flopy metadata file: </span><span class="si">{</span><span class="n">err</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">meta_path</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">ostag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ostag</span> <span class="o">=</span> <span class="n">get_ostag</span><span class="p">()</span>
+
+    <span class="n">exe_suffix</span><span class="p">,</span> <span class="n">lib_suffix</span> <span class="o">=</span> <span class="n">get_suffixes</span><span class="p">(</span><span class="n">ostag</span><span class="p">)</span>
+
+    <span class="c1"># select bindir if path not provided</span>
+    <span class="k">if</span> <span class="n">bindir</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">):</span>
+        <span class="n">bindir</span> <span class="o">=</span> <span class="n">select_bindir</span><span class="p">(</span>
+            <span class="n">bindir</span><span class="p">,</span> <span class="n">previous</span><span class="o">=</span><span class="n">prev_bindir</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="n">quiet</span><span class="p">,</span> <span class="n">is_cli</span><span class="o">=</span><span class="n">_is_cli</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bindir</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid bindir option (expected string or Path)&quot;</span><span class="p">)</span>
+    <span class="n">bindir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">bindir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="c1"># make sure bindir exists</span>
+    <span class="k">if</span> <span class="n">bindir</span> <span class="o">==</span> <span class="n">flopy_bin</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">within_flopy</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;option &#39;:flopy&#39; is only for flopy&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">flopy_bin</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="c1"># special case option that can create non-existing directory</span>
+            <span class="n">flopy_bin</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bindir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;extraction directory &#39;</span><span class="si">{</span><span class="n">bindir</span><span class="si">}</span><span class="s2">&#39; does not exist&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">bindir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;extraction directory &#39;</span><span class="si">{</span><span class="n">bindir</span><span class="si">}</span><span class="s2">&#39; is not writable&quot;</span><span class="p">)</span>
+
+    <span class="c1"># make sure repo option is valid</span>
+    <span class="k">if</span> <span class="n">repo</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">available_repos</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;repo </span><span class="si">{</span><span class="n">repo</span><span class="si">!r}</span><span class="s2"> not supported; choose one of </span><span class="si">{</span><span class="n">available_repos</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># get the selected release</span>
+    <span class="n">release</span> <span class="o">=</span> <span class="n">get_release</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">release_id</span><span class="p">,</span> <span class="n">quiet</span><span class="p">)</span>
+    <span class="n">assets</span> <span class="o">=</span> <span class="n">release</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assets&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+    <span class="c1"># Windows 64-bit asset in modflow6 repo release has no OS tag</span>
+    <span class="k">if</span> <span class="n">repo</span> <span class="o">==</span> <span class="s2">&quot;modflow6&quot;</span> <span class="ow">and</span> <span class="n">ostag</span> <span class="o">==</span> <span class="s2">&quot;win64&quot;</span><span class="p">:</span>
+        <span class="n">asset</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ostag</span> <span class="ow">in</span> <span class="n">asset</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]:</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;could not find ostag </span><span class="si">{</span><span class="n">ostag</span><span class="si">!r}</span><span class="s2"> from release </span><span class="si">{</span><span class="n">release</span><span class="p">[</span><span class="s1">&#39;tag_name&#39;</span><span class="p">]</span><span class="si">!r}</span><span class="s2">; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;see available assets here:</span><span class="se">\n</span><span class="si">{</span><span class="n">release</span><span class="p">[</span><span class="s1">&#39;html_url&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="n">asset_name</span> <span class="o">=</span> <span class="n">asset</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+    <span class="n">download_url</span> <span class="o">=</span> <span class="n">asset</span><span class="p">[</span><span class="s2">&quot;browser_download_url&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">repo</span> <span class="o">==</span> <span class="s2">&quot;modflow6&quot;</span><span class="p">:</span>
+        <span class="n">asset_pth</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">asset_name</span><span class="p">)</span>
+        <span class="n">asset_stem</span> <span class="o">=</span> <span class="n">asset_pth</span><span class="o">.</span><span class="n">stem</span>
+        <span class="n">asset_suffix</span> <span class="o">=</span> <span class="n">asset_pth</span><span class="o">.</span><span class="n">suffix</span>
+        <span class="n">dst_fname</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">repo</span><span class="p">,</span> <span class="n">release</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">],</span> <span class="n">ostag</span><span class="p">])</span> <span class="o">+</span> <span class="n">asset_suffix</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># change local download name so it is more unique</span>
+        <span class="n">dst_fname</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">renamed_prefix</span><span class="p">[</span><span class="n">repo</span><span class="p">],</span> <span class="n">release</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">],</span> <span class="n">asset_name</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="n">tmpdir</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">downloads_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">downloads_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;Downloads&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">downloads_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">downloads_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">)):</span>
+            <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span>
+            <span class="n">downloads_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmpdir</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># check user-defined</span>
+        <span class="n">downloads_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">downloads_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">downloads_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;downloads directory &#39;</span><span class="si">{</span><span class="n">downloads_dir</span><span class="si">}</span><span class="s2">&#39; does not exist&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">downloads_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;downloads directory &#39;</span><span class="si">{</span><span class="n">downloads_dir</span><span class="si">}</span><span class="s2">&#39; is not writable&quot;</span>
+            <span class="p">)</span>
+    <span class="n">download_pth</span> <span class="o">=</span> <span class="n">downloads_dir</span> <span class="o">/</span> <span class="n">dst_fname</span>
+    <span class="k">if</span> <span class="n">download_pth</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;using previous download &#39;</span><span class="si">{</span><span class="n">download_pth</span><span class="si">}</span><span class="s2">&#39; (use &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;--force&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">_is_cli</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;force=True&#39;</span><span class="si">!r}</span><span class="s2"> to re-download)&quot;</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;downloading &#39;</span><span class="si">{</span><span class="n">download_url</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">download_pth</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">download_url</span><span class="p">,</span> <span class="n">download_pth</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">subset</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subset</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">subset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">subset</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">subset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">subset</span><span class="p">)</span>
+
+    <span class="c1"># Open archive and extract files</span>
+    <span class="n">extract</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">chmod</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">full_path</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">meta_path</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+        <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;bindir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">bindir</span><span class="p">),</span>
+            <span class="s2">&quot;owner&quot;</span><span class="p">:</span> <span class="n">owner</span><span class="p">,</span>
+            <span class="s2">&quot;repo&quot;</span><span class="p">:</span> <span class="n">repo</span><span class="p">,</span>
+            <span class="s2">&quot;release_id&quot;</span><span class="p">:</span> <span class="n">release</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">asset_name</span><span class="p">,</span>
+            <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">asset</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;extracted_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">subset</span><span class="p">:</span>
+            <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;subset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">subset</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">download_pth</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">zipf</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">repo</span> <span class="o">==</span> <span class="s2">&quot;modflow6&quot;</span><span class="p">:</span>
+            <span class="c1"># modflow6 release contains the whole repo with an internal bindir</span>
+            <span class="k">for</span> <span class="n">pth</span> <span class="ow">in</span> <span class="n">zipf</span><span class="o">.</span><span class="n">namelist</span><span class="p">():</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">pth</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;bin&quot;</span><span class="p">:</span>
+                    <span class="n">full_path</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pth</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">full_path</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># assume all files to be extracted</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">zipf</span><span class="o">.</span><span class="n">namelist</span><span class="p">())</span>
+
+        <span class="n">code</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="s2">&quot;code.json&quot;</span> <span class="ow">in</span> <span class="n">files</span> <span class="ow">and</span> <span class="n">repo</span> <span class="o">==</span> <span class="s2">&quot;executables&quot;</span><span class="p">:</span>
+            <span class="c1"># don&#39;t extract this file</span>
+            <span class="n">files</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;code.json&quot;</span><span class="p">)</span>
+            <span class="n">code_bytes</span> <span class="o">=</span> <span class="n">zipf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;code.json&quot;</span><span class="p">)</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">code_bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">meta_path</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">hashlib</span>
+
+                <span class="n">code_md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">code_bytes</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+                <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;code_json_md5&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">code_md5</span>
+
+        <span class="k">if</span> <span class="n">subset</span><span class="p">:</span>
+            <span class="n">nosub</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">subset_keys</span> <span class="o">=</span> <span class="n">files</span>
+            <span class="k">if</span> <span class="n">code</span><span class="p">:</span>
+                <span class="n">subset_keys</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">not_found</span> <span class="o">=</span> <span class="n">subset</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">subset_keys</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">not_found</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;subset item</span><span class="si">{</span><span class="s1">&#39;s&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;not found: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">not_found</span><span class="p">))</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;available items are:</span><span class="se">\n</span><span class="si">{</span><span class="n">columns_str</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">subset_keys</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nosub</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">subset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">code</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">add_item</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">do_chmod</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                    <span class="n">extract</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                    <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">code</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">do_chmod</span><span class="p">:</span>
+                        <span class="n">chmod</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;file </span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">code</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shared_object&quot;</span><span class="p">):</span>
+                    <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">lib_suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">nosub</span> <span class="ow">or</span> <span class="p">(</span>
+                        <span class="n">subset</span> <span class="ow">and</span> <span class="p">(</span><span class="n">key</span> <span class="ow">in</span> <span class="n">subset</span> <span class="ow">or</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">subset</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="n">add_item</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">do_chmod</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">exe_suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">nosub</span> <span class="ow">or</span> <span class="p">(</span>
+                        <span class="n">subset</span> <span class="ow">and</span> <span class="p">(</span><span class="n">key</span> <span class="ow">in</span> <span class="n">subset</span> <span class="ow">or</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">subset</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="n">add_item</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">do_chmod</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="c1"># check if double version exists</span>
+                    <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">dbl</span><span class="si">{</span><span class="n">exe_suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">code</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;double_switch&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files</span>
+                        <span class="ow">and</span> <span class="p">(</span>
+                            <span class="n">nosub</span>
+                            <span class="ow">or</span> <span class="p">(</span><span class="n">subset</span> <span class="ow">and</span> <span class="p">(</span><span class="n">key</span> <span class="ow">in</span> <span class="n">subset</span> <span class="ow">or</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">subset</span><span class="p">))</span>
+                        <span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="n">add_item</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">do_chmod</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># releases without code.json</span>
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">nosub</span> <span class="ow">or</span> <span class="p">(</span><span class="n">subset</span> <span class="ow">and</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">subset</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">full_path</span><span class="p">:</span>
+                        <span class="n">extract</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">full_path</span><span class="p">[</span><span class="n">fname</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">extract</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                    <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">lib_suffix</span><span class="p">):</span>
+                        <span class="n">chmod</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;extracting </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">extract</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;file</span><span class="si">{</span><span class="s1">&#39;s&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">extract</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> to &#39;</span><span class="si">{</span><span class="n">bindir</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">zipf</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">bindir</span><span class="p">,</span> <span class="n">members</span><span class="o">=</span><span class="n">extract</span><span class="p">)</span>
+
+    <span class="c1"># If this is a TemporaryDirectory, then delete the directory and files</span>
+    <span class="k">del</span> <span class="n">tmpdir</span>
+
+    <span class="k">if</span> <span class="n">full_path</span><span class="p">:</span>
+        <span class="c1"># move files that used a full path to bindir</span>
+        <span class="n">rmdirs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">fpath</span> <span class="ow">in</span> <span class="n">extract</span><span class="p">:</span>
+            <span class="n">fpath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span>
+            <span class="n">bindir_path</span> <span class="o">=</span> <span class="n">bindir</span> <span class="o">/</span> <span class="n">fpath</span>
+            <span class="n">bindir_path</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">bindir</span> <span class="o">/</span> <span class="n">fpath</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">rmdirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fpath</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+        <span class="c1"># clean up directories, starting with the longest</span>
+        <span class="k">for</span> <span class="n">rmdir</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">rmdirs</span><span class="p">)):</span>
+            <span class="n">bindir_path</span> <span class="o">=</span> <span class="n">bindir</span> <span class="o">/</span> <span class="n">rmdir</span>
+            <span class="n">bindir_path</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="n">rmdir</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
+                <span class="n">bindir_path</span> <span class="o">=</span> <span class="n">bindir</span> <span class="o">/</span> <span class="n">subdir</span>
+                <span class="k">if</span> <span class="n">bindir_path</span> <span class="o">==</span> <span class="n">bindir</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">bindir_path</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">ostag</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;linux&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">]:</span>
+        <span class="c1"># similar to &quot;chmod +x fname&quot; for each executable</span>
+        <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">chmod</span><span class="p">:</span>
+            <span class="n">pth</span> <span class="o">=</span> <span class="n">bindir</span> <span class="o">/</span> <span class="n">fname</span>
+            <span class="n">pth</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">pth</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mode</span> <span class="o">|</span> <span class="mo">0o111</span><span class="p">)</span>
+
+    <span class="c1"># Show listing</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">columns_str</span><span class="p">(</span><span class="n">items</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">subset</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">full_path</span><span class="p">:</span>
+                <span class="n">extract</span> <span class="o">=</span> <span class="p">{</span><span class="n">Path</span><span class="p">(</span><span class="n">fpth</span><span class="p">)</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">fpth</span> <span class="ow">in</span> <span class="n">extract</span><span class="p">}</span>
+            <span class="n">unexpected</span> <span class="o">=</span> <span class="n">extract</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">unexpected</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unexpected remaining </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">unexpected</span><span class="p">)</span><span class="si">}</span><span class="s2"> files:&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">columns_str</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unexpected</span><span class="p">)))</span>
+
+    <span class="c1"># Save metadata, only for flopy</span>
+    <span class="k">if</span> <span class="n">meta_path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;pytest&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">bindir</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;pytest&quot;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t write metadata if this is part of pytest</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;skipping writing flopy metadata for pytest&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">meta_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">flopy_appdata_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">flopy_appdata_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">meta_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">meta_list</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot write flopy metadata file: &#39;</span><span class="si">{</span><span class="n">meta_path</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">err</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">meta_path_exists</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;updated flopy metadata file: &#39;</span><span class="si">{</span><span class="n">meta_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;wrote new flopy metadata file: &#39;</span><span class="si">{</span><span class="n">meta_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">cli_main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Command-line interface.&quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">argparse</span>
+
+    <span class="c1"># Show meaningful examples at bottom of help</span>
+    <span class="n">prog</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">stem</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;win&quot;</span><span class="p">):</span>
+        <span class="n">drv</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;c:/&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">drv</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">example_bindir</span> <span class="o">=</span> <span class="n">drv</span> <span class="o">/</span> <span class="s2">&quot;path&quot;</span> <span class="o">/</span> <span class="s2">&quot;to&quot;</span> <span class="o">/</span> <span class="s2">&quot;bin&quot;</span>
+    <span class="n">examples</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">Examples:</span>
+
+<span class="s2">  Install executables into an existing &#39;</span><span class="si">{</span><span class="n">example_bindir</span><span class="si">}</span><span class="s2">&#39; directory:</span>
+<span class="s2">    $ </span><span class="si">{</span><span class="n">prog</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">example_bindir</span><span class="si">}</span>
+
+<span class="s2">  Install a development snapshot of MODFLOW 6 by choosing a repo:</span>
+<span class="s2">    $ </span><span class="si">{</span><span class="n">prog</span><span class="si">}</span><span class="s2"> --repo modflow6-nightly-build </span><span class="si">{</span><span class="n">example_bindir</span><span class="si">}</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">within_flopy</span><span class="p">:</span>
+        <span class="n">examples</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+
+<span class="s2">  FloPy users can install executables using a special option:</span>
+<span class="s2">    $ </span><span class="si">{</span><span class="n">prog</span><span class="si">}</span><span class="s2"> :flopy</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">,</span>
+        <span class="n">epilog</span><span class="o">=</span><span class="n">examples</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">bindir_help</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;Directory to extract executables. Use &#39;:&#39; to interactively select an &quot;</span>
+        <span class="s2">&quot;option of paths. Other auto-select options are only available if the &quot;</span>
+        <span class="s2">&quot;current user can write files. &quot;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">within_flopy</span><span class="p">:</span>
+        <span class="n">bindir_help</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="s2">&quot;Option &#39;:prev&#39; is the previously used &#39;bindir&#39; path selection. &quot;</span>
+            <span class="s2">&quot;Option &#39;:flopy&#39; will create and install programs for FloPy. &quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;win&quot;</span><span class="p">):</span>
+        <span class="n">bindir_help</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="s2">&quot;Option &#39;:python&#39; is Python&#39;s Scripts directory. &quot;</span>
+            <span class="s2">&quot;Option &#39;:windowsapps&#39; is &quot;</span>
+            <span class="s2">&quot;&#39;</span><span class="si">%%</span><span class="s2">LOCALAPPDATA</span><span class="si">%%</span><span class="se">\\</span><span class="s2">Microsoft</span><span class="se">\\</span><span class="s2">WindowsApps&#39;.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">bindir_help</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="s2">&quot;Option &#39;:python&#39; is Python&#39;s bin directory. &quot;</span>
+            <span class="s2">&quot;Option &#39;:home&#39; is &#39;$HOME/.local/bin&#39;. &quot;</span>
+            <span class="s2">&quot;Option &#39;:system&#39; is &#39;/usr/local/bin&#39;.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;bindir&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">bindir_help</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--repo&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">available_repos</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;executables&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of GitHub repository; default is &#39;executables&#39;.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--release-id&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;GitHub release ID; default is &#39;latest&#39;.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--ostag&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">available_ostags</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Operating system tag; default is to automatically choose.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--subset&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Subset of executables to extract, specified as a &quot;</span>
+        <span class="s2">&quot;comma-separated string, e.g. &#39;mfnwt,mp6&#39;.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--downloads-dir&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Manually specify directory to download archives.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--force&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Force re-download archive. Default behavior will use archive if &quot;</span>
+        <span class="s2">&quot;previously downloaded in downloads-dir.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--quiet&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Show fewer messages.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">())</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">run_main</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">,</span> <span class="n">_is_cli</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">EOFError</span><span class="p">,</span> <span class="ne">KeyboardInterrupt</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; cancelling &#39;</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run command-line interface, if run as a script.&quot;&quot;&quot;</span>
+    <span class="n">cli_main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

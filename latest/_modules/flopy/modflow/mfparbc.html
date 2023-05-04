@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfparbc &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfparbc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfparbc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfparbc module.  Contains the ModflowParBc class. Note that the user can access</span>
+<span class="sd">the ModflowParBc class as `flopy.modflow.ModflowParBc`.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_strip</span><span class="p">,</span> <span class="n">ulstrd</span>
+
+
+<div class="viewcode-block" id="ModflowParBc"><a class="viewcode-back" href="../../../source/flopy.modflow.mfparbc.html#flopy.modflow.mfparbc.ModflowParBc">[docs]</a><span class="k">class</span> <span class="nc">ModflowParBc</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for loading boundary condition parameter data for MODFLOW packages</span>
+<span class="sd">    that use list data (WEL, GHB, DRN, etc.). This Class is also used to</span>
+<span class="sd">    create hfb6 data from hfb parameters. Class also includes methods to</span>
+<span class="sd">    create data arrays using pval and boundary condition parameter data.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are supported in Flopy only when reading in existing models.</span>
+<span class="sd">    Parameter values are converted to native values in Flopy and the</span>
+<span class="sd">    connection to &quot;parameters&quot; is thus nonexistent.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bc_parms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Package constructor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bc_parms</span> <span class="o">=</span> <span class="n">bc_parms</span>
+
+<div class="viewcode-block" id="ModflowParBc.get"><a class="viewcode-back" href="../../../source/flopy.modflow.mfparbc.html#flopy.modflow.mfparbc.ModflowParBc.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fkey</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        overload get to return a value from the bc_parms dictionary</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_parms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">fkey</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_parms</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ModflowParBc.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfparbc.html#flopy.modflow.mfparbc.ModflowParBc.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">npar</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load bc property parameters from an existing bc package</span>
+<span class="sd">        that uses list data (e.g. WEL, RIV, etc.).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : file handle</span>
+
+<span class="sd">        npar : int</span>
+<span class="sd">            The number of parameters.</span>
+
+<span class="sd">        dt : numpy.dtype</span>
+<span class="sd">            numpy.dtype for the particular list boundary condition.</span>
+
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag to control output. (default is False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dictionary : dictionary object with parameters in file f</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nitems</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="c1"># read parameter data</span>
+        <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bc_parms</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npar</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">parnam</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">parnam</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+                    <span class="n">parnam</span> <span class="o">=</span> <span class="n">parnam</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="k">if</span> <span class="n">parnam</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+                    <span class="n">parnam</span> <span class="o">=</span> <span class="n">parnam</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;   loading parameter &quot;</span><span class="si">{</span><span class="n">parnam</span><span class="si">}</span><span class="s1">&quot;...&#39;</span><span class="p">)</span>
+                <span class="n">partyp</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">parval</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">nlst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">numinst</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">timeVarying</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s2">&quot;instances&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                        <span class="n">numinst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                        <span class="n">timeVarying</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">pinst</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numinst</span><span class="p">):</span>
+                    <span class="c1"># read instance name</span>
+                    <span class="k">if</span> <span class="n">timeVarying</span><span class="p">:</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="n">instnam</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">instnam</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+
+                    <span class="n">ra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nlst</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+                    <span class="c1"># todo: if sfac is used for parameter definition, then</span>
+                    <span class="c1"># the empty list on the next line needs to be the package</span>
+                    <span class="c1"># get_sfac_columns</span>
+                    <span class="n">bcinst</span> <span class="o">=</span> <span class="n">ulstrd</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nlst</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">[],</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+                    <span class="n">pinst</span><span class="p">[</span><span class="n">instnam</span><span class="p">]</span> <span class="o">=</span> <span class="n">bcinst</span>
+                <span class="n">bc_parms</span><span class="p">[</span><span class="n">parnam</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;partyp&quot;</span><span class="p">:</span> <span class="n">partyp</span><span class="p">,</span>
+                        <span class="s2">&quot;parval&quot;</span><span class="p">:</span> <span class="n">parval</span><span class="p">,</span>
+                        <span class="s2">&quot;nlst&quot;</span><span class="p">:</span> <span class="n">nlst</span><span class="p">,</span>
+                        <span class="s2">&quot;timevarying&quot;</span><span class="p">:</span> <span class="n">timeVarying</span><span class="p">,</span>
+                    <span class="p">},</span>
+                    <span class="n">pinst</span><span class="p">,</span>
+                <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">bc_parms</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowParBc.loadarray"><a class="viewcode-back" href="../../../source/flopy.modflow.mfparbc.html#flopy.modflow.mfparbc.ModflowParBc.loadarray">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">loadarray</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">npar</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load bc property parameters from an existing bc package</span>
+<span class="sd">        that uses array data (e.g. RCH, EVT).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : file handle</span>
+
+<span class="sd">        npar : int</span>
+<span class="sd">            The number of parameters.</span>
+
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag to control output. (default is False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dictionary : dictionary object with parameters in file f</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># read parameter data</span>
+        <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bc_parms</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npar</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">parnam</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;   loading parameter &quot;</span><span class="si">{</span><span class="n">parnam</span><span class="si">}</span><span class="s1">&quot;...&#39;</span><span class="p">)</span>
+                <span class="n">partyp</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">parval</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">nclu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">numinst</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">timeVarying</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s2">&quot;instances&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                        <span class="n">numinst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                        <span class="n">timeVarying</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">pinst</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numinst</span><span class="p">):</span>
+                    <span class="c1"># read instance name</span>
+                    <span class="k">if</span> <span class="n">timeVarying</span><span class="p">:</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="n">instnam</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">instnam</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+                    <span class="n">bcinst</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="k">for</span> <span class="n">nc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nclu</span><span class="p">):</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="n">bnd</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                        <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+                            <span class="n">bnd</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">iz</span> <span class="o">=</span> <span class="p">[]</span>
+                            <span class="k">for</span> <span class="n">jdx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)):</span>
+                                <span class="k">try</span><span class="p">:</span>
+                                    <span class="n">ival</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">jdx</span><span class="p">])</span>
+                                    <span class="k">if</span> <span class="n">ival</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                                        <span class="n">iz</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ival</span><span class="p">)</span>
+                                <span class="k">except</span><span class="p">:</span>
+                                    <span class="k">break</span>
+                            <span class="n">bnd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iz</span><span class="p">)</span>
+                        <span class="n">bcinst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bnd</span><span class="p">)</span>
+                    <span class="n">pinst</span><span class="p">[</span><span class="n">instnam</span><span class="p">]</span> <span class="o">=</span> <span class="n">bcinst</span>
+                <span class="n">bc_parms</span><span class="p">[</span><span class="n">parnam</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;partyp&quot;</span><span class="p">:</span> <span class="n">partyp</span><span class="p">,</span>
+                        <span class="s2">&quot;parval&quot;</span><span class="p">:</span> <span class="n">parval</span><span class="p">,</span>
+                        <span class="s2">&quot;nclu&quot;</span><span class="p">:</span> <span class="n">nclu</span><span class="p">,</span>
+                        <span class="s2">&quot;timevarying&quot;</span><span class="p">:</span> <span class="n">timeVarying</span><span class="p">,</span>
+                    <span class="p">},</span>
+                    <span class="n">pinst</span><span class="p">,</span>
+                <span class="p">]</span>
+
+        <span class="c1"># print bc_parms</span>
+        <span class="n">bcpar</span> <span class="o">=</span> <span class="n">ModflowParBc</span><span class="p">(</span><span class="n">bc_parms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bcpar</span></div>
+
+<div class="viewcode-block" id="ModflowParBc.parameter_bcfill"><a class="viewcode-back" href="../../../source/flopy.modflow.mfparbc.html#flopy.modflow.mfparbc.ModflowParBc.parameter_bcfill">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">parameter_bcfill</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">pak_parms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill an array with parameters using zone, mult, and pval data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+
+<span class="sd">        shape : tuple</span>
+<span class="sd">            The shape of the returned data array. Typically shape is (nrow, ncol)</span>
+
+<span class="sd">        parm_dict : list</span>
+<span class="sd">            dictionary of parameter instances</span>
+
+<span class="sd">        pak_parms : dict</span>
+<span class="sd">            dictionary that includes all of the parameter data for a package</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        data : numpy array</span>
+<span class="sd">            Filled array resulting from applications of zone, mult, pval, and</span>
+<span class="sd">            parameter data.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        for rch and evt</span>
+<span class="sd">        &gt;&gt;&gt; data = flopy.modflow.mfparbc.ModflowParBc.parameter_bcfill(m, (nrow, ncol),</span>
+<span class="sd">        &gt;&gt;&gt; .......&#39;rech&#39;, parm_dict, pak_parms)</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parm_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># print key, value</span>
+            <span class="n">pdict</span><span class="p">,</span> <span class="n">idict</span> <span class="o">=</span> <span class="n">pak_parms</span><span class="o">.</span><span class="n">bc_parms</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">inst_data</span> <span class="o">=</span> <span class="n">idict</span><span class="p">[</span><span class="n">value</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">pval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pdict</span><span class="p">[</span><span class="s2">&quot;parval&quot;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">pv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">pval</span><span class="o">.</span><span class="n">pval_dict</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">pv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pdict</span><span class="p">[</span><span class="s2">&quot;parval&quot;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="p">[</span><span class="n">mltarr</span><span class="p">,</span> <span class="n">zonarr</span><span class="p">,</span> <span class="n">izones</span><span class="p">]</span> <span class="ow">in</span> <span class="n">inst_data</span><span class="p">:</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">parameter_load</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="c1"># print mltarr, zonarr, izones</span>
+                <span class="k">if</span> <span class="n">mltarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                    <span class="n">mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">mult</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">mult</span><span class="o">.</span><span class="n">mult_dict</span><span class="p">[</span><span class="n">mltarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()][:,</span> <span class="p">:]</span>
+                <span class="k">if</span> <span class="n">zonarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">pv</span> <span class="o">*</span> <span class="n">mult</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">mult_save</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mult</span><span class="p">)</span>
+                    <span class="n">za</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">zone_dict</span><span class="p">[</span><span class="n">zonarr</span><span class="o">.</span><span class="n">lower</span><span class="p">()][:,</span> <span class="p">:]</span>
+                    <span class="c1"># build a multiplier for all of the izones</span>
+                    <span class="n">mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">iz</span> <span class="ow">in</span> <span class="n">izones</span><span class="p">:</span>
+                        <span class="n">filtarr</span> <span class="o">=</span> <span class="n">za</span> <span class="o">==</span> <span class="n">iz</span>
+                        <span class="n">mult</span><span class="p">[</span><span class="n">filtarr</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mult_save</span><span class="p">[</span><span class="n">filtarr</span><span class="p">])</span>
+                    <span class="c1"># calculate parameter value for this instance</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">pv</span> <span class="o">*</span> <span class="n">mult</span>
+                <span class="n">data</span> <span class="o">+=</span> <span class="n">t</span>
+
+        <span class="k">return</span> <span class="n">data</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

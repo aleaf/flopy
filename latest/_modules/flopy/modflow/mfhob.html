@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfhob &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfhob</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfhob</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_strip</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+
+
+<div class="viewcode-block" id="ModflowHob"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhob.html#flopy.modflow.mfhob.ModflowHob">[docs]</a><span class="k">class</span> <span class="nc">ModflowHob</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Head Observation package class</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    iuhobsv : int</span>
+<span class="sd">        unit number where output is saved. If iuhobsv is None, a unit number</span>
+<span class="sd">        will be assigned (default is None).</span>
+<span class="sd">    hobdry : float</span>
+<span class="sd">        Value of the simulated equivalent written to the observation output</span>
+<span class="sd">        file when the observation is omitted because a cell is dry</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    tomulth : float</span>
+<span class="sd">        Time step multiplier for head observations. The product of tomulth and</span>
+<span class="sd">        toffset must produce a time value in units consistent with other model</span>
+<span class="sd">        input. tomulth can be dimensionless or can be used to convert the units</span>
+<span class="sd">        of toffset to the time unit used in the simulation (default is 1).</span>
+<span class="sd">    obs_data : HeadObservation or list of HeadObservation instances</span>
+<span class="sd">        A single HeadObservation instance or a list of HeadObservation</span>
+<span class="sd">        instances containing all of the data for each observation. If obs_data</span>
+<span class="sd">        is None a default HeadObservation with an observation in layer, row,</span>
+<span class="sd">        column (0, 0, 0) and a head value of 0 at totim 0 will be created</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    hobname : str</span>
+<span class="sd">        Name of head observation output file. If iuhobsv is greater than 0,</span>
+<span class="sd">        and hobname is None, the model basename with a &#39;.hob.out&#39; extension</span>
+<span class="sd">        will be used (default is None).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is hob)</span>
+<span class="sd">    no_print : boolean</span>
+<span class="sd">        When True or 1, a list of head observations will not be</span>
+<span class="sd">        written to the Listing File (default is False)</span>
+<span class="sd">    options : list of strings</span>
+<span class="sd">        Package options (default is None).</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None)</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If filenames</span>
+<span class="sd">        is None the package name will be created using the model name and</span>
+<span class="sd">        package extension and the hob output name will be created using the</span>
+<span class="sd">        model name and .hob.out extension (for example, modflowtest.hob.out),</span>
+<span class="sd">        if iuhobsv is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and hob output name will be</span>
+<span class="sd">        created using the model name and .hob.out extension, if iuhobsv is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; model = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(model, nlay=1, nrow=11, ncol=11, nper=2,</span>
+<span class="sd">    ...                                perlen=[1,1])</span>
+<span class="sd">    &gt;&gt;&gt; tsd = [[1.,54.4], [2., 55.2]]</span>
+<span class="sd">    &gt;&gt;&gt; obsdata = flopy.modflow.HeadObservation(model, layer=0, row=5,</span>
+<span class="sd">    ...                                         column=5, time_series_data=tsd)</span>
+<span class="sd">    &gt;&gt;&gt; hob = flopy.modflow.ModflowHob(model, iuhobsv=51, hobdry=-9999.,</span>
+<span class="sd">    ...                                obs_data=obsdata)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">iuhobsv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">hobdry</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">tomulth</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">obs_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">hobname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;hob&quot;</span><span class="p">,</span>
+        <span class="n">no_print</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowHob</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># set filenames[1] to hobname if filenames[1] is not None</span>
+        <span class="k">if</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">hobname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">hobname</span>
+
+        <span class="k">if</span> <span class="n">iuhobsv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">iuhobsv</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;hob.out&quot;</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iuhobsv</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;hob.html&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">iuhobsv</span> <span class="o">=</span> <span class="n">iuhobsv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hobdry</span> <span class="o">=</span> <span class="n">hobdry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tomulth</span> <span class="o">=</span> <span class="n">tomulth</span>
+
+        <span class="c1"># create default</span>
+        <span class="k">if</span> <span class="n">obs_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obs_data</span> <span class="o">=</span> <span class="n">HeadObservation</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="c1"># make sure obs_data is a list</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs_data</span><span class="p">,</span> <span class="n">HeadObservation</span><span class="p">):</span>
+            <span class="n">obs_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">obs_data</span><span class="p">]</span>
+
+        <span class="c1"># set self.obs_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obs_data</span> <span class="o">=</span> <span class="n">obs_data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_print</span> <span class="o">=</span> <span class="n">no_print</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_print</span><span class="p">:</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;NOPRINT&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+
+        <span class="c1"># add checks for input compliance (obsnam length, etc.)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the length of the obs_data list</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># make sure each entry of obs_data list is a HeadObservation instance</span>
+        <span class="c1"># and calculate nh, mobs, and maxm</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nh</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mobs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">obs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_data</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">HeadObservation</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;ModflowHob: obs_data entry </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;is not a HeadObservation instance.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nh</span> <span class="o">+=</span> <span class="n">obs</span><span class="o">.</span><span class="n">nobs</span>
+            <span class="k">if</span> <span class="n">obs</span><span class="o">.</span><span class="n">multilayer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mobs</span> <span class="o">+=</span> <span class="n">obs</span><span class="o">.</span><span class="n">nobs</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxm</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">maxm</span><span class="p">,</span> <span class="n">obs</span><span class="o">.</span><span class="n">maxm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">msg</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ModflowHob.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhob.html#flopy.modflow.mfhob.ModflowHob.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># determine the dimensions of HOB data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_dimensions</span><span class="p">()</span>
+
+        <span class="c1"># open file for writing</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 0</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nh</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mobs</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">maxm</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iuhobsv</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hobdry</span><span class="si">:</span><span class="s2">10.4g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_print</span> <span class="ow">or</span> <span class="s2">&quot;NOPRINT&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{: &gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;NOPRINT&quot;</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 2</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tomulth</span><span class="si">:</span><span class="s2">10.4g</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write datasets 3-6</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">obs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_data</span><span class="p">):</span>
+            <span class="c1"># dataset 3</span>
+            <span class="n">obsname</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">obsname</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obsname</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="n">obsname</span> <span class="o">=</span> <span class="n">obsname</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obsname</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2">   &quot;</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">layer</span>
+            <span class="k">if</span> <span class="n">layer</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">layer</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">layer</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">row</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">column</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">irefsp</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">irefsp</span>
+            <span class="k">if</span> <span class="n">irefsp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">irefsp</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">irefsp</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="k">if</span> <span class="n">obs</span><span class="o">.</span><span class="n">nobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">toffset</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;toffset&quot;</span><span class="p">]</span>
+                <span class="n">hobs</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;hobs&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">toffset</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">hobs</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">toffset</span><span class="si">:</span><span class="s2">20</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">roff</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">coff</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">hobs</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  # DATASET 3 - Observation </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># dataset 4</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">mlay</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">mlay</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">5d</span><span class="si">}{</span><span class="n">value</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  # DATASET 4 - Observation </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># dataset 5</span>
+            <span class="k">if</span> <span class="n">irefsp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">itt</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="mi">103</span> <span class="o">*</span> <span class="s2">&quot; &quot;</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  # DATASET 5 - Observation </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># dataset 6:</span>
+            <span class="k">if</span> <span class="n">obs</span><span class="o">.</span><span class="n">nobs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">jdx</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">):</span>
+                    <span class="n">obsname</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s2">&quot;obsname&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obsname</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                        <span class="n">obsname</span> <span class="o">=</span> <span class="n">obsname</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obsname</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2">   &quot;</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;irefsp&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;toffset&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">20</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;hobs&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">10.4f</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="mi">55</span> <span class="o">*</span> <span class="s2">&quot; &quot;</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  # DATASET 6 - Observation </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">jdx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># close the hob package file</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="ModflowHob.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhob.html#flopy.modflow.mfhob.ModflowHob.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+<span class="sd">        check : boolean</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hob : ModflowHob package object</span>
+<span class="sd">            ModflowHob package object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; hobs = flopy.modflow.ModflowHob.load(&#39;test.hob&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading hob package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># read dataset 1</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nh</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">iuhobsv</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">hobdry</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">iuhobsv</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">hobdry</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+        <span class="c1"># read dataset 2</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">tomulth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># read observation data</span>
+        <span class="n">obs_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># read datasets 3-6</span>
+        <span class="n">nobs</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># set to False for 1st call to ensure that totim cache is updated</span>
+        <span class="n">tmax</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">get_final_totim</span><span class="p">()</span>
+        <span class="n">use_cached_totim</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># read dataset 3</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">obsnam</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">irefsp0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">toffset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">roff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">coff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">hob</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+
+            <span class="c1"># read dataset 4 if multilayer obs</span>
+            <span class="k">if</span> <span class="n">layer</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">layer</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">mlay</span> <span class="o">=</span> <span class="p">{</span><span class="n">layer</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">mlay</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                        <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="c1"># catch case where the same layer is specified</span>
+                        <span class="c1"># more than once. In this case add previous</span>
+                        <span class="c1"># value to the current value</span>
+                        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">mlay</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                        <span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="n">mlay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                        <span class="n">mlay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">v</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">layer</span><span class="p">)):</span>
+                        <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">mlay</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                        <span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="n">mlay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                        <span class="n">mlay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">v</span>
+
+                        <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                            <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="c1"># reset layer</span>
+                <span class="n">layer</span> <span class="o">=</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">mlay</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+            <span class="c1"># read datasets 5 &amp; 6. Index loop variable</span>
+            <span class="k">if</span> <span class="n">irefsp0</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">itt</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">irefsp0</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">totim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">get_totim_from_kper_toffset</span><span class="p">(</span>
+                    <span class="n">irefsp0</span><span class="p">,</span> <span class="n">toffset</span> <span class="o">*</span> <span class="n">tomulth</span><span class="p">,</span> <span class="n">use_cached_totim</span>
+                <span class="p">)</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">obsnam</span><span class="p">]</span>
+                <span class="n">tsd</span> <span class="o">=</span> <span class="p">[</span><span class="n">totim</span><span class="p">,</span> <span class="n">hob</span><span class="p">]</span>
+                <span class="n">nobs</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">tsd</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="c1"># read data set 5</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">itt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="c1"># dataset 6</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">irefsp0</span><span class="p">)):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">line_strip</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">irefsp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                    <span class="n">toffset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="n">totim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">get_totim_from_kper_toffset</span><span class="p">(</span>
+                        <span class="n">irefsp</span><span class="p">,</span> <span class="n">toffset</span> <span class="o">*</span> <span class="n">tomulth</span><span class="p">,</span> <span class="n">use_cached_totim</span>
+                    <span class="p">)</span>
+                    <span class="n">hob</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="n">tsd</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">totim</span><span class="p">,</span> <span class="n">hob</span><span class="p">])</span>
+                    <span class="n">nobs</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">obs_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">HeadObservation</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">tomulth</span><span class="o">=</span><span class="n">tomulth</span><span class="p">,</span>
+                    <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span>
+                    <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span>
+                    <span class="n">column</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
+                    <span class="n">roff</span><span class="o">=</span><span class="n">roff</span><span class="p">,</span>
+                    <span class="n">coff</span><span class="o">=</span><span class="n">coff</span><span class="p">,</span>
+                    <span class="n">obsname</span><span class="o">=</span><span class="n">obsnam</span><span class="p">,</span>
+                    <span class="n">mlay</span><span class="o">=</span><span class="n">mlay</span><span class="p">,</span>
+                    <span class="n">itt</span><span class="o">=</span><span class="n">itt</span><span class="p">,</span>
+                    <span class="n">tmax</span><span class="o">=</span><span class="n">tmax</span><span class="p">,</span>
+                    <span class="n">time_series_data</span><span class="o">=</span><span class="n">tsd</span><span class="p">,</span>
+                    <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">nobs</span> <span class="o">==</span> <span class="n">nh</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowHob</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">iuhobsv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">iuhobsv</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">iuhobsv</span>
+                    <span class="p">)</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">iuhobsv</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">iuhobsv</span><span class="o">=</span><span class="n">iuhobsv</span><span class="p">,</span>
+            <span class="n">hobdry</span><span class="o">=</span><span class="n">hobdry</span><span class="p">,</span>
+            <span class="n">tomulth</span><span class="o">=</span><span class="n">tomulth</span><span class="p">,</span>
+            <span class="n">obs_data</span><span class="o">=</span><span class="n">obs_data</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;HOB&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">39</span></div>
+
+
+<div class="viewcode-block" id="HeadObservation"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhob.html#flopy.modflow.mfhob.HeadObservation">[docs]</a><span class="k">class</span> <span class="nc">HeadObservation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create single HeadObservation instance from a time series array. A list of</span>
+<span class="sd">    HeadObservation instances are passed to the ModflowHob package.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tomulth : float</span>
+<span class="sd">        Time-offset multiplier for head observations. Default is 1.</span>
+<span class="sd">    obsname : string</span>
+<span class="sd">        Observation name. Default is &#39;HOBS&#39;</span>
+<span class="sd">    layer : int</span>
+<span class="sd">        The zero-based layer index of the cell in which the head observation</span>
+<span class="sd">        is located. If layer is less than zero, hydraulic heads from multiple</span>
+<span class="sd">        layers are combined to calculate a simulated value. The number of</span>
+<span class="sd">        layers equals the absolute value of layer, or abs(layer). Default is 0.</span>
+<span class="sd">    row : int</span>
+<span class="sd">        The zero-based row index for the observation. Default is 0.</span>
+<span class="sd">    column : int</span>
+<span class="sd">        The zero-based column index of the observation. Default is 0.</span>
+<span class="sd">    irefsp : int</span>
+<span class="sd">        The zero-based stress period to which the observation time is</span>
+<span class="sd">        referenced.</span>
+<span class="sd">    roff : float</span>
+<span class="sd">        Fractional offset from center of cell in Y direction (between rows).</span>
+<span class="sd">        Default is 0.</span>
+<span class="sd">    coff : float</span>
+<span class="sd">        Fractional offset from center of cell in X direction (between columns).</span>
+<span class="sd">        Default is 0.</span>
+<span class="sd">    itt : int</span>
+<span class="sd">        Flag that identifies whether head or head changes are used as</span>
+<span class="sd">        observations. itt = 1 specified for heads and itt = 2 specified</span>
+<span class="sd">        if initial value is head and subsequent changes in head. Only</span>
+<span class="sd">        specified if irefsp is &lt; 0. Default is 1.</span>
+<span class="sd">    tmax : float</span>
+<span class="sd">        Maximum simulation time calculated using get_final_totim function of</span>
+<span class="sd">        ModflowDis. Added to avoid repetitive calls.</span>
+<span class="sd">    mlay : dictionary of length (abs(irefsp))</span>
+<span class="sd">        Key represents zero-based layer numbers for multilayer observations and</span>
+<span class="sd">        value represents the fractional value for each layer of multilayer</span>
+<span class="sd">        observations. If mlay is None, a default mlay of {0: 1.} will be</span>
+<span class="sd">        used (default is None).</span>
+<span class="sd">    time_series_data : list or numpy array</span>
+<span class="sd">        Two-dimensional list or numpy array containing the simulation time of</span>
+<span class="sd">        the observation and the observed head [[totim, hob]]. If</span>
+<span class="sd">        time_series_dataDefault is None, a default observation of 0. at</span>
+<span class="sd">        totim 0. will be created (default is None).</span>
+<span class="sd">    names : list</span>
+<span class="sd">        List of specified observation names. If names is None, observation</span>
+<span class="sd">        names will be automatically generated from obsname and the order</span>
+<span class="sd">        of the timeseries data (default is None).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    obs : HeadObservation</span>
+<span class="sd">        HeadObservation object.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; model = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; dis = flopy.modflow.ModflowDis(model, nlay=1, nrow=11, ncol=11, nper=2,</span>
+<span class="sd">    ...                                perlen=[1,1])</span>
+<span class="sd">    &gt;&gt;&gt; tsd = [[1.,54.4], [2., 55.2]]</span>
+<span class="sd">    &gt;&gt;&gt; obsdata = flopy.modflow.HeadObservation(model, layer=0, row=5,</span>
+<span class="sd">    ...                                         column=5, time_series_data=tsd)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">tomulth</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">obsname</span><span class="o">=</span><span class="s2">&quot;HOBS&quot;</span><span class="p">,</span>
+        <span class="n">layer</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">irefsp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">roff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">coff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">itt</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">tmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mlay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">time_series_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Object constructor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">mlay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mlay</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">time_series_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">time_series_data</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="n">irefsp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_series_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">irefsp</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">irefsp</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_series_data</span><span class="p">)</span>
+
+        <span class="c1"># set class attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obsname</span> <span class="o">=</span> <span class="n">obsname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="o">=</span> <span class="n">layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">row</span> <span class="o">=</span> <span class="n">row</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column</span> <span class="o">=</span> <span class="n">column</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">irefsp</span> <span class="o">=</span> <span class="n">irefsp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roff</span> <span class="o">=</span> <span class="n">roff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coff</span> <span class="o">=</span> <span class="n">coff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">itt</span> <span class="o">=</span> <span class="n">itt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlay</span> <span class="o">=</span> <span class="n">mlay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxm</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># check if multilayer observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multilayer</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlay</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxm</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlay</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multilayer</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">tot</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlay</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">tot</span> <span class="o">+=</span> <span class="n">value</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">tot</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">0</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;sum of dataset 4 proportions must equal 1.0 - &quot;</span>
+                    <span class="s2">&quot;sum of dataset 4 proportions = </span><span class="si">{tot}</span><span class="s2"> for &quot;</span>
+                    <span class="s2">&quot;observation name </span><span class="si">{obsname}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">tot</span><span class="o">=</span><span class="n">tot</span><span class="p">,</span> <span class="n">obsname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">obsname</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># convert passed time_series_data to a numpy array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_series_data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">time_series_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">time_series_data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># if a single observation is passed as a list reshape to a</span>
+        <span class="c1"># two-dimensional numpy array</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_series_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">time_series_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">time_series_data</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># find indices of time series data that are valid</span>
+        <span class="k">if</span> <span class="n">tmax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tmax</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">get_final_totim</span><span class="p">()</span>
+        <span class="n">keep_idx</span> <span class="o">=</span> <span class="n">time_series_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">tmax</span>
+        <span class="n">time_series_data</span> <span class="o">=</span> <span class="n">time_series_data</span><span class="p">[</span><span class="n">keep_idx</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># set the number of observations in this time series</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">time_series_data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># construct names if not passed</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">obsname</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nobs</span><span class="p">):</span>
+                    <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obsname</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># make sure the length of names is greater than or equal to nobs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">names</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;HeadObservation names must be a &quot;</span>
+                    <span class="s2">&quot;string or a list of strings&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;a name must be specified for every valid observation &quot;</span>
+                    <span class="s2">&quot;- </span><span class="si">{}</span><span class="s2"> names were passed but at least &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> names are required.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># create time_series_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_empty</span><span class="p">(</span><span class="n">ncells</span><span class="o">=</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nobs</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span><span class="p">,</span> <span class="n">toffset</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">get_kstp_kper_toffset</span><span class="p">(</span>
+                <span class="n">t</span><span class="p">,</span> <span class="n">use_cached_totim</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;totim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;irefsp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kper</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;toffset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">toffset</span> <span class="o">/</span> <span class="n">tomulth</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;hobs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;obsname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">irefsp</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">nobs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">irefsp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_series_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;irefsp&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ncells</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an empty time_series_data recarray for a HeadObservation</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ncells : int</span>
+<span class="sd">            number of time entries in a HeadObservation</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        d : np.recarray</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get an empty recarray that corresponds to dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dtype</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">ncells</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mf">1.0e10</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;obsname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">def</span> <span class="nf">_get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the dtype for HeadObservation time_series_data</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dtype : np.dtype</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get the default HOB dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;irefsp&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;toffset&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;hobs&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;obsname&quot;</span><span class="p">,</span> <span class="s2">&quot;|S12&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">dtype</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

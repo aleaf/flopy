@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modpath.mp7 &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modpath.mp7</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modpath.mp7</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mp7 module.  Contains the Modpath7List and Modpath7 classes.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..mbase</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span> <span class="nn">..mf6</span> <span class="kn">import</span> <span class="n">MFModel</span>
+<span class="kn">from</span> <span class="nn">..modflow</span> <span class="kn">import</span> <span class="n">Modflow</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">.mp7bas</span> <span class="kn">import</span> <span class="n">Modpath7Bas</span>
+<span class="kn">from</span> <span class="nn">.mp7particledata</span> <span class="kn">import</span> <span class="n">CellDataType</span><span class="p">,</span> <span class="n">NodeParticleData</span>
+<span class="kn">from</span> <span class="nn">.mp7particlegroup</span> <span class="kn">import</span> <span class="n">ParticleGroupNodeTemplate</span>
+<span class="kn">from</span> <span class="nn">.mp7sim</span> <span class="kn">import</span> <span class="n">Modpath7Sim</span>
+
+
+<div class="viewcode-block" id="Modpath7List"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7.html#flopy.modpath.mp7.Modpath7List">[docs]</a><span class="k">class</span> <span class="nc">Modpath7List</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    List package class</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">next_unit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="s2">&quot;LIST&quot;</span><span class="p">,</span> <span class="n">unitnumber</span><span class="p">)</span>
+        <span class="c1"># self.parent.add_package(self) This package is not added to the base</span>
+        <span class="c1"># model so that it is not included in get_name_file_entries()</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Modpath7List.write_file"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7.html#flopy.modpath.mp7.Modpath7List.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Not implemented for list class</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="Modpath7"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7.html#flopy.modpath.mp7.Modpath7">[docs]</a><span class="k">class</span> <span class="nc">Modpath7</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modpath 7 class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    modelname : str, default &quot;modpath7test&quot;</span>
+<span class="sd">        Basename for MODPATH 7 input and output files.</span>
+<span class="sd">    simfile_ext : str, default &quot;mpsim&quot;</span>
+<span class="sd">        Filename extension of the MODPATH 7 simulation file.</span>
+<span class="sd">    namefile_ext : str, default mpnam&quot;</span>
+<span class="sd">        Filename extension of the MODPATH 7 namefile.</span>
+<span class="sd">    version : str, default &quot;modpath7&quot;</span>
+<span class="sd">        String that defines the MODPATH version. Valid versions are</span>
+<span class="sd">        &quot;modpath7&quot; (default).</span>
+<span class="sd">    exe_name : str, default &quot;mp7&quot;</span>
+<span class="sd">        The name of the executable to use.</span>
+<span class="sd">    flowmodel : flopy.modflow.Modflow or flopy.mf6.MFModel object</span>
+<span class="sd">        MODFLOW model object.</span>
+<span class="sd">    headfilename : str, optional</span>
+<span class="sd">        Filename of the MODFLOW output head file. If headfilename is</span>
+<span class="sd">        not provided then it will be set from the flowmodel.</span>
+<span class="sd">    budgetfilename : str, optional</span>
+<span class="sd">        Filename of the MODFLOW output cell-by-cell budget file.</span>
+<span class="sd">        If budgetfilename is not provided then it will be set</span>
+<span class="sd">        from the flowmodel.</span>
+<span class="sd">    model_ws : str, default &quot;.&quot;</span>
+<span class="sd">        Model workspace.  Directory name to create model data sets.</span>
+<span class="sd">        Default is the current working directory.</span>
+<span class="sd">    verbose : bool, default False</span>
+<span class="sd">        Print additional information to the screen.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow.load(&#39;mf2005.nam&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; mp = flopy.modpath.Modpath7(&#39;mf2005_mp&#39;, flowmodel=m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">modelname</span><span class="o">=</span><span class="s2">&quot;modpath7test&quot;</span><span class="p">,</span>
+        <span class="n">simfile_ext</span><span class="o">=</span><span class="s2">&quot;mpsim&quot;</span><span class="p">,</span>
+        <span class="n">namefile_ext</span><span class="o">=</span><span class="s2">&quot;mpnam&quot;</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;modpath7&quot;</span><span class="p">,</span>
+        <span class="n">exe_name</span><span class="o">=</span><span class="s2">&quot;mp7&quot;</span><span class="p">,</span>
+        <span class="n">flowmodel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">headfilename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">budgetfilename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">modelname</span><span class="p">,</span>
+            <span class="n">simfile_ext</span><span class="p">,</span>
+            <span class="n">exe_name</span><span class="p">,</span>
+            <span class="n">model_ws</span><span class="o">=</span><span class="n">model_ws</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">version_types</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;modpath7&quot;</span><span class="p">:</span> <span class="s2">&quot;MODPATH 7&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_version</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lst</span> <span class="o">=</span> <span class="n">Modpath7List</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpnamefile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">namefile_ext</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpbas_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">modelname</span><span class="si">}</span><span class="s2">.mpbas&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flowmodel</span><span class="p">,</span> <span class="p">(</span><span class="n">Modflow</span><span class="p">,</span> <span class="n">MFModel</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Modpath7: flow model is not an instance of &quot;</span>
+                <span class="s2">&quot;flopy.modflow.Modflow or flopy.mf6.MFModel. &quot;</span>
+                <span class="s2">&quot;Passed object of type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">flowmodel</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="c1"># if a MFModel instance ensure flowmodel is a MODFLOW 6 GWF model</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flowmodel</span><span class="p">,</span> <span class="n">MFModel</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">flowmodel</span><span class="o">.</span><span class="n">model_type</span> <span class="o">!=</span> <span class="s2">&quot;gwf&quot;</span>
+                <span class="ow">and</span> <span class="n">flowmodel</span><span class="o">.</span><span class="n">model_type</span> <span class="o">!=</span> <span class="s2">&quot;gwf6&quot;</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Modpath7: flow model type must be gwf. &quot;</span>
+                    <span class="s2">&quot;Passed model_type is </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">model_type</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># set flowmodel and flow_version attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span> <span class="o">=</span> <span class="n">flowmodel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flow_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flowmodel_ws</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span>
+            <span class="n">flowmodel</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_ws</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+            <span class="c1"># get discretization package</span>
+            <span class="n">ibound</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;DIS, DISV, or DISU packages must be &quot;</span>
+                    <span class="s2">&quot;included in the passed MODFLOW 6 model&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dis</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;dis&quot;</span><span class="p">:</span>
+                    <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                        <span class="n">dis</span><span class="o">.</span><span class="n">nrow</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                        <span class="n">dis</span><span class="o">.</span><span class="n">ncol</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">dis</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;disv&quot;</span><span class="p">:</span>
+                    <span class="n">nlay</span><span class="p">,</span> <span class="n">ncpl</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">ncpl</span><span class="o">.</span><span class="n">array</span>
+                    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">ncpl</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">dis</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;disu&quot;</span><span class="p">:</span>
+                    <span class="n">nodes</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">array</span>
+                    <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">nodes</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="s2">&quot;DIS, DISV, or DISU packages must be &quot;</span>
+                        <span class="s2">&quot;included in the passed MODFLOW 6 model&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># terminate (for now) if mf6 model does not use dis or disv</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;DIS and DISV are currently the only supported &quot;</span>
+                    <span class="s2">&quot;MODFLOW 6 discretization packages that can be &quot;</span>
+                    <span class="s2">&quot;used with MODPATH 7&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># set ib</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">idomain</span><span class="o">.</span><span class="n">array</span>
+            <span class="c1"># set all ib to active if ib is not defined</span>
+            <span class="k">if</span> <span class="n">ib</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+            <span class="c1"># set dis and grbdis file name</span>
+            <span class="n">dis_file</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">grbdis_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dis</span><span class="o">.</span><span class="n">filename</span><span class="si">}</span><span class="s2">.grb&quot;</span>
+            <span class="n">grbtag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;GRB</span><span class="si">{</span><span class="n">dis</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">tdis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;TDIS&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tdis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;TDIS package must be &quot;</span>
+                    <span class="s2">&quot;included in the passed MODFLOW 6 model&quot;</span>
+                <span class="p">)</span>
+            <span class="n">tdis_file</span> <span class="o">=</span> <span class="n">tdis</span><span class="o">.</span><span class="n">filename</span>
+
+            <span class="c1"># get stress period data</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="n">tdis</span><span class="o">.</span><span class="n">nper</span><span class="o">.</span><span class="n">array</span>
+            <span class="n">perlen</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">nstp</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">tdis</span><span class="o">.</span><span class="n">perioddata</span><span class="o">.</span><span class="n">array</span>
+            <span class="k">for</span> <span class="n">pl</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">tsmult</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">perlen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pl</span><span class="p">)</span>
+                <span class="n">nstp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span>
+            <span class="n">perlen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">perlen</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">nstp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nstp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+            <span class="c1"># get oc file</span>
+            <span class="n">oc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;OC&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">oc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># set head file name</span>
+                <span class="k">if</span> <span class="n">headfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">headfilename</span> <span class="o">=</span> <span class="n">oc</span><span class="o">.</span><span class="n">head_filerecord</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="s2">&quot;headfile&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># set budget file name</span>
+                <span class="k">if</span> <span class="n">budgetfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">budgetfilename</span> <span class="o">=</span> <span class="n">oc</span><span class="o">.</span><span class="n">budget_filerecord</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="s2">&quot;budgetfile&quot;</span><span class="p">][</span>
+                        <span class="mi">0</span>
+                    <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># extract data from DIS or DISU files and set shape</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">dis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">ncol</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;DIS, or DISU packages must be &quot;</span>
+                    <span class="s2">&quot;included in the passed MODFLOW model&quot;</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">dis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">nlay</span><span class="p">,</span> <span class="n">nodes</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nodes</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nodes</span><span class="p">,)</span>
+
+            <span class="c1"># terminate (for now) if mf6 model does not use dis</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;DIS currently the only supported MODFLOW &quot;</span>
+                    <span class="s2">&quot;discretization package that can be used with MODPATH 7&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># get stress period data</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nper</span>
+            <span class="n">perlen</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">perlen</span><span class="o">.</span><span class="n">array</span>
+            <span class="n">nstp</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span>
+
+            <span class="c1"># set dis_file</span>
+            <span class="n">dis_file</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># set grbdis_file</span>
+            <span class="n">grbdis_file</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">grbtag</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># set tdis_file</span>
+            <span class="n">tdis_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># set head file name</span>
+            <span class="k">if</span> <span class="n">headfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">oc</span><span class="o">.</span><span class="n">iuhead</span>
+                <span class="n">headfilename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">iu</span><span class="p">)</span>
+
+            <span class="c1"># get discretization package</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;LPF&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;BCF6&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;UPW&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;LPF, BCF6, or UPW packages must be &quot;</span>
+                    <span class="s2">&quot;included in the passed MODFLOW model&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># set budget file name</span>
+            <span class="k">if</span> <span class="n">budgetfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">iu</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ipakcb</span>
+                <span class="n">budgetfilename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">iu</span><span class="p">)</span>
+
+            <span class="c1"># set hnoflo and ibound from BAS6 package</span>
+            <span class="n">bas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;BAS6&quot;</span><span class="p">)</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="n">bas</span><span class="o">.</span><span class="n">ibound</span><span class="o">.</span><span class="n">array</span>
+            <span class="c1"># reset to constant values if possible</span>
+            <span class="n">ibound</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">ib</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                    <span class="n">kval</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">kval</span> <span class="o">=</span> <span class="n">ib</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="n">ibound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kval</span><span class="p">)</span>
+
+        <span class="c1"># set dis_file and tdis_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span> <span class="o">=</span> <span class="n">dis_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grbdis_file</span> <span class="o">=</span> <span class="n">grbdis_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grbtag</span> <span class="o">=</span> <span class="n">grbtag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tdis_file</span> <span class="o">=</span> <span class="n">tdis_file</span>
+
+        <span class="c1"># set temporal data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nper</span> <span class="o">=</span> <span class="n">nper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_end</span> <span class="o">=</span> <span class="n">perlen</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perlen</span> <span class="o">=</span> <span class="n">perlen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nstp</span> <span class="o">=</span> <span class="n">nstp</span>
+
+        <span class="c1"># set output file names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headfilename</span> <span class="o">=</span> <span class="n">headfilename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budgetfilename</span> <span class="o">=</span> <span class="n">budgetfilename</span>
+
+        <span class="c1"># make sure the valid files are available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">headfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;the head file in the MODFLOW model or passed &quot;</span>
+                <span class="s2">&quot;to __init__ cannot be None&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">budgetfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;the budget file in the MODFLOW model or passed &quot;</span>
+                <span class="s2">&quot;to __init__ cannot be None&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">grbdis_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;the dis file in the MODFLOW model or passed &quot;</span>
+                <span class="s2">&quot;to __init__ cannot be None&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># set ib and ibound</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ib</span> <span class="o">=</span> <span class="n">ib</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ibound</span> <span class="o">=</span> <span class="n">ibound</span>
+
+        <span class="c1"># set file attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_free_format</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_format</span> <span class="o">=</span> <span class="s2">&quot;modflow&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;MODPATH 7 model&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">laytyp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+            <span class="n">icelltype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">npf</span><span class="o">.</span><span class="n">icelltype</span><span class="o">.</span><span class="n">array</span>
+            <span class="n">laytyp</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">icelltype</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">nlay</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;BCF6&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">laytyp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">laytyp</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">laytyp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">laycon</span><span class="o">.</span><span class="n">array</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">laytyp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hdry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">hdry</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hnoflo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">flowmodel</span><span class="o">.</span><span class="n">hnoflo</span>
+
+<div class="viewcode-block" id="Modpath7.write_name_file"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7.html#flopy.modpath.mp7.Modpath7.write_name_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_name_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the name file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpnamefile</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpth</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpbas_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MPBAS      </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mpbas_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DIS        </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grbdis_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">grbtag</span><span class="si">:</span><span class="s2">10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_flowmodel_ws</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">grbdis_file</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tdis_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;TDIS       </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_flowmodel_ws</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">tdis_file</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">headfilename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;HEAD       </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_flowmodel_ws</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">headfilename</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">budgetfilename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;BUDGET     </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_flowmodel_ws</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">budgetfilename</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Modpath7.create_mp7"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7.html#flopy.modpath.mp7.Modpath7.create_mp7">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create_mp7</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">modelname</span><span class="o">=</span><span class="s2">&quot;modpath7test&quot;</span><span class="p">,</span>
+        <span class="n">trackdir</span><span class="o">=</span><span class="s2">&quot;forward&quot;</span><span class="p">,</span>
+        <span class="n">flowmodel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">exe_name</span><span class="o">=</span><span class="s2">&quot;mp7&quot;</span><span class="p">,</span>
+        <span class="n">model_ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">columncelldivisions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">rowcelldivisions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">layercelldivisions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a default MODPATH 7 model using a passed flowmodel with</span>
+<span class="sd">        8 particles in user-specified node locations or every active model</span>
+<span class="sd">        cell.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        modelname : str</span>
+<span class="sd">            Basename for MODPATH 7 input and output files (default is</span>
+<span class="sd">            &#39;modpath7test&#39;).</span>
+<span class="sd">        trackdir : str</span>
+<span class="sd">            Keyword that defines the MODPATH particle tracking direction.</span>
+<span class="sd">            Available trackdir&#39;s are &#39;backward&#39; and &#39;forward&#39;.</span>
+<span class="sd">            (default is &#39;forward&#39;)</span>
+<span class="sd">        flowmodel : flopy.modflow.Modflow or flopy.mf6.MFModel object</span>
+<span class="sd">            MODFLOW model</span>
+<span class="sd">        exe_name : str</span>
+<span class="sd">            The name of the executable to use (the default is &#39;mp7&#39;).</span>
+<span class="sd">        model_ws : str</span>
+<span class="sd">            model workspace.  Directory name to create model data sets.</span>
+<span class="sd">            (default is the current working directory).</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Print additional information to the screen (default is False).</span>
+<span class="sd">        columncelldivisions : int</span>
+<span class="sd">            Number of particles in a cell in the column (x-coordinate)</span>
+<span class="sd">            direction (default is 2).</span>
+<span class="sd">        rowcelldivisions : int</span>
+<span class="sd">            Number of particles in a cell in the row (y-coordinate)</span>
+<span class="sd">            direction (default is 2).</span>
+<span class="sd">        layercelldivisions : int</span>
+<span class="sd">            Number of particles in a cell in the layer (z-coordinate)</span>
+<span class="sd">            direction (default is 2).</span>
+<span class="sd">        nodes : int, list of ints, tuple of ints, or np.ndarray</span>
+<span class="sd">            Nodes (zero-based) with particles. If  (default is node 0).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mp : Modpath7 object</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow.load(&#39;mf2005.nam&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; mp = flopy.modpath.Modpath7.create_mp7(flowmodel=m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># create MODPATH 7 model instance</span>
+        <span class="n">mp</span> <span class="o">=</span> <span class="n">Modpath7</span><span class="p">(</span>
+            <span class="n">modelname</span><span class="o">=</span><span class="n">modelname</span><span class="p">,</span>
+            <span class="n">flowmodel</span><span class="o">=</span><span class="n">flowmodel</span><span class="p">,</span>
+            <span class="n">exe_name</span><span class="o">=</span><span class="n">exe_name</span><span class="p">,</span>
+            <span class="n">model_ws</span><span class="o">=</span><span class="n">model_ws</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># set default iface for recharge and et</span>
+        <span class="k">if</span> <span class="n">mp</span><span class="o">.</span><span class="n">flow_version</span> <span class="o">==</span> <span class="s2">&quot;mf6&quot;</span><span class="p">:</span>
+            <span class="n">defaultiface</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;RCH&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;EVT&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">defaultiface</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;RECHARGE&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;ET&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>
+
+        <span class="c1"># create MODPATH 7 basic file and add to the MODPATH 7</span>
+        <span class="c1"># model instance (mp)</span>
+        <span class="n">Modpath7Bas</span><span class="p">(</span><span class="n">mp</span><span class="p">,</span> <span class="n">defaultiface</span><span class="o">=</span><span class="n">defaultiface</span><span class="p">)</span>
+
+        <span class="c1"># create particles</span>
+        <span class="k">if</span> <span class="n">nodes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">ib</span> <span class="ow">in</span> <span class="n">mp</span><span class="o">.</span><span class="n">ib</span><span class="o">.</span><span class="n">flatten</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">ib</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+                <span class="n">node</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="n">CellDataType</span><span class="p">(</span>
+            <span class="n">columncelldivisions</span><span class="o">=</span><span class="n">columncelldivisions</span><span class="p">,</span>
+            <span class="n">rowcelldivisions</span><span class="o">=</span><span class="n">rowcelldivisions</span><span class="p">,</span>
+            <span class="n">layercelldivisions</span><span class="o">=</span><span class="n">layercelldivisions</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">NodeParticleData</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="o">=</span><span class="n">sd</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="n">pg</span> <span class="o">=</span> <span class="n">ParticleGroupNodeTemplate</span><span class="p">(</span><span class="n">particledata</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="c1"># create MODPATH 7 simulation file and add to the MODPATH 7</span>
+        <span class="c1"># model instance (mp)</span>
+        <span class="n">Modpath7Sim</span><span class="p">(</span>
+            <span class="n">mp</span><span class="p">,</span>
+            <span class="n">simulationtype</span><span class="o">=</span><span class="s2">&quot;combined&quot;</span><span class="p">,</span>
+            <span class="n">trackingdirection</span><span class="o">=</span><span class="n">trackdir</span><span class="p">,</span>
+            <span class="n">weaksinkoption</span><span class="o">=</span><span class="s2">&quot;pass_through&quot;</span><span class="p">,</span>
+            <span class="n">weaksourceoption</span><span class="o">=</span><span class="s2">&quot;pass_through&quot;</span><span class="p">,</span>
+            <span class="n">referencetime</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">stoptimeoption</span><span class="o">=</span><span class="s2">&quot;extend&quot;</span><span class="p">,</span>
+            <span class="n">particlegroups</span><span class="o">=</span><span class="n">pg</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">mp</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

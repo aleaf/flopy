@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfmnwi &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfmnwi</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfmnwi</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span><span class="p">,</span> <span class="n">pop_item</span>
+
+
+<div class="viewcode-block" id="ModflowMnwi"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnwi.html#flopy.modflow.mfmnwi.ModflowMnwi">[docs]</a><span class="k">class</span> <span class="nc">ModflowMnwi</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &#39;Multi-Node Well Information Package Class&#39;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    wel1flag : integer</span>
+<span class="sd">        Flag indicating output to be written for each MNW node at the end of</span>
+<span class="sd">        each stress period</span>
+<span class="sd">    qsumflag :integer</span>
+<span class="sd">        Flag indicating output to be written for each multi-node well</span>
+<span class="sd">    byndflag :integer</span>
+<span class="sd">        Flag indicating output to be written for each MNW node</span>
+<span class="sd">    mnwobs :integer</span>
+<span class="sd">        Number of multi-node wells for which detailed flow, head, and solute</span>
+<span class="sd">        data to be saved</span>
+<span class="sd">    wellid_unit_qndflag_qhbflag_concflag : list of lists</span>
+<span class="sd">        Containing wells and related information to be output</span>
+<span class="sd">        (length : [MNWOBS][4or5])</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;mnwi&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the output names will be created using</span>
+<span class="sd">        the model name and output extensions. Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; ml = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; ghb = flopy.modflow.ModflowMnwi(ml, ...)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">wel1flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">qsumflag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">byndflag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mnwobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mnwi&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowMnwi</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># determine the number of unique unit numbers in dataset 3</span>
+        <span class="n">unique_units</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">wellid_unit_qndflag_qhbflag_concflag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="p">:</span>
+                <span class="n">iu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">iu</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">unique_units</span><span class="p">:</span>
+                    <span class="n">unique_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iu</span><span class="p">)</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">nfn</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_units</span><span class="p">)</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="n">nfn</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with unit_pc output, if necessary</span>
+        <span class="k">if</span> <span class="n">wel1flag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">wel1flag</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;wel1&quot;</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">wel1flag</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># update external file information with unit_ts output, if necessary</span>
+        <span class="k">if</span> <span class="n">qsumflag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">qsumflag</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;qsum&quot;</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">qsumflag</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># update external file information with ipunit output, if necessary</span>
+        <span class="k">if</span> <span class="n">byndflag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">byndflag</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;bynd&quot;</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">byndflag</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">iu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_units</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">iu</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iu</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">.mnwobs&quot;</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;mnwi.html&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="c1"># integer flag indicating output to be written for each MNW node at</span>
+        <span class="c1"># the end of each stress period</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wel1flag</span> <span class="o">=</span> <span class="n">wel1flag</span>
+        <span class="c1"># integer flag indicating output to be written for each multi-node well</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qsumflag</span> <span class="o">=</span> <span class="n">qsumflag</span>
+        <span class="c1"># integer flag indicating output to be written for each MNW node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">byndflag</span> <span class="o">=</span> <span class="n">byndflag</span>
+        <span class="c1"># number of multi-node wells for which detailed flow, head, and solute</span>
+        <span class="c1"># data to be saved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mnwobs</span> <span class="o">=</span> <span class="n">mnwobs</span>
+        <span class="c1"># list of lists containing wells and related information to be</span>
+        <span class="c1"># output (length = [MNWOBS][4or5])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wellid_unit_qndflag_qhbflag_concflag</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">wellid_unit_qndflag_qhbflag_concflag</span>
+        <span class="p">)</span>
+
+        <span class="c1"># -input format checks:</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wel1flag</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;WEL1flag must be greater than or equal to zero.&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qsumflag</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;QSUMflag must be greater than or equal to zero.&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">byndflag</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;BYNDflag must be greater than or equal to zero.&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mnwobs</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;WARNING: number of listed well ids to be &quot;</span>
+                <span class="s2">&quot;monitored does not match MNWOBS.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowMnwi.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnwi.html#flopy.modflow.mfmnwi.ModflowMnwi.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gwt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nsol</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading mnw2 package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">structured</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span>
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+            <span class="c1"># otherwise iterations from 0, nper won&#39;t run</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">nper</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">nper</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="n">wel1flag</span><span class="p">,</span> <span class="n">qsumflag</span><span class="p">,</span> <span class="n">byndflag</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">wel1flag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">wel1flag</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">qsumflag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">qsumflag</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">byndflag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">byndflag</span><span class="p">)</span>
+
+        <span class="c1"># dataset 2</span>
+        <span class="n">unique_units</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">mnwobs</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line_parse</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">)),</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">wellid_unit_qndflag_qhbflag_concflag</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">mnwobs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mnwobs</span><span class="p">):</span>
+                <span class="c1"># dataset 3</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+                <span class="n">wellid</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="n">qndflag</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="n">qbhflag</span> <span class="o">=</span> <span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">wellid</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">qndflag</span><span class="p">,</span> <span class="n">qbhflag</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">gwt</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pop_item</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+                <span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">unit</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">unique_units</span><span class="p">:</span>
+                    <span class="n">unique_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">unique_units</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">nfn</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_units</span><span class="p">)</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfn</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowMnwi</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">wel1flag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">wel1flag</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">qsumflag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">qsumflag</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">byndflag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">byndflag</span>
+                <span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="mi">4</span>
+            <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">unique_units</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">unit</span>
+                <span class="p">)</span>
+                <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">wel1flag</span><span class="o">=</span><span class="n">wel1flag</span><span class="p">,</span>
+            <span class="n">qsumflag</span><span class="o">=</span><span class="n">qsumflag</span><span class="p">,</span>
+            <span class="n">byndflag</span><span class="o">=</span><span class="n">byndflag</span><span class="p">,</span>
+            <span class="n">mnwobs</span><span class="o">=</span><span class="n">mnwobs</span><span class="p">,</span>
+            <span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="o">=</span><span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mnwi&quot;</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowMnwi.check"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnwi.html#flopy.modflow.mfmnwi.ModflowMnwi.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">checktype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check mnwi package data for common errors.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str or file handle</span>
+<span class="sd">            String defining file name or file handle for summary file</span>
+<span class="sd">            of check method output. If a string is passed a file handle</span>
+<span class="sd">            is created. If f is None, check method does not write</span>
+<span class="sd">            results to a summary file. (default is None)</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Boolean flag used to determine if check method results are</span>
+<span class="sd">            written to the screen</span>
+<span class="sd">        level : int</span>
+<span class="sd">            Check method analysis level. If level=0, summary checks are</span>
+<span class="sd">            performed. If level=1, full checks are performed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow.load(&#39;model.nam&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; m.mnwi.check()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">checktype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;MNW2&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package_list</span><span class="p">():</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">    MNWI package present without MNW2 package.&quot;</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">_add_to_summary</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Warning&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="n">desc</span><span class="p">)</span>
+
+        <span class="n">chk</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">chk</span></div>
+
+<div class="viewcode-block" id="ModflowMnwi.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfmnwi.html#flopy.modflow.mfmnwi.ModflowMnwi.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># -open file for writing</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># header not supported</span>
+        <span class="c1"># # -write header</span>
+        <span class="c1"># f.write(&#39;{}\n&#39;.format(self.heading))</span>
+
+        <span class="c1"># dataset 1 - WEL1flag QSUMflag SYNDflag</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">wel1flag</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">qsumflag</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">byndflag</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="c1"># dataset 2 - MNWOBS</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mnwobs</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 3 -  WELLID UNIT QNDflag QBHflag {CONCflag}</span>
+        <span class="c1"># (Repeat MNWOBS times)</span>
+        <span class="n">nitems</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wellid_unit_qndflag_qhbflag_concflag</span><span class="p">):</span>
+            <span class="n">wellid</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">qndflag</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">qhbflag</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">qndflag</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="p">),</span> <span class="s2">&quot;QNDflag must be greater than or equal to zero.&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">qhbflag</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="p">),</span> <span class="s2">&quot;QHBflag must be greater than or equal to zero.&quot;</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">wellid</span><span class="si">:</span><span class="s2">20s</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">unit</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">qndflag</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">qhbflag</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="k">if</span> <span class="n">nitems</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">concflag</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="p">(</span>
+                    <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">concflag</span> <span class="o">&lt;=</span> <span class="mi">3</span>
+                <span class="p">),</span> <span class="s2">&quot;CONCflag must be an integer between 0 and 3.&quot;</span>
+                <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+                    <span class="n">concflag</span><span class="p">,</span> <span class="nb">int</span>
+                <span class="p">),</span> <span class="s2">&quot;CONCflag must be an integer between 0 and 3.&quot;</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">concflag</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;MNWI&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">58</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

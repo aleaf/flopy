@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modpath.mp7particledata &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modpath.mp7particledata</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modpath.mp7particledata</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mp7particledata module. Contains the ParticleData, CellDataType,</span>
+<span class="sd">    FaceDataType, and NodeParticleData classes.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">unstructured_to_structured</span>
+
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+
+
+<div class="viewcode-block" id="ParticleData"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.ParticleData">[docs]</a><span class="k">class</span> <span class="nc">ParticleData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to create the most basic particle data type (starting location</span>
+<span class="sd">    input style 1). Input style 1 is the most general input style and</span>
+<span class="sd">    provides the most flexibility in customizing starting locations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    partlocs : list/tuple of int, list/tuple of list/tuple, or np.ndarray</span>
+<span class="sd">        Particle locations (zero-based) that are either layer, row, column</span>
+<span class="sd">        locations or nodes.</span>
+<span class="sd">    structured : bool</span>
+<span class="sd">        Boolean defining if a structured (True) or unstructured</span>
+<span class="sd">        particle recarray will be created (default is True).</span>
+<span class="sd">    particleids : list, tuple, or np.ndarray</span>
+<span class="sd">        Particle ids for the defined particle locations. If particleids</span>
+<span class="sd">        is None, MODPATH 7 will define the particle ids to each particle</span>
+<span class="sd">        location. If particleids is provided a particle</span>
+<span class="sd">        id must be provided for each partloc (default is None).</span>
+<span class="sd">    localx : float, list, tuple, or np.ndarray</span>
+<span class="sd">        Local x-location of the particle in the cell. If a single value is</span>
+<span class="sd">        provided all particles will have the same localx position. If</span>
+<span class="sd">        a list, tuple, or np.ndarray is provided a localx position must</span>
+<span class="sd">        be provided for each partloc. If localx is None, a value of</span>
+<span class="sd">        0.5 (center of the cell) will be used (default is None).</span>
+<span class="sd">    localy : float, list, tuple, or np.ndarray</span>
+<span class="sd">        Local y-location of the particle in the cell. If a single value is</span>
+<span class="sd">        provided all particles will have the same localy position. If</span>
+<span class="sd">        a list, tuple, or np.ndarray is provided a localy position must</span>
+<span class="sd">        be provided for each partloc. If localy is None, a value of</span>
+<span class="sd">        0.5 (center of the cell) will be used (default is None).</span>
+<span class="sd">    localz : float, list, tuple, or np.ndarray</span>
+<span class="sd">        Local z-location of the particle in the cell. If a single value is</span>
+<span class="sd">        provided all particles will have the same localz position. If</span>
+<span class="sd">        a list, tuple, or np.ndarray is provided a localz position must</span>
+<span class="sd">        be provided for each partloc. If localy is None, a value of</span>
+<span class="sd">        0.5 (center of the cell) will be used (default is None).</span>
+<span class="sd">    timeoffset : float, list, tuple, or np.ndarray</span>
+<span class="sd">        Timeoffset of the particle relative to the release time. If a</span>
+<span class="sd">        single value is provided all particles will have the same</span>
+<span class="sd">        timeoffset. If a list, tuple, or np.ndarray is provided a</span>
+<span class="sd">        timeoffset must be provided for each partloc. If timeoffset is</span>
+<span class="sd">        None, a value of 0. (equal to the release time) will be used</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    drape : int, list, tuple, or np.ndarray</span>
+<span class="sd">        Drape indicates how particles are treated when starting locations</span>
+<span class="sd">        are specified for cells that are dry. If drape is 0, Particles are</span>
+<span class="sd">        placed in the specified cell. If the cell is dry at the time of</span>
+<span class="sd">        release, the status of the particle is set to unreleased and</span>
+<span class="sd">        removed from the simulation. If drape is 1, particles are placed</span>
+<span class="sd">        in the upper most active grid cell directly beneath the specified</span>
+<span class="sd">        layer, row, column or node location. If a single value is provided</span>
+<span class="sd">        all particles will have the same drape value. If a list, tuple, or</span>
+<span class="sd">        np.ndarray is provided a drape value must be provided for each</span>
+<span class="sd">        partloc. If drape is None, a value of 0 will be used (default</span>
+<span class="sd">        is None).</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; locs = [(0, 0, 0), (1, 0, 0), (2, 0, 0)]</span>
+<span class="sd">    &gt;&gt;&gt; pd = flopy.modpath.ParticleData(locs, structured=True, drape=0,</span>
+<span class="sd">    ...                                 localx=0.5, localy=0.5, localz=1)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">partlocs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">structured</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">particleids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">localx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">localy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">localz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeoffset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">drape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ParticleData&quot;</span>
+
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">locationstyle</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">locationstyle</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">partlocs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+                <span class="n">partlocs</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">partlocs</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,)]</span>
+
+        <span class="c1"># create dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">partlocs</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="c1"># determine if the list or tuple contains lists or tuples</span>
+            <span class="n">alllsttup</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">partlocs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">alllsttup</span><span class="p">:</span>
+                    <span class="n">alllen3</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">partlocs</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">alllen3</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: all partlocs entries must have 3 items for &quot;</span>
+                            <span class="s2">&quot;structured particle data&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                        <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: partlocs list or tuple &quot;</span>
+                        <span class="s2">&quot;for structured particle data should &quot;</span>
+                        <span class="s2">&quot;contain list or tuple entries&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">allint</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">partlocs</span>
+                <span class="p">)</span>
+                <span class="c1"># convert to a list of tuples</span>
+                <span class="k">if</span> <span class="n">allint</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">partlocs</span><span class="p">:</span>
+                        <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">el</span><span class="p">,))</span>
+                    <span class="n">partlocs</span> <span class="o">=</span> <span class="n">t</span>
+                    <span class="n">alllsttup</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+                        <span class="nb">isinstance</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">partlocs</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">alllsttup</span><span class="p">:</span>
+                    <span class="n">alllen1</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">partlocs</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">alllen1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: all entries of partlocs must have 1 items &quot;</span>
+                            <span class="s2">&quot;for unstructured particle data&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                        <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: partlocs list or tuple for unstructured particle &quot;</span>
+                        <span class="s2">&quot;data should contain integers or a list or tuple with &quot;</span>
+                        <span class="s2">&quot;one entry&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># convert partlocs composed of a lists/tuples of lists/tuples</span>
+            <span class="c1"># to a numpy array</span>
+            <span class="n">partlocs</span> <span class="o">=</span> <span class="n">unstructured_to_structured</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">partlocs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">partlocs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">dtypein</span> <span class="o">=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="k">if</span> <span class="n">dtypein</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
+                <span class="n">partlocs</span> <span class="o">=</span> <span class="n">unstructured_to_structured</span><span class="p">(</span><span class="n">partlocs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: partlocs must be a list or tuple with lists or tuples, or an ndarray&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># localx</span>
+        <span class="k">if</span> <span class="n">localx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">localx</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localx</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">localx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">localx</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localx</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">localx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">localx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localx</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">localx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:shape of localx (</span><span class="si">{}</span><span class="s2">) is not equal to the shape &quot;</span>
+                        <span class="s2">&quot;of partlocs (</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">localx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># localy</span>
+        <span class="k">if</span> <span class="n">localy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">localy</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localy</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">localy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">localy</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localy</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">localy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">localy</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localy</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">localy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:shape of localy (</span><span class="si">{}</span><span class="s2">) is not equal to the shape &quot;</span>
+                        <span class="s2">&quot;of partlocs (</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">localy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># localz</span>
+        <span class="k">if</span> <span class="n">localz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">localz</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localz</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">localz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">localz</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localz</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">localz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">localz</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">localz</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">localz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:shape of localz (</span><span class="si">{}</span><span class="s2">) is not equal to the shape &quot;</span>
+                        <span class="s2">&quot;of partlocs (</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">localz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="c1"># timeoffset</span>
+        <span class="k">if</span> <span class="n">timeoffset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">timeoffset</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">timeoffset</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">timeoffset</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">timeoffset</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">timeoffset</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">timeoffset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">timeoffset</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">timeoffset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">timeoffset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:shape of timeoffset (</span><span class="si">{}</span><span class="s2">) is not equal to the &quot;</span>
+                        <span class="s2">&quot;shape of partlocs (</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">timeoffset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># drape</span>
+        <span class="k">if</span> <span class="n">drape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">drape</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">drape</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">drape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">drape</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">drape</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">drape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">drape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">drape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">drape</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:shape of drape (</span><span class="si">{}</span><span class="s2">) is not equal to the shape &quot;</span>
+                        <span class="s2">&quot;of partlocs (</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">drape</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># particleids</span>
+        <span class="k">if</span> <span class="n">particleids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">particleid</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">particleidoption</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">particleid</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">particleidoption</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">particleids</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:A particleid must be provided for each partloc &quot;</span>
+                    <span class="s2">&quot;as a list/tuple/np.ndarray of size </span><span class="si">{}</span><span class="s2">. &quot;</span>
+                    <span class="s2">&quot;A single particleid has been provided.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">particleids</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">particleids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">particleids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">particleids</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">particleids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:shape of particleids (</span><span class="si">{}</span><span class="s2">) is not equal to the &quot;</span>
+                        <span class="s2">&quot;shape of partlocs (</span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">particleids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># create empty particle</span>
+        <span class="n">ncells</span> <span class="o">=</span> <span class="n">partlocs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dtype</span><span class="p">(</span><span class="n">structured</span><span class="p">,</span> <span class="n">particleid</span><span class="p">)</span>
+        <span class="n">particledata</span> <span class="o">=</span> <span class="n">create_empty_recarray</span><span class="p">(</span>
+            <span class="n">ncells</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+
+        <span class="c1"># fill particle</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partlocs</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span>
+            <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partlocs</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">]</span>
+            <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partlocs</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partlocs</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span>
+        <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;localx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">localx</span>
+        <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;localy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">localy</span>
+        <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;localz&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">localz</span>
+        <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;timeoffset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeoffset</span>
+        <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;drape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">drape</span>
+        <span class="k">if</span> <span class="n">particleid</span><span class="p">:</span>
+            <span class="n">particledata</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">particleids</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">particlecount</span> <span class="o">=</span> <span class="n">particledata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particleidoption</span> <span class="o">=</span> <span class="n">particleidoption</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationstyle</span> <span class="o">=</span> <span class="n">locationstyle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span> <span class="o">=</span> <span class="n">particledata</span>
+
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ParticleData.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.ParticleData.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template without passing a valid &quot;</span>
+                <span class="s2">&quot;file object (</span><span class="si">{}</span><span class="s2">) open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># particle data item 4 and 5</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">particledata</span><span class="p">)</span>
+        <span class="n">lnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">]</span>
+        <span class="c1"># Add one to the kij and node indices</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;i&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;j&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;node&quot;</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">lnames</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># Add one to the particle id if required</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">particleidoption</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s2">&quot;id&quot;</span> <span class="ow">in</span> <span class="n">lnames</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># write the particle data</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fmt_string</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">v</span><span class="p">))</span>
+
+        <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">structured</span><span class="p">,</span> <span class="n">particleid</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        define the dtype for a structured or unstructured</span>
+<span class="sd">        particledata recarray. Optionally, include a particleid column in</span>
+<span class="sd">        the dtype.</span>
+
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        structured : bool</span>
+<span class="sd">            Boolean defining if a structured (True) or unstructured</span>
+<span class="sd">            particle dtype will be created.</span>
+<span class="sd">        particleid : bool</span>
+<span class="sd">            Boolean defining if the dtype will include a particle id</span>
+<span class="sd">            column.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dtype : numpy dtype</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy.modpath as fmp</span>
+<span class="sd">        &gt;&gt;&gt; dtype = fmp.ParticleGroup.get_particledata_dtype(structured=True,</span>
+<span class="sd">        ...                                                  particleid=True)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">particleid</span><span class="p">:</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;localx&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;localy&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;localz&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;timeoffset&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;drape&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_fmt_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a python-style fmt string to write particle data</span>
+<span class="sd">        that corresponds to the dtype</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fmt : str</span>
+<span class="sd">            python format string with space delimited entries</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fmts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">particledata</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">descr</span><span class="p">:</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span> <span class="ow">or</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span>
+                <span class="n">fmts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:9d}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">field</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+                    <span class="n">fmts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:23.16g}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fmts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:15.7g}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;o&quot;</span><span class="p">:</span>
+                <span class="n">fmts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:9s}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">vtype</span> <span class="o">==</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Particles.fmt_string error: &#39;str&#39; type found in dtype. &quot;</span>
+                    <span class="s2">&quot;This gives unpredictable results when recarray to file - &quot;</span>
+                    <span class="s2">&quot;change to &#39;object&#39; type&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;MfList.fmt_string error: unknown vtype in field: </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fmts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FaceDataType"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.FaceDataType">[docs]</a><span class="k">class</span> <span class="nc">FaceDataType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Face data type class to create a MODPATH 7 particle location template for</span>
+<span class="sd">    input style 2, 3, and 4 on cell faces (templatesubdivisiontype = 2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    drape : int</span>
+<span class="sd">        Drape indicates how particles are treated when starting locations</span>
+<span class="sd">        are specified for cells that are dry. If drape is 0, Particles are</span>
+<span class="sd">        placed in the specified cell. If the cell is dry at the time of</span>
+<span class="sd">        release, the status of the particle is set to unreleased and</span>
+<span class="sd">        removed from the simulation. If drape is 1, particles are placed</span>
+<span class="sd">        in the upper most active grid cell directly beneath the specified</span>
+<span class="sd">        layer, row, column or node location (default is 0).</span>
+<span class="sd">    verticaldivisions1 : int</span>
+<span class="sd">        The number of vertical subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 1 (default is 3).</span>
+<span class="sd">    horizontaldivisions1 : int</span>
+<span class="sd">        The number of horizontal subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 1 (default is 3).</span>
+<span class="sd">    verticaldivisions2 : int</span>
+<span class="sd">        The number of vertical subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 2 (default is 3).</span>
+<span class="sd">    horizontaldivisions2 : int</span>
+<span class="sd">        The number of horizontal subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 2 (default is 3).</span>
+<span class="sd">    verticaldivisions3 : int</span>
+<span class="sd">        The number of vertical subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 3 (default is 3).</span>
+<span class="sd">    horizontaldivisions3 : int</span>
+<span class="sd">        The number of horizontal subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 3 (default is 3).</span>
+<span class="sd">    verticaldivisions4 : int</span>
+<span class="sd">        The number of vertical subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 4 (default is 3).</span>
+<span class="sd">    horizontaldivisions4 : int</span>
+<span class="sd">        The number of horizontal subdivisions that define the two-dimensional</span>
+<span class="sd">        array of particles on cell face 4 (default is 3).</span>
+<span class="sd">    rowdivisions5 : int</span>
+<span class="sd">        The number of row subdivisions that define the two-dimensional array</span>
+<span class="sd">        of particles on the bottom cell face (face 5) (default is 3).</span>
+<span class="sd">    columndivisions5 : int</span>
+<span class="sd">        The number of column subdivisions that define the two-dimensional array</span>
+<span class="sd">        of particles on the bottom cell face (face 5) (default is 3).</span>
+<span class="sd">    rowdivisions6 : int</span>
+<span class="sd">        The number of row subdivisions that define the two-dimensional array</span>
+<span class="sd">        of particles on the top cell face (face 6) (default is 3).</span>
+<span class="sd">    columndivisions6 : int</span>
+<span class="sd">        The number of column subdivisions that define the two-dimensional array</span>
+<span class="sd">        of particles on the top cell face (face 6) (default is 3).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; fd = flopy.modpath.FaceDataType()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">drape</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verticaldivisions1</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">horizontaldivisions1</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">verticaldivisions2</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">horizontaldivisions2</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">verticaldivisions3</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">horizontaldivisions3</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">verticaldivisions4</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">horizontaldivisions4</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">rowdivisions5</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">columndivisions5</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">rowdivisions6</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">columndivisions6</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;FaceDataType&quot;</span>
+
+        <span class="c1"># assign attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">templatesubdivisiontype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drape</span> <span class="o">=</span> <span class="n">drape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions1</span> <span class="o">=</span> <span class="n">verticaldivisions1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions1</span> <span class="o">=</span> <span class="n">horizontaldivisions1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions2</span> <span class="o">=</span> <span class="n">verticaldivisions2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions2</span> <span class="o">=</span> <span class="n">horizontaldivisions2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions3</span> <span class="o">=</span> <span class="n">verticaldivisions3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions3</span> <span class="o">=</span> <span class="n">horizontaldivisions3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions4</span> <span class="o">=</span> <span class="n">verticaldivisions4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions4</span> <span class="o">=</span> <span class="n">horizontaldivisions4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowdivisions5</span> <span class="o">=</span> <span class="n">rowdivisions5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">columndivisions5</span> <span class="o">=</span> <span class="n">columndivisions5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowdivisions6</span> <span class="o">=</span> <span class="n">rowdivisions6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">columndivisions6</span> <span class="o">=</span> <span class="n">columndivisions6</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="FaceDataType.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.FaceDataType.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template &quot;</span>
+                <span class="s2">&quot;without passing a valid file object (</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                <span class="s2">&quot;open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># item 4</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="mi">12</span> <span class="o">*</span> <span class="s2">&quot; </span><span class="si">{}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions1</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions1</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions2</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions2</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions3</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions3</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verticaldivisions4</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">horizontaldivisions4</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rowdivisions5</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">columndivisions5</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rowdivisions6</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">columndivisions6</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="CellDataType"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.CellDataType">[docs]</a><span class="k">class</span> <span class="nc">CellDataType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cell data type class to create a MODPATH 7 particle location template for</span>
+<span class="sd">    input style 2, 3, and 4 in cells (templatesubdivisiontype = 2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    drape : int</span>
+<span class="sd">        Drape indicates how particles are treated when starting locations</span>
+<span class="sd">        are specified for cells that are dry. If drape is 0, Particles are</span>
+<span class="sd">        placed in the specified cell. If the cell is dry at the time of</span>
+<span class="sd">        release, the status of the particle is set to unreleased and</span>
+<span class="sd">        removed from the simulation. If drape is 1, particles are placed</span>
+<span class="sd">        in the upper most active grid cell directly beneath the specified</span>
+<span class="sd">        layer, row, column or node location (default is 0).</span>
+<span class="sd">    columncelldivisions : int</span>
+<span class="sd">        Number of particles in a cell in the column (x-coordinate)</span>
+<span class="sd">        direction (default is 3).</span>
+<span class="sd">    rowcelldivisions : int</span>
+<span class="sd">        Number of particles in a cell in the row (y-coordinate)</span>
+<span class="sd">        direction (default is 3).</span>
+<span class="sd">    layercelldivisions : int</span>
+<span class="sd">        Number of particles in a cell in the layer (z-coordinate)</span>
+<span class="sd">        direction (default is 3).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; cd = flopy.modpath.CellDataType()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">drape</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">columncelldivisions</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">rowcelldivisions</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">layercelldivisions</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;CellDataType&quot;</span>
+
+        <span class="c1"># assign attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">templatesubdivisiontype</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drape</span> <span class="o">=</span> <span class="n">drape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">columncelldivisions</span> <span class="o">=</span> <span class="n">columncelldivisions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowcelldivisions</span> <span class="o">=</span> <span class="n">rowcelldivisions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layercelldivisions</span> <span class="o">=</span> <span class="n">layercelldivisions</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="CellDataType.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.CellDataType.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template &quot;</span>
+                <span class="s2">&quot;without passing a valid file object (</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                <span class="s2">&quot;open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># item 5</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot; </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">columncelldivisions</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rowcelldivisions</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layercelldivisions</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="LRCParticleData"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.LRCParticleData">[docs]</a><span class="k">class</span> <span class="nc">LRCParticleData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Layer, row, column particle data template class to create MODPATH 7</span>
+<span class="sd">    particle location input style 2 on cell faces (templatesubdivisiontype = 1)</span>
+<span class="sd">    and/or in cells (templatesubdivisiontype = 2). Particle locations for this</span>
+<span class="sd">    template are specified by layer, row, column regions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    subdivisiondata : FaceDataType, CellDataType or list of FaceDataType</span>
+<span class="sd">                      and/or CellDataType types</span>
+<span class="sd">        FaceDataType, CellDataType, or a list of FaceDataType and/or</span>
+<span class="sd">        CellDataTypes that are used to create one or more particle templates</span>
+<span class="sd">        in a particle group. If subdivisiondata is None, a default CellDataType</span>
+<span class="sd">        with 27 particles per cell will be created (default is None).</span>
+<span class="sd">    lrcregions : list of lists tuples or np.ndarrays</span>
+<span class="sd">        Layer, row, column (zero-based) regions with particles created using</span>
+<span class="sd">        the specified template parameters. A region is defined as a list/tuple</span>
+<span class="sd">        of minlayer, minrow, mincolumn, maxlayer, maxrow, maxcolumn values.</span>
+<span class="sd">        If subdivisiondata is a list, a list/tuple or array of layer, row,</span>
+<span class="sd">        column regions with the same length as subdivision data must be</span>
+<span class="sd">        provided. If lrcregions is None, particles will be placed in</span>
+<span class="sd">        the first model cell (default is None).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; pg = flopy.modpath.LRCParticleData(lrcregions=[0, 0, 0, 3, 10, 10])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subdivisiondata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lrcregions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;LRCParticleData&quot;</span>
+
+        <span class="k">if</span> <span class="n">subdivisiondata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">subdivisiondata</span> <span class="o">=</span> <span class="n">CellDataType</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">lrcregions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lrcregions</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">,</span> <span class="p">(</span><span class="n">CellDataType</span><span class="p">,</span> <span class="n">FaceDataType</span><span class="p">)):</span>
+            <span class="n">subdivisiondata</span> <span class="o">=</span> <span class="p">[</span><span class="n">subdivisiondata</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">fd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="p">(</span><span class="n">CellDataType</span><span class="p">,</span> <span class="n">FaceDataType</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: facedata item </span><span class="si">{}</span><span class="s2"> is of type </span><span class="si">{}</span><span class="s2"> instead of an &quot;</span>
+                    <span class="s2">&quot;instance of CellDataType or FaceDataType&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># validate lrcregions data</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lrcregions</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="c1"># determine if the list or tuple contains lists or tuples</span>
+            <span class="n">alllsttup</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">))</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">lrcregions</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">alllsttup</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: lrcregions should be &quot;</span>
+                    <span class="s2">&quot;a list with lists, tuples, or arrays&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">lrcregion</span> <span class="ow">in</span> <span class="n">lrcregions</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lrcregion</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">lrcregions</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: lrcregions should be a list of lists, tuples, or arrays &quot;</span>
+                <span class="s2">&quot;not a </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">lrcregions</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="c1"># validate size of nodes relative to subdivisiondata</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lrcregions</span><span class="p">)</span> <span class="o">!=</span> <span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: lrcregions data must have </span><span class="si">{}</span><span class="s2"> rows but a total of </span><span class="si">{}</span><span class="s2"> rows &quot;</span>
+                <span class="s2">&quot;were provided.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">lrcregions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
+
+        <span class="c1"># validate that there are 6 columns in each lrcregions entry</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">lrcregion</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lrcregions</span><span class="p">):</span>
+            <span class="n">shapel</span> <span class="o">=</span> <span class="n">lrcregion</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shapel</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">lrcregions</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">lrcregion</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">shapel</span><span class="p">)</span>
+                <span class="n">shapel</span> <span class="o">=</span> <span class="n">lrcregion</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">if</span> <span class="n">shapel</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: Each lrcregions entry must &quot;</span>
+                    <span class="s2">&quot;have 6 columns passed lrcregions has &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> columns&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">shapel</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="p">)</span>
+
+        <span class="c1">#</span>
+        <span class="n">totalcellregioncount</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">lrcregion</span> <span class="ow">in</span> <span class="n">lrcregions</span><span class="p">:</span>
+            <span class="n">totalcellregioncount</span> <span class="o">+=</span> <span class="n">lrcregion</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># assign attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particletemplatecount</span> <span class="o">=</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">totalcellregioncount</span> <span class="o">=</span> <span class="n">totalcellregioncount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subdivisiondata</span> <span class="o">=</span> <span class="n">subdivisiondata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lrcregions</span> <span class="o">=</span> <span class="n">lrcregions</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="LRCParticleData.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.LRCParticleData.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template &quot;</span>
+                <span class="s2">&quot;without passing a valid file object (</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                <span class="s2">&quot;open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># item 2</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">particletemplatecount</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">totalcellregioncount</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">sd</span><span class="p">,</span> <span class="n">lrcregion</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subdivisiondata</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lrcregions</span><span class="p">):</span>
+            <span class="c1"># item 3</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sd</span><span class="o">.</span><span class="n">templatesubdivisiontype</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">lrcregion</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">sd</span><span class="o">.</span><span class="n">drape</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># item 4 or 5</span>
+            <span class="n">sd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="c1"># item 6</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">lrcregion</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">for</span> <span class="n">lrc</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lrc</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="NodeParticleData"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.NodeParticleData">[docs]</a><span class="k">class</span> <span class="nc">NodeParticleData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Node particle data template class to create MODPATH 7 particle location</span>
+<span class="sd">    input style 3 on cell faces (templatesubdivisiontype = 1) and/or in cells</span>
+<span class="sd">    (templatesubdivisiontype = 2). Particle locations for this template are</span>
+<span class="sd">    specified by nodes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    subdivisiondata : FaceDataType, CellDataType or list of FaceDataType</span>
+<span class="sd">                      and/or CellDataType types</span>
+<span class="sd">        FaceDataType, CellDataType, or a list of FaceDataType and/or</span>
+<span class="sd">        CellDataTypes that are used to create one or more particle templates</span>
+<span class="sd">        in a particle group. If subdivisiondata is None, a default CellDataType</span>
+<span class="sd">        with 27 particles per cell will be created (default is None).</span>
+<span class="sd">    nodes : int, list of ints, tuple of ints, or np.ndarray</span>
+<span class="sd">        Nodes (zero-based) with particles created using the specified template</span>
+<span class="sd">        parameters. If subdivisiondata is a list, a list of nodes with the same</span>
+<span class="sd">        length as subdivision data must be provided. If nodes is None,</span>
+<span class="sd">        particles will be placed in the first model cell (default is None).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; pg = flopy.modpath.NodeParticleData(nodes=[100, 101])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subdivisiondata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;NodeParticleData&quot;</span>
+
+        <span class="k">if</span> <span class="n">subdivisiondata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">subdivisiondata</span> <span class="o">=</span> <span class="n">CellDataType</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">nodes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">,</span> <span class="p">(</span><span class="n">CellDataType</span><span class="p">,</span> <span class="n">FaceDataType</span><span class="p">)):</span>
+            <span class="n">subdivisiondata</span> <span class="o">=</span> <span class="p">[</span><span class="n">subdivisiondata</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)):</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="p">[(</span><span class="n">nodes</span><span class="p">,)]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: nodes is of type </span><span class="si">{}</span><span class="s2"> but must be an int if a &quot;</span>
+                <span class="s2">&quot;single value is passed&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">nodes</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">fd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="p">(</span><span class="n">CellDataType</span><span class="p">,</span> <span class="n">FaceDataType</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: facedata item </span><span class="si">{}</span><span class="s2"> is of type </span><span class="si">{}</span><span class="s2"> instead of an &quot;</span>
+                    <span class="s2">&quot;instance of CellDataType or FaceDataType&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># validate nodes data</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># convert to a list of numpy arrays</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="c1"># convert a single list/tuple to a list of tuples if only one</span>
+            <span class="c1"># entry in subdivisiondata</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">nodes</span><span class="p">)]</span>
+            <span class="c1"># determine if the list or tuple contains lists or tuples</span>
+            <span class="n">alllsttup</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">))</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">nodes</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">alllsttup</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: nodes should be &quot;</span>
+                    <span class="s2">&quot;a list or tuple with lists or tuple if a single &quot;</span>
+                    <span class="s2">&quot;int or numpy array is not provided&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)):</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: nodes should be a single integer, a numpy array, or a &quot;</span>
+                <span class="s2">&quot;list/tuple or lists/tuples.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># validate size of nodes relative to subdivisiondata</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">subdivisiondata</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">!=</span> <span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: node data must have </span><span class="si">{}</span><span class="s2"> rows but a total of </span><span class="si">{}</span><span class="s2"> rows were &quot;</span>
+                <span class="s2">&quot;provided.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
+
+        <span class="n">totalcellcount</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="n">totalcellcount</span> <span class="o">+=</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># assign attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particletemplatecount</span> <span class="o">=</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">totalcellcount</span> <span class="o">=</span> <span class="n">totalcellcount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subdivisiondata</span> <span class="o">=</span> <span class="n">subdivisiondata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodedata</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="NodeParticleData.write"><a class="viewcode-back" href="../../../source/flopy.modpath.mp7particledata.html#flopy.modpath.mp7particledata.NodeParticleData.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : fileobject</span>
+<span class="sd">            Fileobject that is open with write access</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># validate that a valid file object was passed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: cannot write data for template &quot;</span>
+                <span class="s2">&quot;without passing a valid file object (</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                <span class="s2">&quot;open for writing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># item 2</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">particletemplatecount</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">totalcellcount</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">sd</span><span class="p">,</span> <span class="n">nodes</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subdivisiondata</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodedata</span><span class="p">):</span>
+            <span class="c1"># item 3</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sd</span><span class="o">.</span><span class="n">templatesubdivisiontype</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">sd</span><span class="o">.</span><span class="n">drape</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># item 4 or 5</span>
+            <span class="n">sd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="c1"># item 6</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nodes</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">node</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">lineend</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">idx</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">idx</span> <span class="o">==</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">lineend</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">lineend</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

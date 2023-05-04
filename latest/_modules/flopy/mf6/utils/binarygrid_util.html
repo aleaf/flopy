@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.utils.binarygrid_util &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.utils.binarygrid_util</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.utils.binarygrid_util</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module to read MODFLOW 6 binary grid files (*.grb) that define the model</span>
+<span class="sd">grid binary output files. The module contains the MfGrdFile class that can</span>
+<span class="sd">be accessed by the user.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">...utils.utils_def</span> <span class="kn">import</span> <span class="n">FlopyBinaryData</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MfGrdFile"><a class="viewcode-back" href="../../../../source/flopy.mf6.utils.binarygrid_util.html#flopy.mf6.utils.binarygrid_util.MfGrdFile">[docs]</a><span class="k">class</span> <span class="nc">MfGrdFile</span><span class="p">(</span><span class="n">FlopyBinaryData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The MfGrdFile class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Name of the MODFLOW 6 binary grid file</span>
+<span class="sd">    precision : string</span>
+<span class="sd">        &#39;single&#39; or &#39;double&#39;.  Default is &#39;double&#39;.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Write information to standard output.  Default is False.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The MfGrdFile class provides simple ways to retrieve data from binary</span>
+<span class="sd">    MODFLOW 6 binary grid files (.grb). The binary grid file contains data</span>
+<span class="sd">    that can be used for post processing MODFLOW 6 model results. For</span>
+<span class="sd">    example, the ia and ja arrays for a model grid.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; gobj = flopy.utils.MfGrdFile(&#39;test.dis.grb&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Call base class init</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># set attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_float</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_len</span> <span class="o">=</span> <span class="mi">50</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recorddict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recordkeys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing binary grid file: </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># open the grb file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+
+        <span class="c1"># grid type</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initial_len</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># version</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initial_len</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_version</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># version</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initial_len</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ntxt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># length of text</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initial_len</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lentxt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># read text strings</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ntxt</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lentxt</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">dt</span> <span class="o">==</span> <span class="s2">&quot;INTEGER&quot;</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+            <span class="k">elif</span> <span class="n">dt</span> <span class="o">==</span> <span class="s2">&quot;SINGLE&quot;</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+            <span class="k">elif</span> <span class="n">dt</span> <span class="o">==</span> <span class="s2">&quot;DOUBLE&quot;</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">nd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">nd</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">shp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">:]]</span>
+                <span class="n">shp</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shp</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shp</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recorddict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">nd</span><span class="p">,</span> <span class="n">shp</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recordkeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">if</span> <span class="n">nd</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="n">shp</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  File contains data for </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> with shape </span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attempting to read </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ntxt</span><span class="si">}</span><span class="s2"> records from </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordkeys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Reading </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">dt</span><span class="p">,</span> <span class="n">nd</span><span class="p">,</span> <span class="n">shp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recorddict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="c1"># read array data</span>
+            <span class="k">if</span> <span class="n">nd</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shp</span><span class="p">:</span>
+                    <span class="n">count</span> <span class="o">*=</span> <span class="n">v</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_record</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="n">count</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="c1"># read variable data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dt</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_integer</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">dt</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_real</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">dt</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_real</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">nd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: min = </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">}</span><span class="s2"> max = </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># close the file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># initialize the model grid to None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__modelgrid</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># set ia and ja</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__set_iaja</span><span class="p">()</span>
+
+    <span class="c1"># internal functions</span>
+    <span class="k">def</span> <span class="nf">__set_iaja</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set ia and ja from _datadict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;IA&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ja</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;JA&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__set_modelgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Define structured, vertex, or unstructured grid based on MODFLOW 6</span>
+<span class="sd">        discretization type.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        modelgrid : grid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">...discretization.structuredgrid</span> <span class="kn">import</span> <span class="n">StructuredGrid</span>
+        <span class="kn">from</span> <span class="nn">...discretization.unstructuredgrid</span> <span class="kn">import</span> <span class="n">UnstructuredGrid</span>
+        <span class="kn">from</span> <span class="nn">...discretization.vertexgrid</span> <span class="kn">import</span> <span class="n">VertexGrid</span>
+
+        <span class="n">modelgrid</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">idomain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span>
+        <span class="n">xorigin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xorigin</span>
+        <span class="n">yorigin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yorigin</span>
+        <span class="n">angrot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angrot</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">top</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span>
+            <span class="n">botm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bot</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISV&quot;</span><span class="p">:</span>
+                <span class="n">nlay</span><span class="p">,</span> <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span>
+                <span class="n">vertices</span><span class="p">,</span> <span class="n">cell2d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell2d</span>
+                <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+                <span class="n">botm</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">ncpl</span><span class="p">)</span>
+                <span class="n">modelgrid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span>
+                    <span class="n">vertices</span><span class="p">,</span>
+                    <span class="n">cell2d</span><span class="p">,</span>
+                    <span class="n">top</span><span class="p">,</span>
+                    <span class="n">botm</span><span class="p">,</span>
+                    <span class="n">idomain</span><span class="p">,</span>
+                    <span class="n">xoff</span><span class="o">=</span><span class="n">xorigin</span><span class="p">,</span>
+                    <span class="n">yoff</span><span class="o">=</span><span class="n">yorigin</span><span class="p">,</span>
+                    <span class="n">angrot</span><span class="o">=</span><span class="n">angrot</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+                <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">delr</span><span class="p">,</span> <span class="n">delc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">delc</span>
+
+                <span class="n">top</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+                <span class="n">botm</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+                <span class="n">modelgrid</span> <span class="o">=</span> <span class="n">StructuredGrid</span><span class="p">(</span>
+                    <span class="n">delc</span><span class="p">,</span>
+                    <span class="n">delr</span><span class="p">,</span>
+                    <span class="n">top</span><span class="p">,</span>
+                    <span class="n">botm</span><span class="p">,</span>
+                    <span class="n">idomain</span><span class="o">=</span><span class="n">idomain</span><span class="p">,</span>
+                    <span class="n">xoff</span><span class="o">=</span><span class="n">xorigin</span><span class="p">,</span>
+                    <span class="n">yoff</span><span class="o">=</span><span class="n">yorigin</span><span class="p">,</span>
+                    <span class="n">angrot</span><span class="o">=</span><span class="n">angrot</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">iverts</span><span class="p">,</span> <span class="n">verts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span>
+                <span class="n">vertc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellcenters</span>
+                <span class="n">xc</span><span class="p">,</span> <span class="n">yc</span> <span class="o">=</span> <span class="n">vertc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">vertc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">modelgrid</span> <span class="o">=</span> <span class="n">UnstructuredGrid</span><span class="p">(</span>
+                    <span class="n">vertices</span><span class="o">=</span><span class="n">verts</span><span class="p">,</span>
+                    <span class="n">iverts</span><span class="o">=</span><span class="n">iverts</span><span class="p">,</span>
+                    <span class="n">xcenters</span><span class="o">=</span><span class="n">xc</span><span class="p">,</span>
+                    <span class="n">ycenters</span><span class="o">=</span><span class="n">yc</span><span class="p">,</span>
+                    <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span>
+                    <span class="n">botm</span><span class="o">=</span><span class="n">botm</span><span class="p">,</span>
+                    <span class="n">idomain</span><span class="o">=</span><span class="n">idomain</span><span class="p">,</span>
+                    <span class="n">xoff</span><span class="o">=</span><span class="n">xorigin</span><span class="p">,</span>
+                    <span class="n">yoff</span><span class="o">=</span><span class="n">yorigin</span><span class="p">,</span>
+                    <span class="n">angrot</span><span class="o">=</span><span class="n">angrot</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;could not set model grid for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__modelgrid</span> <span class="o">=</span> <span class="n">modelgrid</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">__build_vertices_cell2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the mf6 vertices and cell2d array to generate a VertexGrid</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        -------</span>
+<span class="sd">            vertices: list</span>
+<span class="sd">            cell2d: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">iverts</span><span class="p">,</span> <span class="n">verts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span>
+        <span class="n">vertc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellcenters</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="p">[[</span><span class="n">ix</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">verts</span><span class="p">)]</span>
+        <span class="n">cell2d</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">vertc</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">i</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iverts</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">cell2d</span>
+
+    <span class="k">def</span> <span class="nf">__get_iverts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of the vertices that define each model cell.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        iverts : list of lists</span>
+<span class="sd">            List with lists containing the vertex indices for each model cell.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">iverts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;IAVERT&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISV&quot;</span><span class="p">:</span>
+                <span class="n">nsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISU&quot;</span><span class="p">:</span>
+                <span class="n">nsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span>
+            <span class="n">iverts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">iavert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iavert</span>
+            <span class="n">javert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">javert</span>
+            <span class="k">for</span> <span class="n">ivert</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsize</span><span class="p">):</span>
+                <span class="n">i0</span> <span class="o">=</span> <span class="n">iavert</span><span class="p">[</span><span class="n">ivert</span><span class="p">]</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="n">iavert</span><span class="p">[</span><span class="n">ivert</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">iverts</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">javert</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;returning iverts from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">iverts</span>
+
+    <span class="k">def</span> <span class="nf">__get_verts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of the x, y pair for each vertex from the data in the</span>
+<span class="sd">        binary grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        verts : np.ndarray</span>
+<span class="sd">            Array with x, y pairs for every vertex used to define the model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;VERTICES&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">shpvert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recorddict</span><span class="p">[</span><span class="s2">&quot;VERTICES&quot;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">verts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;VERTICES&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shpvert</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISU&quot;</span><span class="p">:</span>
+                <span class="c1"># modify verts</span>
+                <span class="n">verts</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="n">verts</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">verts</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+                    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shpvert</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;returning verts from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">verts</span>
+
+    <span class="k">def</span> <span class="nf">__get_cellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the cell centers centroids for a MODFLOW 6 GWF model that uses</span>
+<span class="sd">        the DISV or DISU discretization.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vertc : np.ndarray</span>
+<span class="sd">            Array with x, y pairs of the centroid for every model cell</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xycellcenters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;CELLX&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;CELLX&quot;</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;CELLY&quot;</span><span class="p">]</span>
+            <span class="n">xycellcenters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;returning cell centers from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xycellcenters</span>
+
+    <span class="c1"># properties</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grid_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Grid type defined in the MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        grid_type : str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nlay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of layers. None for DISU grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nlay : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">,</span> <span class="s2">&quot;DISV&quot;</span><span class="p">):</span>
+            <span class="n">nlay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NLAY&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nlay</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">nlay</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nrow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of rows. None for DISV and DISU grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nrow : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NROW&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">nrow</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of columns. None for DISV and DISU grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncol : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NCOL&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">ncol</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncpl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of cells per layer. None for DISU grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncpl : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISV&quot;</span><span class="p">:</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NCPL&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">ncpl</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of cells.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">,</span> <span class="s2">&quot;DISV&quot;</span><span class="p">):</span>
+            <span class="n">ncells</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NCELLS&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ncells</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NODES&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ncells</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of nodes.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nodes : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">,</span> <span class="s2">&quot;DISV&quot;</span><span class="p">):</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncells</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NODES&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">nodes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Shape of the model grid (tuple).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        shape : tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISV&quot;</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="n">shape</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xorigin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        x-origin of the model grid. None if not defined in the</span>
+<span class="sd">        MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xorigin : float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;XORIGIN&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">xorigin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;XORIGIN&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">xorigin</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">xorigin</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">yorigin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        y-origin of the model grid. None if not defined in the</span>
+<span class="sd">        MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        yorigin : float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;YORIGIN&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">yorigin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;YORIGIN&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">yorigin</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">yorigin</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">angrot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Model grid rotation angle. None if not defined in the</span>
+<span class="sd">        MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        angrot : float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;ANGROT&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">angrot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;ANGROT&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">angrot</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">angrot</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">idomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        IDOMAIN for the model grid. None if not defined in the</span>
+<span class="sd">        MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        idomain : ndarray of ints</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;IDOMAIN&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">idomain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;IDOMAIN&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idomain</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">idomain</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">delr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cell size in the row direction (y-direction). None if not</span>
+<span class="sd">        defined in the MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        delr : ndarray of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+            <span class="n">delr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;DELR&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">delr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">delr</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">delc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cell size in the column direction (x-direction). None if not</span>
+<span class="sd">        defined in the MODFLOW 6 grid file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        delc : ndarray of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;DIS&quot;</span><span class="p">:</span>
+            <span class="n">delc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;DELC&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">delc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">delc</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Top of the model cells in the upper model layer for DIS and</span>
+<span class="sd">        DISV grids. Top of the model cells for DISU grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        top : ndarray of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;TOP&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Bottom of the model cells.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bot : ndarray of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">,</span> <span class="s2">&quot;DISV&quot;</span><span class="p">):</span>
+            <span class="n">bot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;BOTM&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;BOT&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">bot</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nja</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of non-zero entries JA vector array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nja : int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;NJA&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ia</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        index array that defines indexes for `.ja`. Each ia value is the</span>
+<span class="sd">        starting position of data for a cell. [ia[n]:ia[n+1]] would give you</span>
+<span class="sd">        all data for a cell. ia[n] is also the location of data for the</span>
+<span class="sd">        diagonal position. See `.ja` property documentation</span>
+<span class="sd">        for an example of getting a cell&#39;s number and connected cells</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ia : ndarray of ints</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ia</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ja</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flat jagged connection array for a model. `.ja` for a cell includes the</span>
+<span class="sd">        cell number and the cell number for all connected cells. Indexes for</span>
+<span class="sd">        cells are stored in the `.ia` variable.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ja : ndarray of ints</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from flopy.mf6.utils import MfGrdFile</span>
+<span class="sd">        &gt;&gt;&gt; grb = MfGrdFile(&quot;my_model.dis.grb&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; ia = grb.ia</span>
+<span class="sd">        &gt;&gt;&gt; ja = grb.ja</span>
+<span class="sd">        &gt;&gt;&gt; # get connections for node 0</span>
+<span class="sd">        &gt;&gt;&gt; ja_node0 = ja[ia[0]:ia[1]]</span>
+<span class="sd">        &gt;&gt;&gt; node = ja_node0[0]</span>
+<span class="sd">        &gt;&gt;&gt; connections = ja_node0[1:]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ja</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">iavert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        index array that defines indexes for `.javart`. Each ia value is the</span>
+<span class="sd">        starting position of data for a cell. [iavert[n]:iavert[n+1]] would</span>
+<span class="sd">        give you all data for a cell. See `.javert` property documentation for</span>
+<span class="sd">        an example of getting cell number and it&#39;s vertex numbers.</span>
+<span class="sd">        Alternatively, the `.iverts` property can be used to get this</span>
+<span class="sd">        information</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        iavert : ndarray of ints or None for structured grids</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;IAVERT&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">iavert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;IAVERT&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iavert</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">iavert</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">javert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flat jagged array of vertex numbers that comprise all of the cells</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        javerts : ndarray of ints or None for structured grids</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from flopy.mf6.utils import MfGrdFile</span>
+<span class="sd">        &gt;&gt;&gt; grb = MfGrdFile(&quot;my_model.dis.grb&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; iavert = self.iavert</span>
+<span class="sd">        &gt;&gt;&gt; javert = self.javert</span>
+<span class="sd">        &gt;&gt;&gt; # get vertex numbers for node 0</span>
+<span class="sd">        &gt;&gt;&gt; vertnums = javert[iavert[0]:iavert[1]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;JAVERT&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">:</span>
+            <span class="n">javert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span><span class="p">[</span><span class="s2">&quot;JAVERT&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">javert</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">javert</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">iverts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Vertex numbers comprising each cell for every cell in model grid.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        iverts : list of lists of ints</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_iverts</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">verts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        x,y location of each vertex that defines the model grid.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        verts : ndarray of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_verts</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cell centers (x,y).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cellcenters : ndarray of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_cellcenters</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">modelgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Model grid object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        modelgrid : StructuredGrid, VertexGrid, UnstructuredGrid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__modelgrid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__set_modelgrid</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__modelgrid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cell2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        cell2d data for a DISV grid. None for DIS and DISU grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cell2d : list of lists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">==</span> <span class="s2">&quot;DISV&quot;</span><span class="p">:</span>
+            <span class="n">vertices</span><span class="p">,</span> <span class="n">cell2d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__build_vertices_cell2d</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vertices</span><span class="p">,</span> <span class="n">cell2d</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">cell2d</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

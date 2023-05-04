@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.lgrutil &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.lgrutil</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.lgrutil</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..discretization</span> <span class="kn">import</span> <span class="n">StructuredGrid</span>
+<span class="kn">from</span> <span class="nn">..modflow</span> <span class="kn">import</span> <span class="n">Modflow</span>
+<span class="kn">from</span> <span class="nn">.util_array</span> <span class="kn">import</span> <span class="n">Util2d</span><span class="p">,</span> <span class="n">Util3d</span>
+
+
+<div class="viewcode-block" id="SimpleRegularGrid"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.SimpleRegularGrid">[docs]</a><span class="k">class</span> <span class="nc">SimpleRegularGrid</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple object for representing regular MODFLOW grid information.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nlay : int</span>
+<span class="sd">        number of layers</span>
+<span class="sd">    nrow : int</span>
+<span class="sd">        number of rows</span>
+<span class="sd">    ncol : int</span>
+<span class="sd">        number of columns</span>
+<span class="sd">    delr : ndarray</span>
+<span class="sd">        delr array</span>
+<span class="sd">    delc : ndarray</span>
+<span class="sd">        delc array</span>
+<span class="sd">    top : ndarray</span>
+<span class="sd">        top array (nrow, ncol)</span>
+<span class="sd">    botm : ndarray</span>
+<span class="sd">        botm array (nlay, nrow, ncol)</span>
+<span class="sd">    idomain : ndarray</span>
+<span class="sd">        idomain array (nlay, nrow, ncol)</span>
+<span class="sd">    xorigin : float</span>
+<span class="sd">        x location of grid lower left corner</span>
+<span class="sd">    yorigin : float</span>
+<span class="sd">        y location of grid lower left corner</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">nlay</span><span class="p">,</span>
+        <span class="n">nrow</span><span class="p">,</span>
+        <span class="n">ncol</span><span class="p">,</span>
+        <span class="n">delr</span><span class="p">,</span>
+        <span class="n">delc</span><span class="p">,</span>
+        <span class="n">top</span><span class="p">,</span>
+        <span class="n">botm</span><span class="p">,</span>
+        <span class="n">idomain</span><span class="p">,</span>
+        <span class="n">xorigin</span><span class="p">,</span>
+        <span class="n">yorigin</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># enforce compliance</span>
+        <span class="k">assert</span> <span class="n">delr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">ncol</span><span class="p">,)</span>
+        <span class="k">assert</span> <span class="n">delc</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,)</span>
+        <span class="k">assert</span> <span class="n">top</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">botm</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">idomain</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">=</span> <span class="n">nlay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">=</span> <span class="n">nrow</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span> <span class="o">=</span> <span class="n">ncol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delr</span> <span class="o">=</span> <span class="n">delr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delc</span> <span class="o">=</span> <span class="n">delc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">top</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">botm</span> <span class="o">=</span> <span class="n">botm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span> <span class="o">=</span> <span class="n">idomain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xorigin</span> <span class="o">=</span> <span class="n">xorigin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yorigin</span> <span class="o">=</span> <span class="n">yorigin</span>
+        <span class="k">return</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">modelgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mg</span> <span class="o">=</span> <span class="n">StructuredGrid</span><span class="p">(</span>
+            <span class="n">delc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delc</span><span class="p">,</span>
+            <span class="n">delr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="p">,</span>
+            <span class="n">top</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">,</span>
+            <span class="n">botm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="p">,</span>
+            <span class="n">idomain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">,</span>
+            <span class="n">xoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xorigin</span><span class="p">,</span>
+            <span class="n">yoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yorigin</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">mg</span>
+
+<div class="viewcode-block" id="SimpleRegularGrid.get_gridprops_dis6"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.SimpleRegularGrid.get_gridprops_dis6">[docs]</a>    <span class="k">def</span> <span class="nf">get_gridprops_dis6</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">gridprops</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;xorigin&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">xorigin</span><span class="p">,</span>
+            <span class="s2">&quot;yorigin&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">yorigin</span><span class="p">,</span>
+            <span class="s2">&quot;nlay&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+            <span class="s2">&quot;nrow&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span>
+            <span class="s2">&quot;ncol&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span>
+            <span class="s2">&quot;delr&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="p">,</span>
+            <span class="s2">&quot;delc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">delc</span><span class="p">,</span>
+            <span class="s2">&quot;top&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">,</span>
+            <span class="s2">&quot;botm&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="p">,</span>
+            <span class="s2">&quot;idomain&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">gridprops</span></div></div>
+
+
+<div class="viewcode-block" id="Lgr"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr">[docs]</a><span class="k">class</span> <span class="nc">Lgr</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">nlayp</span><span class="p">,</span>
+        <span class="n">nrowp</span><span class="p">,</span>
+        <span class="n">ncolp</span><span class="p">,</span>
+        <span class="n">delrp</span><span class="p">,</span>
+        <span class="n">delcp</span><span class="p">,</span>
+        <span class="n">topp</span><span class="p">,</span>
+        <span class="n">botmp</span><span class="p">,</span>
+        <span class="n">idomainp</span><span class="p">,</span>
+        <span class="n">ncpp</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">ncppl</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">xllp</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">yllp</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nlayp : int</span>
+<span class="sd">            parent layers</span>
+<span class="sd">        nrowp : int</span>
+<span class="sd">            parent number of rows</span>
+<span class="sd">        ncolp : int</span>
+<span class="sd">            parent number of columns</span>
+<span class="sd">        delrp : ndarray</span>
+<span class="sd">            parent delr array</span>
+<span class="sd">        delcp : ndarray</span>
+<span class="sd">            parent delc array</span>
+<span class="sd">        topp : ndarray</span>
+<span class="sd">            parent top array (nrowp, ncolp)</span>
+<span class="sd">        botmp : ndarray</span>
+<span class="sd">            parent botm array (nlayp, nrowp, ncolp)</span>
+<span class="sd">        idomainp : ndarray</span>
+<span class="sd">            parent idomain array used to create the child grid.  Ones indicate</span>
+<span class="sd">            a parent cell and zeros indicate a child cell.  The domain of the</span>
+<span class="sd">            child grid will span a rectangular region that spans all idomain</span>
+<span class="sd">            cells with a value of zero. idomain must be of shape</span>
+<span class="sd">            (nlayp, nrowp, ncolp)</span>
+<span class="sd">        ncpp : int</span>
+<span class="sd">            number of child cells along the face of a parent cell</span>
+<span class="sd">        ncppl : list of ints</span>
+<span class="sd">            number of child layers per parent layer</span>
+<span class="sd">        xllp : float</span>
+<span class="sd">            x location of parent grid lower left corner</span>
+<span class="sd">        yllp : float</span>
+<span class="sd">            y location of parent grid lower left corner</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># parent grid properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlayp</span> <span class="o">=</span> <span class="n">nlayp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrowp</span> <span class="o">=</span> <span class="n">nrowp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncolp</span> <span class="o">=</span> <span class="n">ncolp</span>
+
+        <span class="n">m</span> <span class="o">=</span> <span class="n">Modflow</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delrp</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="n">ncolp</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">delrp</span><span class="p">,</span> <span class="s2">&quot;delrp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delcp</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="n">nrowp</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">delcp</span><span class="p">,</span> <span class="s2">&quot;delcp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">topp</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="n">nrowp</span><span class="p">,</span> <span class="n">ncolp</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">topp</span><span class="p">,</span> <span class="s2">&quot;topp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">botmp</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="n">nlayp</span><span class="p">,</span> <span class="n">nrowp</span><span class="p">,</span> <span class="n">ncolp</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">botmp</span><span class="p">,</span> <span class="s2">&quot;botmp&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">array</span>
+
+        <span class="c1"># idomain</span>
+        <span class="k">assert</span> <span class="n">idomainp</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nlayp</span><span class="p">,</span> <span class="n">nrowp</span><span class="p">,</span> <span class="n">ncolp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span> <span class="o">=</span> <span class="n">idomainp</span>
+        <span class="n">idxl</span><span class="p">,</span> <span class="n">idxr</span><span class="p">,</span> <span class="n">idxc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">idomainp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">idxl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;no zero values found in idomain&quot;</span>
+
+        <span class="c1"># # child cells per parent and child cells per parent layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span> <span class="o">=</span> <span class="n">ncpp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="n">nlayp</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">ncppl</span><span class="p">,</span> <span class="s2">&quot;ncppl&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">array</span>
+
+        <span class="c1"># calculate ibcl which is the bottom child layer (one based) in each</span>
+        <span class="c1"># parent layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ibcl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ibcl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayp</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ibcl</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ibcl</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="c1"># parent lower left</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xllp</span> <span class="o">=</span> <span class="n">xllp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yllp</span> <span class="o">=</span> <span class="n">yllp</span>
+
+        <span class="c1"># child grid properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nplbeg</span> <span class="o">=</span> <span class="n">idxl</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nplend</span> <span class="o">=</span> <span class="n">idxl</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span> <span class="o">=</span> <span class="n">idxc</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npcend</span> <span class="o">=</span> <span class="n">idxc</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span> <span class="o">=</span> <span class="n">idxr</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nprend</span> <span class="o">=</span> <span class="n">idxr</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+        <span class="c1"># child grid dimensions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nprend</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">ncpp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npcend</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">ncpp</span>
+
+        <span class="c1"># assign child properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">delc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_delr_delc</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_top_botm</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xll</span> <span class="o">=</span> <span class="n">xllp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delrp</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yll</span> <span class="o">=</span> <span class="n">yllp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delcp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nprend</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Lgr.get_shape"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_shape">[docs]</a>    <span class="k">def</span> <span class="nf">get_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the shape of the child grid</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        (nlay, nrow, ncol) : tuple</span>
+<span class="sd">            shape of the child grid</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span></div>
+
+<div class="viewcode-block" id="Lgr.get_lower_left"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_lower_left">[docs]</a>    <span class="k">def</span> <span class="nf">get_lower_left</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the lower left corner of the child grid</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        (xll, yll) : tuple</span>
+<span class="sd">            location of lower left corner of the child grid</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xll</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yll</span></div>
+
+<div class="viewcode-block" id="Lgr.get_delr_delc"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_delr_delc">[docs]</a>    <span class="k">def</span> <span class="nf">get_delr_delc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># create the delr and delc arrays for this child grid</span>
+        <span class="n">delr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">delc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">jstart</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">jend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">delr</span><span class="p">[</span><span class="n">jstart</span><span class="p">:</span><span class="n">jend</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delrp</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+            <span class="n">jstart</span> <span class="o">=</span> <span class="n">jend</span>
+            <span class="n">jend</span> <span class="o">=</span> <span class="n">jstart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+        <span class="n">istart</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">iend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">delc</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">iend</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delcp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+            <span class="n">istart</span> <span class="o">=</span> <span class="n">iend</span>
+            <span class="n">iend</span> <span class="o">=</span> <span class="n">istart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+        <span class="k">return</span> <span class="n">delr</span><span class="p">,</span> <span class="n">delc</span></div>
+
+<div class="viewcode-block" id="Lgr.get_top_botm"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_top_botm">[docs]</a>    <span class="k">def</span> <span class="nf">get_top_botm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">botmp</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">topp</span>
+        <span class="n">shp</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">shp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">shp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">pbotm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">tp</span><span class="p">,</span> <span class="n">bt</span><span class="p">))</span>
+        <span class="n">botm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">jp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">top</span> <span class="o">=</span> <span class="n">pbotm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                <span class="n">icrowstart</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">icrowend</span> <span class="o">=</span> <span class="n">icrowstart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">iccolstart</span> <span class="o">=</span> <span class="p">(</span><span class="n">jp</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">iccolend</span> <span class="o">=</span> <span class="n">iccolstart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">botm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">icrowstart</span><span class="p">:</span><span class="n">icrowend</span><span class="p">,</span> <span class="n">iccolstart</span><span class="p">:</span><span class="n">iccolend</span><span class="p">]</span> <span class="o">=</span> <span class="n">top</span>
+                <span class="n">kc</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">kp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nplbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nplend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">top</span> <span class="o">=</span> <span class="n">pbotm</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                    <span class="n">bot</span> <span class="o">=</span> <span class="n">pbotm</span><span class="p">[</span><span class="n">kp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                    <span class="n">dz</span> <span class="o">=</span> <span class="p">(</span><span class="n">top</span> <span class="o">-</span> <span class="n">bot</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="n">kp</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="n">kp</span><span class="p">]):</span>
+                        <span class="n">botm</span><span class="p">[</span><span class="n">kc</span><span class="p">,</span> <span class="n">icrowstart</span><span class="p">:</span><span class="n">icrowend</span><span class="p">,</span> <span class="n">iccolstart</span><span class="p">:</span><span class="n">iccolend</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">botm</span><span class="p">[</span>
+                                <span class="n">kc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">icrowstart</span><span class="p">:</span><span class="n">icrowend</span><span class="p">,</span>
+                                <span class="n">iccolstart</span><span class="p">:</span><span class="n">iccolend</span><span class="p">,</span>
+                            <span class="p">]</span>
+                            <span class="o">-</span> <span class="n">dz</span>
+                        <span class="p">)</span>
+                        <span class="n">kc</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">botm</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">botm</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span></div>
+
+<div class="viewcode-block" id="Lgr.get_replicated_parent_array"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_replicated_parent_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_replicated_parent_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent_array</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a two-dimensional array the size of the child grid that has values</span>
+<span class="sd">        replicated from the provided parent array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parent_array : ndarray</span>
+<span class="sd">            A two-dimensional array that is the size of the parent model rows</span>
+<span class="sd">            and columns.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        child_array : ndarray</span>
+<span class="sd">            A two-dimensional array that is the size of the child model rows</span>
+<span class="sd">            and columns</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">parent_array</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrowp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncolp</span><span class="p">)</span>
+        <span class="n">child_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">parent_array</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">ip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">jp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">icrowstart</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">icrowend</span> <span class="o">=</span> <span class="n">icrowstart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">iccolstart</span> <span class="o">=</span> <span class="p">(</span><span class="n">jp</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">iccolend</span> <span class="o">=</span> <span class="n">iccolstart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">parent_array</span><span class="p">[</span><span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                <span class="n">child_array</span><span class="p">[</span><span class="n">icrowstart</span><span class="p">:</span><span class="n">icrowend</span><span class="p">,</span> <span class="n">iccolstart</span><span class="p">:</span><span class="n">iccolend</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">child_array</span></div>
+
+<div class="viewcode-block" id="Lgr.get_idomain"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_idomain">[docs]</a>    <span class="k">def</span> <span class="nf">get_idomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the idomain array for the child model.  This will normally</span>
+<span class="sd">        be all ones unless the idomain array for the parent model is</span>
+<span class="sd">        non-rectangular and irregularly shaped.  Then, parts of the child</span>
+<span class="sd">        model will have idomain zero cells.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        idomain : ndarray</span>
+<span class="sd">            idomain array for the child model</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idomain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">kc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">jc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">):</span>
+                    <span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parent_indices</span><span class="p">(</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">idomain</span><span class="p">[</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">idomain</span></div>
+
+<div class="viewcode-block" id="Lgr.get_parent_indices"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_parent_indices">[docs]</a>    <span class="k">def</span> <span class="nf">get_parent_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method returns the parent cell indices for this child.</span>
+<span class="sd">        The returned indices are in zero-based indexing.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprbeg</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">ic</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span><span class="p">)</span>
+        <span class="n">jp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">npcbeg</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">jc</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span><span class="p">)</span>
+        <span class="n">kp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">kcstart</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nplbeg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nplend</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">kcend</span> <span class="o">=</span> <span class="n">kcstart</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">kcstart</span> <span class="o">&lt;=</span> <span class="n">kc</span> <span class="o">&lt;=</span> <span class="n">kcend</span><span class="p">:</span>
+                <span class="n">kp</span> <span class="o">=</span> <span class="n">k</span>
+                <span class="k">break</span>
+            <span class="n">kcstart</span> <span class="o">=</span> <span class="n">kcend</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span></div>
+
+<div class="viewcode-block" id="Lgr.get_parent_connections"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_parent_connections">[docs]</a>    <span class="k">def</span> <span class="nf">get_parent_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a list of parent cell indices that are connected to child</span>
+<span class="sd">        cell kc, ic, jc.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">kc</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="s2">&quot;layer must be &gt;= 0 and &lt; child nlay&quot;</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">ic</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="s2">&quot;layer must be &gt;= 0 and &lt; child nrow&quot;</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">jc</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span> <span class="s2">&quot;layer must be &gt;= 0 and &lt; child ncol&quot;</span>
+
+        <span class="n">parentlist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="p">(</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parent_indices</span><span class="p">(</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">)</span>
+
+        <span class="c1"># parent cell to left</span>
+        <span class="k">if</span> <span class="n">jc</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">jp</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parentlist</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># parent cell to right</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">jc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">jp</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncolp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parentlist</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># parent cell to back</span>
+        <span class="k">if</span> <span class="n">ic</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ip</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parentlist</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jp</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># parent cell to front</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ic</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ip</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrowp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parentlist</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jp</span><span class="p">),</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># parent cell to top is not possible</span>
+
+        <span class="c1"># parent cell to bottom</span>
+        <span class="k">if</span> <span class="n">kc</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ibcl</span><span class="p">[</span><span class="n">kp</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">kp</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">[</span><span class="n">kp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parentlist</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">kp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">),</span> <span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">parentlist</span></div>
+
+<div class="viewcode-block" id="Lgr.get_exchange_data"><a class="viewcode-back" href="../../../source/flopy.utils.lgrutil.html#flopy.utils.lgrutil.Lgr.get_exchange_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_exchange_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angldegx</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cdist</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the list of parent/child connections</span>
+
+<span class="sd">        &lt;cellidm1&gt; &lt;cellidm2&gt; &lt;ihc&gt; &lt;cl1&gt; &lt;cl2&gt; &lt;hwva&gt; &lt;angledegx&gt;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            exglist : list</span>
+<span class="sd">                list of connections between parent and child</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">exglist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">nlayc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="n">nrowc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="n">ncolc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="n">delrc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delr</span>
+        <span class="n">delcc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delc</span>
+        <span class="n">delrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delrp</span>
+        <span class="n">delcp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delcp</span>
+        <span class="n">topp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">topp</span>
+        <span class="n">botp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">botmp</span>
+        <span class="n">topc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span>
+        <span class="n">botc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span>
+
+        <span class="k">if</span> <span class="n">cdist</span><span class="p">:</span>
+            <span class="c1"># child xy meshgrid</span>
+            <span class="n">xc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">delrc</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delrc</span>
+            <span class="n">Ly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">delcc</span><span class="p">)</span>
+            <span class="n">yc</span> <span class="o">=</span> <span class="n">Ly</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">delcc</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delcc</span><span class="p">)</span>
+            <span class="n">xc</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xll</span>
+            <span class="n">yc</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yll</span>
+            <span class="n">xc</span><span class="p">,</span> <span class="n">yc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xc</span><span class="p">,</span> <span class="n">yc</span><span class="p">)</span>
+
+            <span class="c1"># parent xy meshgrid</span>
+            <span class="n">xp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">delrp</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delrp</span>
+            <span class="n">Ly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">delcp</span><span class="p">)</span>
+            <span class="n">yp</span> <span class="o">=</span> <span class="n">Ly</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">delcp</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delcp</span><span class="p">)</span>
+            <span class="n">xc</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xllp</span>
+            <span class="n">yc</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yllp</span>
+            <span class="n">xp</span><span class="p">,</span> <span class="n">yp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="n">yp</span><span class="p">)</span>
+
+        <span class="n">cidomain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_idomain</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">kc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlayc</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrowc</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">jc</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncolc</span><span class="p">):</span>
+                    <span class="n">plist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parent_connections</span><span class="p">(</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">),</span> <span class="n">idir</span> <span class="ow">in</span> <span class="n">plist</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">cidomain</span><span class="p">[</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="k">continue</span>
+
+                        <span class="c1"># horizontal or vertical connection</span>
+                        <span class="c1"># 1 if a child cell horizontally connected to a parent</span>
+                        <span class="c1">#   cell</span>
+                        <span class="c1"># 2 if more than one child cells horizontally connected</span>
+                        <span class="c1">#   to parent cell</span>
+                        <span class="c1"># 0 if a vertical connection</span>
+
+                        <span class="n">ihc</span> <span class="o">=</span> <span class="mi">1</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncppl</span><span class="p">[</span><span class="n">kp</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">ihc</span> <span class="o">=</span> <span class="mi">2</span>
+                        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">idir</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                            <span class="n">ihc</span> <span class="o">=</span> <span class="mi">0</span>
+
+                        <span class="c1"># angldegx</span>
+                        <span class="n">angle</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="n">angldegx</span><span class="p">:</span>
+                            <span class="n">angle</span> <span class="o">=</span> <span class="mf">180.0</span>  <span class="c1"># -x, west</span>
+                            <span class="k">if</span> <span class="n">idir</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="n">angle</span> <span class="o">=</span> <span class="mf">270.0</span>  <span class="c1"># -y, south</span>
+                            <span class="k">elif</span> <span class="n">idir</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                <span class="n">angle</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># +x, east</span>
+                            <span class="k">elif</span> <span class="n">idir</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+                                <span class="n">angle</span> <span class="o">=</span> <span class="mf">90.0</span>  <span class="c1"># +y, north</span>
+
+                        <span class="c1"># vertical connection</span>
+                        <span class="n">cl1</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">cl2</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">hwva</span> <span class="o">=</span> <span class="kc">None</span>
+
+                        <span class="n">tpp</span> <span class="o">=</span> <span class="n">topp</span><span class="p">[</span><span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                        <span class="n">btp</span> <span class="o">=</span> <span class="n">botp</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">kp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">tpp</span> <span class="o">=</span> <span class="n">botp</span><span class="p">[</span><span class="n">kp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+
+                        <span class="n">tpc</span> <span class="o">=</span> <span class="n">topc</span><span class="p">[</span><span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span>
+                        <span class="n">btc</span> <span class="o">=</span> <span class="n">botc</span><span class="p">[</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">kc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">tpc</span> <span class="o">=</span> <span class="n">botc</span><span class="p">[</span><span class="n">kc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span>
+
+                        <span class="k">if</span> <span class="n">ihc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">cl1</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">tpp</span> <span class="o">-</span> <span class="n">btp</span><span class="p">)</span>
+                            <span class="n">cl2</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">tpc</span> <span class="o">-</span> <span class="n">btc</span><span class="p">)</span>
+                            <span class="n">hwva</span> <span class="o">=</span> <span class="n">delrc</span><span class="p">[</span><span class="n">jc</span><span class="p">]</span> <span class="o">*</span> <span class="n">delcc</span><span class="p">[</span><span class="n">ic</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">idir</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="n">cl1</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delrp</span><span class="p">[</span><span class="n">jp</span><span class="p">]</span>
+                                <span class="n">cl2</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delrc</span><span class="p">[</span><span class="n">jc</span><span class="p">]</span>
+                                <span class="n">hwva</span> <span class="o">=</span> <span class="n">delcc</span><span class="p">[</span><span class="n">ic</span><span class="p">]</span>
+                            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">idir</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="n">cl1</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delcp</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span>
+                                <span class="n">cl2</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delcc</span><span class="p">[</span><span class="n">ic</span><span class="p">]</span>
+                                <span class="n">hwva</span> <span class="o">=</span> <span class="n">delrc</span><span class="p">[</span><span class="n">jc</span><span class="p">]</span>
+
+                        <span class="c1"># connection distance</span>
+                        <span class="n">cd</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="n">cdist</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">idir</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                                <span class="n">cd</span> <span class="o">=</span> <span class="n">cl1</span> <span class="o">+</span> <span class="n">cl2</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">x1</span> <span class="o">=</span> <span class="n">xc</span><span class="p">[</span><span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span>
+                                <span class="n">y1</span> <span class="o">=</span> <span class="n">yc</span><span class="p">[</span><span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">]</span>
+                                <span class="n">x2</span> <span class="o">=</span> <span class="n">xp</span><span class="p">[</span><span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                                <span class="n">y2</span> <span class="o">=</span> <span class="n">yp</span><span class="p">[</span><span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">]</span>
+                                <span class="n">cd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+                        <span class="n">exg</span> <span class="o">=</span> <span class="p">[(</span><span class="n">kp</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">jp</span><span class="p">),</span> <span class="p">(</span><span class="n">kc</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">jc</span><span class="p">),</span> <span class="n">ihc</span><span class="p">,</span> <span class="n">cl1</span><span class="p">,</span> <span class="n">cl2</span><span class="p">,</span> <span class="n">hwva</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">angldegx</span><span class="p">:</span>
+                            <span class="n">exg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">cdist</span><span class="p">:</span>
+                            <span class="n">exg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cd</span><span class="p">)</span>
+                        <span class="n">exglist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">exglist</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a SimpleRegularGrid object for the parent model</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            simple_regular_grid : SimpleRegularGrid</span>
+<span class="sd">                simple grid object containing grid information for the parent</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">simple_regular_grid</span> <span class="o">=</span> <span class="n">SimpleRegularGrid</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nlayp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nrowp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ncolp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delrp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delcp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">topp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">botmp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">idomain</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xllp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">yllp</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">simple_regular_grid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">child</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a SimpleRegularGrid object for the child model</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            simple_regular_grid : SimpleRegularGrid</span>
+<span class="sd">                simple grid object containing grid information for the child</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">delrc</span><span class="p">,</span> <span class="n">delcc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_delr_delc</span><span class="p">()</span>
+        <span class="n">idomainc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_idomain</span><span class="p">()</span>  <span class="c1"># child idomain</span>
+        <span class="n">topc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span>
+        <span class="n">botmc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span>
+        <span class="n">child_dis_shp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+        <span class="n">nlayc</span> <span class="o">=</span> <span class="n">child_dis_shp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">nrowc</span> <span class="o">=</span> <span class="n">child_dis_shp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ncolc</span> <span class="o">=</span> <span class="n">child_dis_shp</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">xorigin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xll</span>
+        <span class="n">yorigin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yll</span>
+        <span class="n">simple_regular_grid</span> <span class="o">=</span> <span class="n">SimpleRegularGrid</span><span class="p">(</span>
+            <span class="n">nlayc</span><span class="p">,</span>
+            <span class="n">nrowc</span><span class="p">,</span>
+            <span class="n">ncolc</span><span class="p">,</span>
+            <span class="n">delrc</span><span class="p">,</span>
+            <span class="n">delcc</span><span class="p">,</span>
+            <span class="n">topc</span><span class="p">,</span>
+            <span class="n">botmc</span><span class="p">,</span>
+            <span class="n">idomainc</span><span class="p">,</span>
+            <span class="n">xorigin</span><span class="p">,</span>
+            <span class="n">yorigin</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">simple_regular_grid</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfswi2 &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfswi2</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfswi2</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;mfswi2 module.  Contains the ModflowSwi2 class. Note that the user can</span>
+<span class="sd">access the ModflowSwi2 class as `flopy.modflow.ModflowSwi2`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow-nwt/MODFLOW-NWT-Guide/swi2_seawater_intrusion_pack.html&gt;`_.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util2d</span><span class="p">,</span> <span class="n">Util3d</span>
+
+
+<div class="viewcode-block" id="ModflowSwi2"><a class="viewcode-back" href="../../../source/flopy.modflow.mfswi2.html#flopy.modflow.mfswi2.ModflowSwi2">[docs]</a><span class="k">class</span> <span class="nc">ModflowSwi2</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MODFLOW SWI2 Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.Modflow`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nsrf : int</span>
+<span class="sd">        number of active surfaces (interfaces). This equals the number of zones</span>
+<span class="sd">        minus one. (default is 1).</span>
+<span class="sd">    istrat : int</span>
+<span class="sd">        flag indicating the density distribution. (default is 1).</span>
+<span class="sd">    iswizt : int</span>
+<span class="sd">        unit number for zeta output. (default is None).</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    iswiobs : int</span>
+<span class="sd">        flag and unit number SWI2 observation output. (default is 0).</span>
+<span class="sd">    options : list of strings</span>
+<span class="sd">        Package options. If &#39;adaptive&#39; is one of the options adaptive SWI2 time</span>
+<span class="sd">        steps will be used. (default is None).</span>
+<span class="sd">    nsolver : int</span>
+<span class="sd">        DE4 solver is used if nsolver=1. PCG solver is used if nsolver=2.</span>
+<span class="sd">        (default is 1).</span>
+<span class="sd">    iprsol : int</span>
+<span class="sd">        solver print out interval. (default is 0).</span>
+<span class="sd">    mutsol : int</span>
+<span class="sd">        If MUTSOL = 0, tables of maximum head change and residual will be</span>
+<span class="sd">        printed each iteration.</span>
+<span class="sd">        If MUTSOL = 1, only the total number of iterations will be printed.</span>
+<span class="sd">        If MUTSOL = 2, no information will be printed.</span>
+<span class="sd">        If MUTSOL = 3, information will only be printed if convergence fails.</span>
+<span class="sd">        (default is 3).</span>
+<span class="sd">    solver2parameters : dict</span>
+<span class="sd">        only used if nsolver = 2</span>
+
+<span class="sd">        mxiter : int</span>
+<span class="sd">            maximum number of outer iterations. (default is 100)</span>
+
+<span class="sd">        iter1 : int</span>
+<span class="sd">            maximum number of inner iterations. (default is 20)</span>
+
+<span class="sd">        npcond : int</span>
+<span class="sd">            flag used to select the matrix conditioning method. (default is 1).</span>
+<span class="sd">            specify NPCOND = 1 for Modified Incomplete Cholesky.</span>
+<span class="sd">            specify NPCOND = 2 for Polynomial.</span>
+
+<span class="sd">        zclose : float</span>
+<span class="sd">            is the ZETA change criterion for convergence. (default is 1e-3).</span>
+
+<span class="sd">        rclose : float</span>
+<span class="sd">            is the residual criterion for convergence. (default is 1e-4)</span>
+
+<span class="sd">        relax : float</span>
+<span class="sd">            is the relaxation parameter used with NPCOND = 1. (default is 1.0)</span>
+
+<span class="sd">        nbpol : int</span>
+<span class="sd">            is only used when NPCOND = 2 to indicate whether the estimate of</span>
+<span class="sd">            the upper bound on the maximum eigenvalue is 2.0, or whether the</span>
+<span class="sd">            estimate will be calculated. NBPOL = 2 is used to specify the</span>
+<span class="sd">            value is 2.0; for any other value of NBPOL, the estimate is</span>
+<span class="sd">            calculated. Convergence is generally insensitive to this</span>
+<span class="sd">            parameter. (default is 2).</span>
+
+<span class="sd">        damp : float</span>
+<span class="sd">            is the steady-state damping factor. (default is 1.)</span>
+
+<span class="sd">        dampt : float</span>
+<span class="sd">            is the transient damping factor. (default is 1.)</span>
+
+<span class="sd">    toeslope : float</span>
+<span class="sd">        Maximum slope of toe cells. (default is 0.05)</span>
+<span class="sd">    tipslope : float</span>
+<span class="sd">        Maximum slope of tip cells. (default is 0.05)</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        fraction of threshold used to move the tip and toe to adjacent empty</span>
+<span class="sd">        cells when the slope exceeds user-specified TOESLOPE and TIPSLOPE</span>
+<span class="sd">        values. (default is None)</span>
+<span class="sd">    beta : float</span>
+<span class="sd">        Fraction of threshold used to move the toe to adjacent non-empty cells</span>
+<span class="sd">        when the surface is below a minimum value defined by the user-specified</span>
+<span class="sd">        TOESLOPE value. (default is 0.1).</span>
+<span class="sd">    nadptmx : int</span>
+<span class="sd">        only used if adaptive is True. Maximum number of SWI2 time steps per</span>
+<span class="sd">        MODFLOW time step. (default is 1).</span>
+<span class="sd">    nadptmn : int</span>
+<span class="sd">        only used if adaptive is True. Minimum number of SWI2 time steps per</span>
+<span class="sd">        MODFLOW time step. (default is 1).</span>
+<span class="sd">    adptfct : float</span>
+<span class="sd">        is the factor used to evaluate tip and toe thicknesses and control the</span>
+<span class="sd">        number of SWI2 time steps per MODFLOW time step. When the maximum tip</span>
+<span class="sd">        or toe thickness exceeds the product of TOESLOPE or TIPSLOPE the cell</span>
+<span class="sd">        size and ADPTFCT, the number of SWI2 time steps are increased to a</span>
+<span class="sd">        value less than or equal to NADPT. When the maximum tip or toe</span>
+<span class="sd">        thickness is less than the product of TOESLOPE or TIPSLOPE the cell</span>
+<span class="sd">        size and ADPTFCT, the number of SWI2 time steps is decreased in the</span>
+<span class="sd">        next MODFLOW time step to a value greater than or equal to 1. ADPTFCT</span>
+<span class="sd">        must be greater than 0.0 and is reset to 1.0 if NADPTMX is equal to</span>
+<span class="sd">        NADPTMN. (default is 1.0).</span>
+<span class="sd">    nu : array of floats</span>
+<span class="sd">        if istart = 1, density of each zone (nsrf + 1 values). if istrat = 0,</span>
+<span class="sd">        density along top of layer, each surface, and bottom of layer</span>
+<span class="sd">        (nsrf + 2 values). (default is 0.025)</span>
+<span class="sd">    zeta : list of floats or list of array of floats [(nlay, nrow, ncol),</span>
+<span class="sd">        (nlay, nrow, ncol)] initial elevations of the active surfaces. The</span>
+<span class="sd">        list should contain an entry for each surface and be of size nsrf.</span>
+<span class="sd">        (default is [0.])</span>
+<span class="sd">    ssz : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        effective porosity. (default is 0.25)</span>
+<span class="sd">    isource : integer or array of integers (nlay, nrow, ncol)</span>
+<span class="sd">        Source type of any external sources or sinks, specified with any</span>
+<span class="sd">        outside package (i.e. WEL Package, RCH Package, GHB Package).</span>
+<span class="sd">        (default is 0).</span>
+
+<span class="sd">        If ISOURCE &gt; 0 sources and sinks have the same fluid density as the</span>
+<span class="sd">        zone ISOURCE. If such a zone is not present in the cell, sources and</span>
+<span class="sd">        sinks have the same fluid density as the active zone at the top of</span>
+<span class="sd">        the aquifer. If ISOURCE = 0 sources and sinks have the same fluid</span>
+<span class="sd">        density as the active zone at the top of the aquifer. If ISOURCE &lt; 0</span>
+<span class="sd">        sources have the same fluid density as the zone with a number equal</span>
+<span class="sd">        to the absolute value of ISOURCE. Sinks have the same fluid density</span>
+<span class="sd">        as the active zone at the top of the aquifer. This option is useful</span>
+<span class="sd">        for the modeling of the ocean bottom where infiltrating water is</span>
+<span class="sd">        salt, yet exfiltrating water is of the same type as the water at the</span>
+<span class="sd">        top of the aquifer.</span>
+<span class="sd">    obsnam : list of strings</span>
+<span class="sd">        names for nobs observations.</span>
+<span class="sd">    obslrc : list of lists</span>
+<span class="sd">        zero-based [layer, row, column] lists for nobs observations.</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;swi2&#39;)</span>
+<span class="sd">    npln : int</span>
+<span class="sd">        Deprecated - use nsrf instead.</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the zeta, cbc, obs output files.</span>
+<span class="sd">        If filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the output file names will be created using</span>
+<span class="sd">        the model name and output extensions. If a single string is passed the</span>
+<span class="sd">        package will be set to the string and output names will be created</span>
+<span class="sd">        using the model name and zeta, cbc, and observation extensions. To</span>
+<span class="sd">        define the names for all package files (input and output) the length</span>
+<span class="sd">        of the list of strings should be 4. Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are supported in Flopy only when reading in existing models.</span>
+<span class="sd">    Parameter values are converted to native values in Flopy and the</span>
+<span class="sd">    connection to &quot;parameters&quot; is thus nonexistent.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; swi2 = flopy.modflow.ModflowSwi2(m)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nsrf</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">istrat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nobs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">iswizt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">iswiobs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">nsolver</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">iprsol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">mutsol</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">solver2params</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;mxiter&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+            <span class="s2">&quot;iter1&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+            <span class="s2">&quot;npcond&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;zclose&quot;</span><span class="p">:</span> <span class="mf">1e-3</span><span class="p">,</span>
+            <span class="s2">&quot;rclose&quot;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span>
+            <span class="s2">&quot;relax&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;nbpol&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;damp&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;dampt&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">toeslope</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">tipslope</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">nadptmx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nadptmn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">adptfct</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">nu</span><span class="o">=</span><span class="mf">0.025</span><span class="p">,</span>
+        <span class="n">zeta</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">],</span>
+        <span class="n">ssz</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+        <span class="n">isource</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">obsnam</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">obslrc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">npln</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;swi2&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowSwi2</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with zeta output, if necessary</span>
+        <span class="k">if</span> <span class="n">iswizt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">iswizt</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;zta&quot;</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iswizt</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># update external file information with swi2 cell-by-cell output,</span>
+        <span class="c1"># if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Process observations</span>
+        <span class="k">if</span> <span class="n">nobs</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ModflowSwi2: specification of nobs is deprecated.&quot;</span><span class="p">)</span>
+        <span class="n">nobs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">obslrc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obslrc</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obslrc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">obslrc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">obslrc</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obslrc</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">obslrc</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">obslrc</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">obslrc</span> <span class="o">=</span> <span class="n">obslrc</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;ModflowSwi2: obslrc must be a tuple or list of tuples.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">nobs</span> <span class="o">=</span> <span class="n">obslrc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">obsnam</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">obsnam</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nobs</span><span class="p">):</span>
+                    <span class="n">obsnam</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Obs</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">03</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obsnam</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">obsnam</span> <span class="o">=</span> <span class="p">[</span><span class="n">obsnam</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obsnam</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nobs</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="s2">&quot;ModflowSwi2: obsnam must be a list with a &quot;</span>
+                        <span class="s2">&quot;length of </span><span class="si">{}</span><span class="s2"> not </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nobs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">obsnam</span><span class="p">))</span>
+                    <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nobs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">binflag</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;zobs.out&quot;</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">iswiobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">iswiobs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">binflag</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;zobs.bin&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">iswiobs</span> <span class="o">=</span> <span class="mi">1053</span>
+
+            <span class="c1"># update external file information with swi2 observation output,</span>
+            <span class="c1"># if necessary</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">iswiobs</span><span class="p">,</span>
+                <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">,</span>
+                <span class="n">binflag</span><span class="o">=</span><span class="n">binflag</span><span class="p">,</span>
+                <span class="n">extension</span><span class="o">=</span><span class="n">ext</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iswiobs</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+
+        <span class="c1"># options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fsssopt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptive</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+                <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;fsssopt&quot;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">fsssopt</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">elif</span> <span class="n">o</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;adaptive&quot;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">adaptive</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">npln</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;npln keyword is deprecated. use the nsrf keyword&quot;</span><span class="p">)</span>
+            <span class="n">nsrf</span> <span class="o">=</span> <span class="n">npln</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsrf</span> <span class="o">=</span> <span class="n">nsrf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">istrat</span> <span class="o">=</span> <span class="n">istrat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span> <span class="o">=</span> <span class="n">nobs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iswizt</span> <span class="o">=</span> <span class="n">iswizt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iswiobs</span> <span class="o">=</span> <span class="n">iswiobs</span>
+        <span class="c1"># set cbc unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+
+        <span class="c1"># set solver flags</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsolver</span> <span class="o">=</span> <span class="n">nsolver</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iprsol</span> <span class="o">=</span> <span class="n">iprsol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutsol</span> <span class="o">=</span> <span class="n">mutsol</span>
+
+        <span class="c1"># set solver parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span> <span class="o">=</span> <span class="n">solver2params</span>
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toeslope</span> <span class="o">=</span> <span class="n">toeslope</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tipslope</span> <span class="o">=</span> <span class="n">tipslope</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nadptmx</span> <span class="o">=</span> <span class="n">nadptmx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nadptmn</span> <span class="o">=</span> <span class="n">nadptmn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adptfct</span> <span class="o">=</span> <span class="n">adptfct</span>
+
+        <span class="c1"># Create arrays so that they have the correct size</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">istrat</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nu</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsrf</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nu&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nu</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsrf</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nu&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeta</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsrf</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">zeta</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Util3d</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">zeta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;zeta_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssz</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">ssz</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ssz&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isource</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">isource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;isource&quot;</span>
+        <span class="p">)</span>
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obsnam</span> <span class="o">=</span> <span class="n">obsnam</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obslrc</span> <span class="o">=</span> <span class="n">obslrc</span>
+        <span class="k">if</span> <span class="n">nobs</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obslrc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowSwi2.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfswi2.html#flopy.modflow.mfswi2.ModflowSwi2.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write the package file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        check : boolean</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+
+        <span class="c1"># Open file for writing</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># First line: heading</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># Writing heading not allowed in SWI???</span>
+
+        <span class="c1"># write dataset 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 1</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10d}{:10d}{:10d}{:10d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nsrf</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">istrat</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iswizt</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iswiobs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># write SWI2 options</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">o</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 2a</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 2a</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nsolver</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">iprsol</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">mutsol</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 2b</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsolver</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 2b</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;mxiter&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;iter1&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;npcond&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;zclose&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;rclose&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;relax&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;nbpol&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;damp&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver2params</span><span class="p">[</span><span class="s1">&#39;dampt&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 3a</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 3a</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">toeslope</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">tipslope</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write dataset 3b</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptive</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 3b</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nadptmx</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">nadptmn</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">adptfct</span><span class="si">:</span><span class="s2">14.6g</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># write dataset 4</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 4</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nu</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># write dataset 5</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 5</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">isur</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsrf</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ilay</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zeta</span><span class="p">[</span><span class="n">isur</span><span class="p">][</span><span class="n">ilay</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># write dataset 6</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 6</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ssz</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># write dataset 7</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 7</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">isource</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># write dataset 8</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Dataset 8</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nobs</span><span class="p">):</span>
+                <span class="c1"># f.write(self.obsnam[i] + 3 * &#39;%10i&#39; % self.obslrc + &#39;\n&#39;)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">obsnam</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obslrc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># close swi2 file</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowSwi2.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfswi2.html#flopy.modflow.mfswi2.ModflowSwi2.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        swi2 : ModflowSwi2 object</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; swi2 = flopy.modflow.ModflowSwi2.load(&#39;test.swi2&#39;, m)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading swi2 package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="c1"># determine problem dimensions</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="c1"># --read dataset 1</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  loading swi2 dataset 1&quot;</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nsrf</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">istrat</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nobs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+            <span class="n">iswizt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">iswiobs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">]))</span>
+            <span class="n">iswiobs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">adaptive</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="s2">&quot;#&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="n">idx</span><span class="p">]:</span>
+                <span class="k">break</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;adaptive&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">adaptive</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># read dataset 2a</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  loading swi2 dataset 2a&quot;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nsolver</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">iprsol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">mutsol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># read dataset 2b</span>
+        <span class="n">solver2params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">nsolver</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  loading swi2 dataset 2b&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;mxiter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;iter1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;npcond&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;zclose&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;rclose&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;relax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;nbpol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;damp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">solver2params</span><span class="p">[</span><span class="s2">&quot;dampt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+
+        <span class="c1"># read dataset 3a</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  loading swi2 dataset 3a&quot;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">toeslope</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">tipslope</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">beta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   explicit alpha and beta in file&quot;</span><span class="p">)</span>
+
+        <span class="c1"># read dataset 3b</span>
+        <span class="n">nadptmx</span><span class="p">,</span> <span class="n">nadptmn</span><span class="p">,</span> <span class="n">adptfct</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">adaptive</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  loading swi2 dataset 3b&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">nadptmx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">nadptmn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">adptfct</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># read dataset 4</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading nu...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">istrat</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">nnu</span> <span class="o">=</span> <span class="n">nsrf</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nnu</span> <span class="o">=</span> <span class="n">nsrf</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="n">nu</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nnu</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;nu&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+
+        <span class="c1"># read dataset 5</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading initial zeta surfaces...&quot;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="n">zeta</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsrf</span><span class="p">):</span>
+            <span class="n">ctxt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;zeta_surf</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">zeta</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">ctxt</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># read dataset 6</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading initial ssz...&quot;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="n">ssz</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;ssz&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+        <span class="p">)</span>
+
+        <span class="c1"># read dataset 7</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading initial isource...&quot;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="n">isource</span> <span class="o">=</span> <span class="n">Util3d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;isource&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+        <span class="p">)</span>
+
+        <span class="c1"># read dataset 8</span>
+        <span class="n">obsname</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">obslrc</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">nobs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading observation locations...&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nobs</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">break</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">obsname</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">kk</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">ii</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">jj</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">obslrc</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">kk</span><span class="p">,</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">])</span>
+                <span class="n">nobs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">obsname</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowSwi2</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">iswizt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">iswizt</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">ipakcb</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">iswiobs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">iswiobs</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># return swi2 instance</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nsrf</span><span class="o">=</span><span class="n">nsrf</span><span class="p">,</span>
+            <span class="n">istrat</span><span class="o">=</span><span class="n">istrat</span><span class="p">,</span>
+            <span class="n">iswizt</span><span class="o">=</span><span class="n">iswizt</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">iswiobs</span><span class="o">=</span><span class="n">iswiobs</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">nsolver</span><span class="o">=</span><span class="n">nsolver</span><span class="p">,</span>
+            <span class="n">iprsol</span><span class="o">=</span><span class="n">iprsol</span><span class="p">,</span>
+            <span class="n">mutsol</span><span class="o">=</span><span class="n">mutsol</span><span class="p">,</span>
+            <span class="n">solver2params</span><span class="o">=</span><span class="n">solver2params</span><span class="p">,</span>
+            <span class="n">toeslope</span><span class="o">=</span><span class="n">toeslope</span><span class="p">,</span>
+            <span class="n">tipslope</span><span class="o">=</span><span class="n">tipslope</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+            <span class="n">nadptmx</span><span class="o">=</span><span class="n">nadptmx</span><span class="p">,</span>
+            <span class="n">nadptmn</span><span class="o">=</span><span class="n">nadptmn</span><span class="p">,</span>
+            <span class="n">adptfct</span><span class="o">=</span><span class="n">adptfct</span><span class="p">,</span>
+            <span class="n">nu</span><span class="o">=</span><span class="n">nu</span><span class="p">,</span>
+            <span class="n">zeta</span><span class="o">=</span><span class="n">zeta</span><span class="p">,</span>
+            <span class="n">ssz</span><span class="o">=</span><span class="n">ssz</span><span class="p">,</span>
+            <span class="n">isource</span><span class="o">=</span><span class="n">isource</span><span class="p">,</span>
+            <span class="n">obsnam</span><span class="o">=</span><span class="n">obsname</span><span class="p">,</span>
+            <span class="n">obslrc</span><span class="o">=</span><span class="n">obslrc</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;SWI2&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">29</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

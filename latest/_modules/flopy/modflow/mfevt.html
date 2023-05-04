@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfevt &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfevt</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfevt</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfghb module.  Contains the ModflowEvt class. Note that the user can access</span>
+<span class="sd">the ModflowEvt class as `flopy.modflow.ModflowEvt`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/evt.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Transient2d</span><span class="p">,</span> <span class="n">Util2d</span>
+<span class="kn">from</span> <span class="nn">..utils.utils_def</span> <span class="kn">import</span> <span class="n">get_pak_vals_shape</span>
+<span class="kn">from</span> <span class="nn">.mfparbc</span> <span class="kn">import</span> <span class="n">ModflowParBc</span> <span class="k">as</span> <span class="n">mfparbc</span>
+
+
+<div class="viewcode-block" id="ModflowEvt"><a class="viewcode-back" href="../../../source/flopy.modflow.mfevt.html#flopy.modflow.mfevt.ModflowEvt">[docs]</a><span class="k">class</span> <span class="nc">ModflowEvt</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Evapotranspiration Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.ModflowEvt`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    nevtop : int</span>
+<span class="sd">        is the recharge option code.</span>
+<span class="sd">        1: ET is calculated only for cells in the top grid layer</span>
+<span class="sd">        2: ET to layer defined in ievt</span>
+<span class="sd">        3: ET to highest active cell (default is 3).</span>
+<span class="sd">    surf : float or filename or ndarray or dict keyed on kper (zero-based)</span>
+<span class="sd">        is the ET surface elevation. (default is 0.0, which is used for all</span>
+<span class="sd">        stress periods).</span>
+<span class="sd">    evtr: float or filename or ndarray or dict keyed on kper (zero-based)</span>
+<span class="sd">        is the maximum ET flux (default is 1e-3, which is used for all</span>
+<span class="sd">        stress periods).</span>
+<span class="sd">    exdp : float or filename or ndarray or dict keyed on kper (zero-based)</span>
+<span class="sd">        is the ET extinction depth (default is 1.0, which is used for all</span>
+<span class="sd">        stress periods).</span>
+<span class="sd">    ievt : int or filename or ndarray or dict keyed on kper (zero-based)</span>
+<span class="sd">        is the layer indicator variable (default is 1, which is used for all</span>
+<span class="sd">        stress periods).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;evt&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output name will be created using</span>
+<span class="sd">        the model name and .cbc extension (for example, modflowtest.cbc),</span>
+<span class="sd">        if ipakcbc is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and cbc output names will be</span>
+<span class="sd">        created using the model name and .cbc extension, if ipakcbc is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; evt = flopy.modflow.ModflowEvt(m, nevtop=3, evtr=1.2e-4)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nevtop</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">surf</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">evtr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">exdp</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">ievt</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;evt&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">external</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowEvt</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with cbc output, if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;evt.html&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nevtop</span> <span class="o">=</span> <span class="n">nevtop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="o">=</span> <span class="n">external</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">load</span>
+
+        <span class="n">surf_u2d_shape</span> <span class="o">=</span> <span class="n">get_pak_vals_shape</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">evtr</span><span class="p">)</span>
+        <span class="n">evtr_u2d_shape</span> <span class="o">=</span> <span class="n">get_pak_vals_shape</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">evtr</span><span class="p">)</span>
+        <span class="n">exdp_u2d_shape</span> <span class="o">=</span> <span class="n">get_pak_vals_shape</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">exdp</span><span class="p">)</span>
+        <span class="n">ievt_u2d_shape</span> <span class="o">=</span> <span class="n">get_pak_vals_shape</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ievt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">surf</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">surf_u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">surf</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;surf&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evtr</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">evtr_u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">evtr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;evtr&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exdp</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">exdp_u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">exdp</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;exdp&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">ievt_u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">ievt</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ievt&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cells that have evapotranspiration (developed for</span>
+<span class="sd">        MT3DMS SSM package).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            maximum number of evt cells</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="k">return</span> <span class="n">nrow</span> <span class="o">*</span> <span class="n">ncol</span>
+
+<div class="viewcode-block" id="ModflowEvt.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfevt.html#flopy.modflow.mfevt.ModflowEvt.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_evt</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_evt</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nevtop</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevtop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">ievt</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">kper</span><span class="p">,</span> <span class="n">u2d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span><span class="o">.</span><span class="n">transient_2ds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">ievt</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span> <span class="o">=</span> <span class="n">u2d</span><span class="o">.</span><span class="n">array</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">ievt</span> <span class="o">=</span> <span class="n">Transient2d</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">ievt</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">mxndevt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">u2d</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">size</span>
+                        <span class="k">for</span> <span class="n">kper</span><span class="p">,</span> <span class="n">u2d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span><span class="o">.</span><span class="n">transient_2ds</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mxndevt</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">insurf</span><span class="p">,</span> <span class="n">surf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surf</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="n">inevtr</span><span class="p">,</span> <span class="n">evtr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evtr</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="n">inexdp</span><span class="p">,</span> <span class="n">exdp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exdp</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="n">inievt</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevtop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">inievt</span><span class="p">,</span> <span class="n">file_entry_ievt</span> <span class="o">=</span> <span class="n">ievt</span><span class="o">.</span><span class="n">get_kper_entry</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">inievt</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                    <span class="n">inievt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ievt</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Evapotranspiration dataset 5 for stress period </span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">insurf</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="n">inevtr</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="n">inexdp</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="n">inievt</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2"> # </span><span class="si">{</span><span class="n">comment</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">insurf</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">surf</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">inevtr</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">evtr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">inexdp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">exdp</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevtop</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">inievt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_evt</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_entry_ievt</span><span class="p">)</span>
+        <span class="n">f_evt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowEvt.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfevt.html#flopy.modflow.mfevt.ModflowEvt.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        evt : ModflowEvt object</span>
+<span class="sd">            ModflowEvt object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; evt = flopy.modflow.mfevt.load(&#39;test.evt&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading evt package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">npar</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="s2">&quot;parameter&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">npar</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;  Parameters detected. Number of parameters = &quot;</span><span class="p">,</span> <span class="n">npar</span>
+                    <span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="c1"># Dataset 2</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nevtop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">ipakcb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># dataset 2b for mfusg</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span> <span class="ow">and</span> <span class="n">nevtop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">mxndevt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Dataset 3 and 4 - parameters data</span>
+        <span class="n">pak_parms</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">npar</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pak_parms</span> <span class="o">=</span> <span class="n">mfparbc</span><span class="o">.</span><span class="n">loadarray</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">npar</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nper</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+
+        <span class="n">u2d_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+
+        <span class="c1"># Read data for every stress period</span>
+        <span class="n">surf</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">evtr</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">exdp</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">ievt</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">current_surf</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_evtr</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_exdp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_ievt</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">iper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">insurf</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">inevtr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">inexdp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">nevtop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">inievt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">inievt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="n">u2d_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">inievt</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">u2d_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncol</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">insurf</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading surf stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;surf&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="n">current_surf</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">surf</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_surf</span>
+
+            <span class="k">if</span> <span class="n">inevtr</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">npar</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;   loading evtr stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="n">u2d_shape</span><span class="p">,</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="s2">&quot;evtr&quot;</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">parm_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">ipar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inevtr</span><span class="p">):</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                        <span class="n">c</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+                            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+                        <span class="n">pname</span> <span class="o">=</span> <span class="n">c</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">c</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                            <span class="n">instance_dict</span> <span class="o">=</span> <span class="n">pak_parms</span><span class="o">.</span><span class="n">bc_parms</span><span class="p">[</span><span class="n">pname</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">instance_dict</span><span class="p">:</span>
+                                <span class="n">iname</span> <span class="o">=</span> <span class="n">c</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">iname</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">iname</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+                        <span class="n">parm_dict</span><span class="p">[</span><span class="n">pname</span><span class="p">]</span> <span class="o">=</span> <span class="n">iname</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">mfparbc</span><span class="o">.</span><span class="n">parameter_bcfill</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">pak_parms</span>
+                    <span class="p">)</span>
+
+                <span class="n">current_evtr</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">evtr</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_evtr</span>
+            <span class="k">if</span> <span class="n">inexdp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading exdp stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;exdp&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="n">current_exdp</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">exdp</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_exdp</span>
+            <span class="k">if</span> <span class="n">nevtop</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inievt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;   loading ievt stress period </span><span class="si">{</span><span class="n">iper</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;ievt&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                    <span class="p">)</span>
+                    <span class="n">current_ievt</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span> <span class="n">u2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">array</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;ievt&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">ievt</span><span class="p">[</span><span class="n">iper</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_ievt</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># create evt object</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">ievt</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;ievt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ievt</span>
+        <span class="k">if</span> <span class="n">nevtop</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;nevtop&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nevtop</span>
+        <span class="k">if</span> <span class="n">evtr</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;evtr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">evtr</span>
+        <span class="k">if</span> <span class="n">surf</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;surf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">surf</span>
+        <span class="k">if</span> <span class="n">exdp</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;exdp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exdp</span>
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;ipakcb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ipakcb</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowEvt</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">ipakcb</span>
+                <span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span>
+
+        <span class="c1"># set args for unitnumber and filenames</span>
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;unitnumber&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unitnumber</span>
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;filenames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filenames</span>
+
+        <span class="n">evt</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="c1"># return evt object</span>
+        <span class="k">return</span> <span class="n">evt</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;EVT&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">22</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

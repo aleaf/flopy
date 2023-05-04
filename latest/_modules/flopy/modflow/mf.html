@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mf &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mf</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mf module.  Contains the ModflowGlobal, ModflowList, and Modflow classes.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">getfullargspec</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">flopy</span>
+
+<span class="kn">from</span> <span class="nn">..discretization.modeltime</span> <span class="kn">import</span> <span class="n">ModelTime</span>
+<span class="kn">from</span> <span class="nn">..discretization.structuredgrid</span> <span class="kn">import</span> <span class="n">StructuredGrid</span>
+<span class="kn">from</span> <span class="nn">..discretization.unstructuredgrid</span> <span class="kn">import</span> <span class="n">UnstructuredGrid</span>
+<span class="kn">from</span> <span class="nn">..mbase</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">mfreadnam</span>
+<span class="kn">from</span> <span class="nn">.mfpar</span> <span class="kn">import</span> <span class="n">ModflowPar</span>
+
+
+<div class="viewcode-block" id="ModflowGlobal"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.ModflowGlobal">[docs]</a><span class="k">class</span> <span class="nc">ModflowGlobal</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ModflowGlobal Package class</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;glo&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="s2">&quot;GLOBAL&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Global Package class&quot;</span>
+
+<div class="viewcode-block" id="ModflowGlobal.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.ModflowGlobal.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Not implemented for global class</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="ModflowList"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.ModflowList">[docs]</a><span class="k">class</span> <span class="nc">ModflowList</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ModflowList Package class</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="n">unitnumber</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="s2">&quot;LIST&quot;</span><span class="p">,</span> <span class="n">unitnumber</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;List Package class&quot;</span>
+
+<div class="viewcode-block" id="ModflowList.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.ModflowList.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Not implemented for list class</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="Modflow"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow">[docs]</a><span class="k">class</span> <span class="nc">Modflow</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Model Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    modelname : str, default &quot;modflowtest&quot;</span>
+<span class="sd">        Name of model.  This string will be used to name the MODFLOW input</span>
+<span class="sd">        that are created with write_model.</span>
+<span class="sd">    namefile_ext : str, default &quot;nam&quot;</span>
+<span class="sd">        Extension for the namefile.</span>
+<span class="sd">    version : str, default &quot;mf2005&quot;</span>
+<span class="sd">        MODFLOW version. Choose one of: &quot;mf2k&quot;, &quot;mf2005&quot; (default),</span>
+<span class="sd">        &quot;mfnwt&quot;, or &quot;mfusg&quot;.</span>
+<span class="sd">    exe_name : str or PathLike, default &quot;mf2005&quot;</span>
+<span class="sd">        The name or path of the executable to use.</span>
+<span class="sd">    structured : bool, default True</span>
+<span class="sd">        Specify if model grid is structured (default) or unstructured.</span>
+<span class="sd">    listunit : int, default 2</span>
+<span class="sd">        Unit number for the list file.</span>
+<span class="sd">    model_ws : str or PathLike, default &quot;.&quot;</span>
+<span class="sd">        Model workspace.  Directory name to create model data sets.</span>
+<span class="sd">        (default is the present working directory).</span>
+<span class="sd">    external_path : str or PathLike, optional</span>
+<span class="sd">        Location for external files.</span>
+<span class="sd">    verbose : bool, default False</span>
+<span class="sd">        Print additional information to the screen.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">modelname</span><span class="o">=</span><span class="s2">&quot;modflowtest&quot;</span><span class="p">,</span>
+        <span class="n">namefile_ext</span><span class="o">=</span><span class="s2">&quot;nam&quot;</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;mf2005&quot;</span><span class="p">,</span>
+        <span class="n">exe_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mf2005&quot;</span><span class="p">,</span>
+        <span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">listunit</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">model_ws</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">curdir</span><span class="p">,</span>
+        <span class="n">external_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">modelname</span><span class="p">,</span>
+            <span class="n">namefile_ext</span><span class="p">,</span>
+            <span class="n">exe_name</span><span class="p">,</span>
+            <span class="n">model_ws</span><span class="p">,</span>
+            <span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version_types</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span> <span class="s2">&quot;MODFLOW-2000&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mf2005&quot;</span><span class="p">:</span> <span class="s2">&quot;MODFLOW-2005&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mfnwt&quot;</span><span class="p">:</span> <span class="s2">&quot;MODFLOW-NWT&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mfusg&quot;</span><span class="p">:</span> <span class="s2">&quot;MODFLOW-USG&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_version</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">glo</span> <span class="o">=</span> <span class="n">ModflowGlobal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lst</span> <span class="o">=</span> <span class="n">ModflowList</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unitnumber</span><span class="o">=</span><span class="n">listunit</span><span class="p">)</span>
+        <span class="c1"># -- check if unstructured is specified for something</span>
+        <span class="c1"># other than mfusg is specified</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="s2">&quot;mfusg&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span>
+            <span class="p">),</span> <span class="s2">&quot;structured=False can only be specified for mfusg models&quot;</span>
+
+        <span class="c1"># external option stuff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_free_format</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_format</span> <span class="o">=</span> <span class="s2">&quot;modflow&quot;</span>
+        <span class="c1"># self.external_fnames = []</span>
+        <span class="c1"># self.external_units = []</span>
+        <span class="c1"># self.external_binflag = []</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_fail</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># the starting external data unit number</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_next_ext_unit</span> <span class="o">=</span> <span class="mi">1000</span>
+
+        <span class="k">if</span> <span class="n">external_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_ws</span><span class="p">,</span> <span class="n">external_path</span><span class="p">)):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Note: external_path </span><span class="si">{</span><span class="n">external_path</span><span class="si">}</span><span class="s2"> already exists&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_ws</span><span class="p">,</span> <span class="n">external_path</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">external_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfpar</span> <span class="o">=</span> <span class="n">ModflowPar</span><span class="p">()</span>
+
+        <span class="c1"># output file info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hext</span> <span class="o">=</span> <span class="s2">&quot;hds&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dext</span> <span class="o">=</span> <span class="s2">&quot;ddn&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cext</span> <span class="o">=</span> <span class="s2">&quot;cbc&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hpth</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dpath</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpath</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Create a dictionary to map package with package object.</span>
+        <span class="c1"># This is used for loading models.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfnam_packages</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;zone&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowZon</span><span class="p">,</span>
+            <span class="s2">&quot;mult&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowMlt</span><span class="p">,</span>
+            <span class="s2">&quot;ag&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowAg</span><span class="p">,</span>
+            <span class="s2">&quot;pval&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowPval</span><span class="p">,</span>
+            <span class="s2">&quot;bas6&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowBas</span><span class="p">,</span>
+            <span class="s2">&quot;dis&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowDis</span><span class="p">,</span>
+            <span class="s2">&quot;bcf6&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowBcf</span><span class="p">,</span>
+            <span class="s2">&quot;lpf&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowLpf</span><span class="p">,</span>
+            <span class="s2">&quot;hfb6&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowHfb</span><span class="p">,</span>
+            <span class="s2">&quot;chd&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowChd</span><span class="p">,</span>
+            <span class="s2">&quot;fhb&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowFhb</span><span class="p">,</span>
+            <span class="s2">&quot;wel&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowWel</span><span class="p">,</span>
+            <span class="s2">&quot;mnw1&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowMnw1</span><span class="p">,</span>
+            <span class="s2">&quot;mnw2&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowMnw2</span><span class="p">,</span>
+            <span class="s2">&quot;mnwi&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowMnwi</span><span class="p">,</span>
+            <span class="s2">&quot;drn&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowDrn</span><span class="p">,</span>
+            <span class="s2">&quot;drt&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowDrt</span><span class="p">,</span>
+            <span class="s2">&quot;rch&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowRch</span><span class="p">,</span>
+            <span class="s2">&quot;evt&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowEvt</span><span class="p">,</span>
+            <span class="s2">&quot;ghb&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowGhb</span><span class="p">,</span>
+            <span class="s2">&quot;gmg&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowGmg</span><span class="p">,</span>
+            <span class="s2">&quot;lmt6&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowLmt</span><span class="p">,</span>
+            <span class="s2">&quot;lmt7&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowLmt</span><span class="p">,</span>
+            <span class="s2">&quot;riv&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowRiv</span><span class="p">,</span>
+            <span class="s2">&quot;str&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowStr</span><span class="p">,</span>
+            <span class="s2">&quot;swi2&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowSwi2</span><span class="p">,</span>
+            <span class="s2">&quot;pcg&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowPcg</span><span class="p">,</span>
+            <span class="s2">&quot;pcgn&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowPcgn</span><span class="p">,</span>
+            <span class="s2">&quot;nwt&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowNwt</span><span class="p">,</span>
+            <span class="s2">&quot;pks&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowPks</span><span class="p">,</span>
+            <span class="s2">&quot;sfr&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowSfr2</span><span class="p">,</span>
+            <span class="s2">&quot;lak&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowLak</span><span class="p">,</span>
+            <span class="s2">&quot;gage&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowGage</span><span class="p">,</span>
+            <span class="s2">&quot;sip&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowSip</span><span class="p">,</span>
+            <span class="s2">&quot;sor&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowSor</span><span class="p">,</span>
+            <span class="s2">&quot;de4&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowDe4</span><span class="p">,</span>
+            <span class="s2">&quot;oc&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowOc</span><span class="p">,</span>
+            <span class="s2">&quot;uzf&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowUzf1</span><span class="p">,</span>
+            <span class="s2">&quot;upw&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowUpw</span><span class="p">,</span>
+            <span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowSub</span><span class="p">,</span>
+            <span class="s2">&quot;swt&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowSwt</span><span class="p">,</span>
+            <span class="s2">&quot;hyd&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowHyd</span><span class="p">,</span>
+            <span class="s2">&quot;hob&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowHob</span><span class="p">,</span>
+            <span class="s2">&quot;chob&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowFlwob</span><span class="p">,</span>
+            <span class="s2">&quot;gbob&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowFlwob</span><span class="p">,</span>
+            <span class="s2">&quot;drob&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowFlwob</span><span class="p">,</span>
+            <span class="s2">&quot;rvob&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">ModflowFlwob</span><span class="p">,</span>
+            <span class="s2">&quot;vdf&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">seawat</span><span class="o">.</span><span class="n">SeawatVdf</span><span class="p">,</span>
+            <span class="s2">&quot;vsc&quot;</span><span class="p">:</span> <span class="n">flopy</span><span class="o">.</span><span class="n">seawat</span><span class="o">.</span><span class="n">SeawatVsc</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nrow_ncol_nlay_nper</span><span class="p">()</span>
+        <span class="c1"># structured case</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;MODFLOW </span><span class="si">{}</span><span class="s2"> layer(s) </span><span class="si">{}</span><span class="s2"> row(s) </span><span class="si">{}</span><span class="s2"> column(s) &quot;</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> stress period(s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nper</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">s</span>
+
+    <span class="c1">#</span>
+    <span class="c1"># def next_ext_unit(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Function to encapsulate next_ext_unit attribute</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     next_unit = self.__next_ext_unit + 1</span>
+    <span class="c1">#     self.__next_ext_unit += 1</span>
+    <span class="c1">#     return next_unit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">modeltime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;disu&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span>
+        <span class="c1"># build model time</span>
+        <span class="n">data_frame</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;perlen&quot;</span><span class="p">:</span> <span class="n">dis</span><span class="o">.</span><span class="n">perlen</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+            <span class="s2">&quot;nstp&quot;</span><span class="p">:</span> <span class="n">dis</span><span class="o">.</span><span class="n">nstp</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+            <span class="s2">&quot;tsmult&quot;</span><span class="p">:</span> <span class="n">dis</span><span class="o">.</span><span class="n">tsmult</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_time</span> <span class="o">=</span> <span class="n">ModelTime</span><span class="p">(</span>
+            <span class="n">data_frame</span><span class="p">,</span>
+            <span class="n">dis</span><span class="o">.</span><span class="n">itmuni_dict</span><span class="p">[</span><span class="n">dis</span><span class="o">.</span><span class="n">itmuni</span><span class="p">],</span>
+            <span class="n">dis</span><span class="o">.</span><span class="n">start_datetime</span><span class="p">,</span>
+            <span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_time</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">modelgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mg_resync</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_package</span><span class="p">(</span><span class="s2">&quot;bas6&quot;</span><span class="p">):</span>
+            <span class="n">ibound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bas6</span><span class="o">.</span><span class="n">ibound</span><span class="o">.</span><span class="n">array</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ibound</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;disu&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># build unstructured grid</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span> <span class="o">=</span> <span class="n">UnstructuredGrid</span><span class="p">(</span>
+                <span class="n">grid_type</span><span class="o">=</span><span class="s2">&quot;unstructured&quot;</span><span class="p">,</span>
+                <span class="n">vertices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">vertices</span><span class="p">,</span>
+                <span class="n">ivert</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">iverts</span><span class="p">,</span>
+                <span class="n">xcenters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">xcenters</span><span class="p">,</span>
+                <span class="n">ycenters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">ycenters</span><span class="p">,</span>
+                <span class="n">ncpl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">nodelay</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">top</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">botm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">idomain</span><span class="o">=</span><span class="n">ibound</span><span class="p">,</span>
+                <span class="n">lenuni</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">lenuni</span><span class="p">,</span>
+                <span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span>
+                <span class="n">xoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">xoffset</span><span class="p">,</span>
+                <span class="n">yoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">yoffset</span><span class="p">,</span>
+                <span class="n">angrot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">angrot</span><span class="p">,</span>
+                <span class="n">iac</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">iac</span><span class="p">,</span>
+                <span class="n">ja</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">ja</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;WARNING: Model grid functionality limited for unstructured &quot;</span>
+                <span class="s2">&quot;grid.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># build structured grid</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span> <span class="o">=</span> <span class="n">StructuredGrid</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">delc</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">delr</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">botm</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">ibound</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">lenuni</span><span class="p">,</span>
+                <span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span>
+                <span class="n">xoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">xoffset</span><span class="p">,</span>
+                <span class="n">yoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">yoffset</span><span class="p">,</span>
+                <span class="n">angrot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">angrot</span><span class="p">,</span>
+                <span class="n">nlay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+                <span class="n">laycbd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># resolve offsets</span>
+        <span class="n">xoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">xoffset</span>
+        <span class="k">if</span> <span class="n">xoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xul</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">xoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">_xul_to_xll</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xul</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">xoff</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">yoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">yoffset</span>
+        <span class="k">if</span> <span class="n">yoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yul</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">yoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">_yul_to_yll</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_yul</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">yoff</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">set_coord_info</span><span class="p">(</span>
+            <span class="n">xoff</span><span class="p">,</span>
+            <span class="n">yoff</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">angrot</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mg_resync</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span><span class="o">.</span><span class="n">is_complete</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span>
+
+    <span class="nd">@modelgrid</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">modelgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mg_resync</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_modelgrid</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">solver_tols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pcg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pcg</span><span class="o">.</span><span class="n">hclose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pcg</span><span class="o">.</span><span class="n">rclose</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">nwt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nwt</span><span class="o">.</span><span class="n">headtol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nwt</span><span class="o">.</span><span class="n">fluxtol</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sip</span><span class="o">.</span><span class="n">hclose</span><span class="p">,</span> <span class="o">-</span><span class="mi">999</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">gmg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gmg</span><span class="o">.</span><span class="n">hclose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gmg</span><span class="o">.</span><span class="n">rclose</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nlay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nrow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nrow</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">nper</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncpl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nrow</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">ncol</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">disu</span><span class="o">.</span><span class="n">ncpl</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nrow_ncol_nlay_nper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># structured dis</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dis</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nper</span>
+        <span class="c1"># unstructured dis</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nodelay</span><span class="o">.</span><span class="n">array</span><span class="p">[:],</span> <span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">dis</span><span class="o">.</span><span class="n">nper</span>
+        <span class="c1"># no dis</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="Modflow.get_nrow_ncol_nlay_nper"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.get_nrow_ncol_nlay_nper">[docs]</a>    <span class="k">def</span> <span class="nf">get_nrow_ncol_nlay_nper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span></div>
+
+<div class="viewcode-block" id="Modflow.get_ifrefm"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.get_ifrefm">[docs]</a>    <span class="k">def</span> <span class="nf">get_ifrefm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;BAS6&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bas</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">bas</span><span class="o">.</span><span class="n">ifrefm</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Modflow.set_ifrefm"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.set_ifrefm">[docs]</a>    <span class="k">def</span> <span class="nf">set_ifrefm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: set_ifrefm passed value must be a boolean&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_free_format</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">bas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;BAS6&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bas</span><span class="p">:</span>
+            <span class="n">bas</span><span class="o">.</span><span class="n">ifrefm</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># Overrides BaseModel&#39;s setter for name property</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_name</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">extension</span><span class="p">)):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">extension</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<div class="viewcode-block" id="Modflow.write_name_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.write_name_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_name_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the model name file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fn_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">namefile</span><span class="p">)</span>
+        <span class="n">f_nam</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">modelgrid</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;; start_datetime:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start_datetime</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{:14s}</span><span class="s2"> </span><span class="si">{:5d}</span><span class="s2">  </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:14s}</span><span class="s2"> </span><span class="si">{:5d}</span><span class="s2">  </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_name_file_entries</span><span class="p">()))</span>
+
+        <span class="c1"># write the external files</span>
+        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_units</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_fnames</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_binflag</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_output</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">replace_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">o</span><span class="p">:</span>
+                <span class="n">replace_text</span> <span class="o">=</span> <span class="s2">&quot; REPLACE&quot;</span>
+            <span class="k">if</span> <span class="n">b</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;DATA(BINARY)   </span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">f</span><span class="si">}{</span><span class="n">replace_text</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DATA           </span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write the output files</span>
+        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_units</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_fnames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_binflag</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">b</span><span class="p">:</span>
+                <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DATA(BINARY)   </span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2"> REPLACE</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DATA           </span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># close the name file</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Modflow.set_model_units"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.set_model_units">[docs]</a>    <span class="k">def</span> <span class="nf">set_model_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iunit0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the model name file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">iunit0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iunit0</span> <span class="o">=</span> <span class="mi">1001</span>
+
+        <span class="c1"># initialize starting unit number</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_unit</span><span class="p">(</span><span class="n">iunit0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+            <span class="c1"># update global file unit number</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_unit</span><span class="p">()</span>
+
+        <span class="c1"># update lst file unit number</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_unit</span><span class="p">()</span>
+
+        <span class="c1"># update package unit numbers</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packagelist</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_unit</span><span class="p">()</span>
+
+        <span class="c1"># update external unit numbers</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">iu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">external_units</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">iu</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external_units</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_unit</span><span class="p">()</span>
+
+        <span class="c1"># update output files unit numbers</span>
+        <span class="n">oc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;OC&quot;</span><span class="p">)</span>
+        <span class="n">output_units0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_units</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">iu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_units</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">iu</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">iu1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_unit</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_units</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">iu1</span>
+            <span class="c1"># update oc files</span>
+            <span class="k">if</span> <span class="n">oc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">oc</span><span class="o">.</span><span class="n">iuhead</span> <span class="o">==</span> <span class="n">iu</span><span class="p">:</span>
+                    <span class="n">oc</span><span class="o">.</span><span class="n">iuhead</span> <span class="o">=</span> <span class="n">iu1</span>
+                <span class="k">elif</span> <span class="n">oc</span><span class="o">.</span><span class="n">iuddn</span> <span class="o">==</span> <span class="n">iu</span><span class="p">:</span>
+                    <span class="n">oc</span><span class="o">.</span><span class="n">iuddn</span> <span class="o">=</span> <span class="n">iu1</span>
+
+        <span class="c1"># replace value in ipakcb</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packagelist</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">iu0</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ipakcb</span>
+                <span class="k">if</span> <span class="n">iu0</span> <span class="ow">in</span> <span class="n">output_units0</span><span class="p">:</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="n">output_units0</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">iu0</span><span class="p">)</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_units</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   could not replace value in ipakcb&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Modflow.load_results"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.load_results">[docs]</a>    <span class="k">def</span> <span class="nf">load_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># remove model if passed as a kwarg</span>
+        <span class="k">if</span> <span class="s2">&quot;model&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">)</span>
+
+        <span class="n">as_dict</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="s2">&quot;as_dict&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">as_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;as_dict&quot;</span><span class="p">))</span>
+
+        <span class="n">savehead</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">saveddn</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">savebud</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># check for oc</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">oc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;OC&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hext</span> <span class="o">=</span> <span class="n">oc</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dext</span> <span class="o">=</span> <span class="n">oc</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cext</span> <span class="o">=</span> <span class="n">oc</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">oc</span><span class="o">.</span><span class="n">chedfm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">head_const</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">HeadFile</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">head_const</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">FormattedHeadFile</span>
+            <span class="k">if</span> <span class="n">oc</span><span class="o">.</span><span class="n">cddnfm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ddn_const</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">HeadFile</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ddn_const</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">FormattedHeadFile</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">oc</span><span class="o">.</span><span class="n">stress_period_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;save head&quot;</span><span class="p">:</span>
+                        <span class="n">savehead</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;save drawdown&quot;</span><span class="p">:</span>
+                        <span class="n">saveddn</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;save budget&quot;</span><span class="p">:</span>
+                        <span class="n">savebud</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;error reading output filenames from OC package: </span><span class="si">{</span><span class="n">e</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">hdObj</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ddObj</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">bdObj</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">savehead</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hpth</span><span class="p">):</span>
+            <span class="n">hdObj</span> <span class="o">=</span> <span class="n">head_const</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hpth</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">saveddn</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dpth</span><span class="p">):</span>
+            <span class="n">ddObj</span> <span class="o">=</span> <span class="n">ddn_const</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dpth</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">savebud</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cpth</span><span class="p">):</span>
+            <span class="n">bdObj</span> <span class="o">=</span> <span class="n">flopy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">CellBudgetFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cpth</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># get subsidence, if written</span>
+        <span class="n">subObj</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;subsidence.hds&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">extension</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">extension</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;subsidence.hds&quot;</span><span class="p">)</span>
+                <span class="n">subObj</span> <span class="o">=</span> <span class="n">head_const</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span>
+                    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;subsidence&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;error loading subsidence.hds:</span><span class="si">{</span><span class="n">e</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">as_dict</span><span class="p">:</span>
+            <span class="n">oudic</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">subObj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">oudic</span><span class="p">[</span><span class="s2">&quot;subsidence.hds&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subObj</span>
+            <span class="k">if</span> <span class="n">savehead</span> <span class="ow">and</span> <span class="n">hdObj</span><span class="p">:</span>
+                <span class="n">oudic</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hpth</span><span class="p">]</span> <span class="o">=</span> <span class="n">hdObj</span>
+            <span class="k">if</span> <span class="n">saveddn</span> <span class="ow">and</span> <span class="n">ddObj</span><span class="p">:</span>
+                <span class="n">oudic</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dpth</span><span class="p">]</span> <span class="o">=</span> <span class="n">ddObj</span>
+            <span class="k">if</span> <span class="n">savebud</span> <span class="ow">and</span> <span class="n">bdObj</span><span class="p">:</span>
+                <span class="n">oudic</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cpth</span><span class="p">]</span> <span class="o">=</span> <span class="n">bdObj</span>
+            <span class="k">return</span> <span class="n">oudic</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">hdObj</span><span class="p">,</span> <span class="n">ddObj</span><span class="p">,</span> <span class="n">bdObj</span></div>
+
+<div class="viewcode-block" id="Modflow.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mf.html#flopy.modflow.mf.Modflow.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">f</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;mf2005&quot;</span><span class="p">,</span>
+        <span class="n">exe_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mf2005&quot;</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">model_ws</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">curdir</span><span class="p">,</span>
+        <span class="n">load_only</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">forgive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing MODFLOW model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : str</span>
+<span class="sd">            Path to MODFLOW name file to load.</span>
+<span class="sd">        version : str, default &quot;mf2005&quot;</span>
+<span class="sd">            MODFLOW version. Choose one of: &quot;mf2k&quot;, &quot;mf2005&quot; (default),</span>
+<span class="sd">            or &quot;mfnwt&quot;. Note that this can be modified on loading</span>
+<span class="sd">            packages unique to different MODFLOW versions.</span>
+<span class="sd">        exe_name : str or PathLike, default &quot;mf2005&quot;</span>
+<span class="sd">            MODFLOW executable name or path.</span>
+<span class="sd">        verbose : bool, default False</span>
+<span class="sd">            Show messages that can be useful for debugging.</span>
+<span class="sd">        model_ws : str or PathLike, default &quot;.&quot;</span>
+<span class="sd">            Model workspace path. Default is the current directory.</span>
+<span class="sd">        load_only : list, str or None</span>
+<span class="sd">            List of case insensitive packages to load, e.g. [&quot;bas6&quot;, &quot;lpf&quot;].</span>
+<span class="sd">            One package can also be specified, e.g. &quot;rch&quot;. Default is None,</span>
+<span class="sd">            which attempts to load all files. An empty list [] will not load</span>
+<span class="sd">            any additional packages than is necessary. At a minimum, &quot;dis&quot; is</span>
+<span class="sd">            always loaded.</span>
+<span class="sd">        forgive : bool, optional</span>
+<span class="sd">            Option to raise exceptions on package load failure, which can be</span>
+<span class="sd">            useful for debugging. Default False.</span>
+<span class="sd">        check : boolean, optional</span>
+<span class="sd">            Check model input for common errors. Default True.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        flopy.modflow.mf.Modflow</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; ml = flopy.modflow.Modflow.load(&#39;model.nam&#39;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># similar to modflow command: if file does not exist , try file.nam</span>
+        <span class="n">namefile_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">model_ws</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span> <span class="o">/</span> <span class="n">f</span>
+        <span class="n">namefile_path_sfx</span> <span class="o">=</span> <span class="n">namefile_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.nam&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">namefile_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">namefile_path_sfx</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">namefile_path</span> <span class="o">=</span> <span class="n">namefile_path_sfx</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">namefile_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot find name file: </span><span class="si">{</span><span class="n">namefile_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Determine model name from &#39;f&#39;, without any extension or path</span>
+        <span class="n">modelname</span> <span class="o">=</span> <span class="n">namefile_path</span><span class="o">.</span><span class="n">stem</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Creating new model with name: </span><span class="si">{</span><span class="n">modelname</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">attribs</span> <span class="o">=</span> <span class="n">mfreadnam</span><span class="o">.</span><span class="n">attribs_from_namfile_header</span><span class="p">(</span><span class="n">namefile_path</span><span class="p">)</span>
+        <span class="n">ml</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">modelname</span><span class="p">,</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+            <span class="n">exe_name</span><span class="o">=</span><span class="n">exe_name</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">model_ws</span><span class="o">=</span><span class="n">model_ws</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">attribs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">files_successfully_loaded</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">files_not_loaded</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># read name file</span>
+        <span class="n">ext_unit_dict</span> <span class="o">=</span> <span class="n">mfreadnam</span><span class="o">.</span><span class="n">parsenamefile</span><span class="p">(</span>
+            <span class="n">namefile_path</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">mfnam_packages</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s2">External unit dictionary:</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="mi">50</span> <span class="o">*</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="mi">50</span> <span class="o">*</span> <span class="s2">&quot;-&quot;</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># create a dict where key is the package name, value is unitnumber</span>
+        <span class="n">ext_pkg_d</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">filetype</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="c1"># reset version based on packages in the name file</span>
+        <span class="k">if</span> <span class="s2">&quot;NWT&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span> <span class="ow">or</span> <span class="s2">&quot;UPW&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mfnwt&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;GLOBAL&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">version</span> <span class="o">!=</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">glo</span> <span class="o">=</span> <span class="n">ModflowGlobal</span><span class="p">(</span><span class="n">ml</span><span class="p">)</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mf2k&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;SMS&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mfusg&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;DISU&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mfusg&quot;</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">structured</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># update the modflow version</span>
+        <span class="n">ml</span><span class="o">.</span><span class="n">set_version</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="c1"># Impending deprecation warning to switch to using</span>
+        <span class="c1"># flopy.mfusg.MfUsg() instead of flopy.modflow.Modflow()</span>
+        <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mfusg&quot;</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;flopy.modflow.Modflow() for mfusg models has been deprecated, &quot;</span>
+                <span class="s2">&quot; and will be removed in the next release. Please switch to using&quot;</span>
+                <span class="s2">&quot; flopy.mfusg.MfUsg() instead.&quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># reset unit number for glo file</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mf2k&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;GLOBAL&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+                <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ext_pkg_d</span><span class="p">[</span><span class="s2">&quot;GLOBAL&quot;</span><span class="p">]</span>
+                <span class="n">filepth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">unitnumber</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">unit_number</span> <span class="o">=</span> <span class="p">[</span><span class="n">unitnumber</span><span class="p">]</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">filepth</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># TODO: is this necessary? it&#39;s not done for LIST.</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">unit_number</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">glo</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+
+        <span class="c1"># reset unit number for list file</span>
+        <span class="k">if</span> <span class="s2">&quot;LIST&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ext_pkg_d</span><span class="p">[</span><span class="s2">&quot;LIST&quot;</span><span class="p">]</span>
+            <span class="n">filepth</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">unitnumber</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">unit_number</span> <span class="o">=</span> <span class="p">[</span><span class="n">unitnumber</span><span class="p">]</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">lst</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">filepth</span><span class="p">]</span>
+
+        <span class="c1"># look for the free format flag in bas6</span>
+        <span class="n">bas_key</span> <span class="o">=</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BAS6&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bas_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bas</span> <span class="o">=</span> <span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">bas_key</span><span class="p">]</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">bas</span><span class="o">.</span><span class="n">filehandle</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">bas</span><span class="o">.</span><span class="n">filehandle</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">while</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">bas</span><span class="o">.</span><span class="n">filehandle</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="s2">&quot;FREE&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">free_format_input</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">bas</span><span class="o">.</span><span class="n">filehandle</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ModflowBas6 free format:</span><span class="si">{</span><span class="n">ml</span><span class="o">.</span><span class="n">free_format_input</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># load dis</span>
+        <span class="n">dis_key</span> <span class="o">=</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;discretization entry not found in nam file&quot;</span><span class="p">)</span>
+        <span class="n">disnamdata</span> <span class="o">=</span> <span class="n">ext_unit_dict</span><span class="p">[</span><span class="n">dis_key</span><span class="p">]</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="n">disnamdata</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">disnamdata</span><span class="o">.</span><span class="n">filehandle</span><span class="p">,</span> <span class="n">ml</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">files_successfully_loaded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">disnamdata</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">dis</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> package load...success&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">ml</span><span class="o">.</span><span class="n">pop_key_list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="o">==</span> <span class="n">dis_key</span>
+        <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">dis_key</span><span class="p">)</span><span class="o">.</span><span class="n">filehandle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">dis</span><span class="o">.</span><span class="n">start_datetime</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">_start_datetime</span>
+
+        <span class="k">if</span> <span class="n">load_only</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># load all packages/files</span>
+            <span class="n">load_only</span> <span class="o">=</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># check items in list</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_only</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">load_only</span> <span class="o">=</span> <span class="p">[</span><span class="n">load_only</span><span class="p">]</span>
+            <span class="n">not_found</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">filetype</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">load_only</span><span class="p">):</span>
+                <span class="n">load_only</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">filetype</span> <span class="o">=</span> <span class="n">filetype</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">filetype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+                    <span class="n">not_found</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filetype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">not_found</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s2">&quot;the following load_only entries were not found &quot;</span>
+                    <span class="s2">&quot;in the ext_unit_dict: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># zone, mult, pval</span>
+        <span class="k">if</span> <span class="s2">&quot;PVAL&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">set_pval</span><span class="p">(</span><span class="n">ml</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">ml</span><span class="o">.</span><span class="n">pop_key_list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="o">==</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PVAL&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;ZONE&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">set_zone</span><span class="p">(</span><span class="n">ml</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">ml</span><span class="o">.</span><span class="n">pop_key_list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="o">==</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ZONE&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;MULT&quot;</span> <span class="ow">in</span> <span class="n">ext_pkg_d</span><span class="p">:</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">set_mult</span><span class="p">(</span><span class="n">ml</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">ml</span><span class="o">.</span><span class="n">pop_key_list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="o">==</span> <span class="n">ext_pkg_d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;MULT&quot;</span><span class="p">)</span>
+
+        <span class="c1"># try loading packages in ext_unit_dict</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">package</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span> <span class="ow">in</span> <span class="n">load_only</span><span class="p">:</span>
+                    <span class="n">package_load_args</span> <span class="o">=</span> <span class="n">getfullargspec</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">load</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">forgive</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="s2">&quot;check&quot;</span> <span class="ow">in</span> <span class="n">package_load_args</span><span class="p">:</span>
+                                <span class="n">item</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                                    <span class="n">item</span><span class="o">.</span><span class="n">filehandle</span><span class="p">,</span>
+                                    <span class="n">ml</span><span class="p">,</span>
+                                    <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                                    <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">item</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                                    <span class="n">item</span><span class="o">.</span><span class="n">filehandle</span><span class="p">,</span>
+                                    <span class="n">ml</span><span class="p">,</span>
+                                    <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="n">files_successfully_loaded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span>
+                                    <span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> package load...success&quot;</span>
+                                <span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="n">ml</span><span class="o">.</span><span class="n">load_fail</span> <span class="o">=</span> <span class="kc">True</span>
+                            <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span>
+                                    <span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> package load...failed&quot;</span>
+                                <span class="p">)</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">e</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">files_not_loaded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="s2">&quot;check&quot;</span> <span class="ow">in</span> <span class="n">package_load_args</span><span class="p">:</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                                <span class="n">item</span><span class="o">.</span><span class="n">filehandle</span><span class="p">,</span>
+                                <span class="n">ml</span><span class="p">,</span>
+                                <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                                <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                                <span class="n">item</span><span class="o">.</span><span class="n">filehandle</span><span class="p">,</span>
+                                <span class="n">ml</span><span class="p">,</span>
+                                <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="n">files_successfully_loaded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> package load...success&quot;</span>
+                            <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> package load...skipped&quot;</span><span class="p">)</span>
+                    <span class="n">files_not_loaded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;data&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">files_not_loaded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> package load...skipped&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="si">}</span><span class="s2"> package load...skipped&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ml</span><span class="o">.</span><span class="n">pop_key_list</span><span class="p">:</span>
+                    <span class="c1"># do not add unit number (key) if it already exists</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ml</span><span class="o">.</span><span class="n">external_units</span><span class="p">:</span>
+                        <span class="n">ml</span><span class="o">.</span><span class="n">external_fnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+                        <span class="n">ml</span><span class="o">.</span><span class="n">external_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                        <span class="n">ml</span><span class="o">.</span><span class="n">external_binflag</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="s2">&quot;binary&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                        <span class="p">)</span>
+                        <span class="n">ml</span><span class="o">.</span><span class="n">external_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unhandled case: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># pop binary output keys and any external file units that are now</span>
+        <span class="c1"># internal</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ml</span><span class="o">.</span><span class="n">pop_key_list</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ml</span><span class="o">.</span><span class="n">remove_external</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">ext_unit_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">filehandle</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">):</span>
+                    <span class="n">item</span><span class="o">.</span><span class="n">filehandle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">WARNING:</span><span class="se">\n</span><span class="s2">    External file unit </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> does not &quot;</span>
+                        <span class="s2">&quot;exist in ext_unit_dict.&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># write message indicating packages that were successfully loaded</span>
+        <span class="k">if</span> <span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;   The following </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">files_successfully_loaded</span><span class="p">)</span><span class="si">}</span><span class="s2"> packages &quot;</span>
+                <span class="s2">&quot;were successfully loaded.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files_successfully_loaded</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files_not_loaded</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;   The following </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">files_not_loaded</span><span class="p">)</span><span class="si">}</span><span class="s2"> packages &quot;</span>
+                    <span class="s2">&quot;were not loaded.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">files_not_loaded</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="n">ml</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ml</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># return model object</span>
+        <span class="k">return</span> <span class="n">ml</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

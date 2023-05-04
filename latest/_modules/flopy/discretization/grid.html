@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.discretization.grid &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.discretization.grid</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.discretization.grid</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..plot.plotutil</span> <span class="kn">import</span> <span class="n">UnstructuredPlotUtilities</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">geometry</span>
+<span class="kn">from</span> <span class="nn">..utils.crs</span> <span class="kn">import</span> <span class="n">get_crs</span>
+<span class="kn">from</span> <span class="nn">..utils.gridutil</span> <span class="kn">import</span> <span class="n">get_lni</span>
+
+
+<div class="viewcode-block" id="CachedData"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.CachedData">[docs]</a><span class="k">class</span> <span class="nc">CachedData</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_of_date</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_nocopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CachedData.update_data"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.CachedData.update_data">[docs]</a>    <span class="k">def</span> <span class="nf">update_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_of_date</span> <span class="o">=</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="Grid"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid">[docs]</a><span class="k">class</span> <span class="nc">Grid</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for a structured or unstructured model grid</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    grid_type : enumeration</span>
+<span class="sd">        type of model grid (&#39;structured&#39;, &#39;vertex&#39;, &#39;unstructured&#39;)</span>
+<span class="sd">    top : float or ndarray</span>
+<span class="sd">        top elevations of cells in topmost layer</span>
+<span class="sd">    botm : float or ndarray</span>
+<span class="sd">        bottom elevations of all cells</span>
+<span class="sd">    idomain : int or ndarray</span>
+<span class="sd">        ibound/idomain value for each cell</span>
+<span class="sd">    lenuni : int or ndarray</span>
+<span class="sd">        model length units</span>
+<span class="sd">    crs : pyproj.CRS, optional if `prjfile` is specified</span>
+<span class="sd">        Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">        (must be projected; geographic CRS are not supported).</span>
+<span class="sd">        The value can be anything accepted by</span>
+<span class="sd">        :meth:`pyproj.CRS.from_user_input() &lt;pyproj.crs.CRS.from_user_input&gt;`,</span>
+<span class="sd">        such as an authority string (eg &quot;EPSG:26916&quot;) or a WKT string.</span>
+<span class="sd">    prjfile : str or pathlike, optional if `crs` is specified</span>
+<span class="sd">        ESRI-style projection file with well-known text defining the CRS</span>
+<span class="sd">        for the model grid (must be projected; geographic CRS are not supported).</span>
+<span class="sd">    xoff : float</span>
+<span class="sd">        x coordinate of the origin point (lower left corner of model grid)</span>
+<span class="sd">        in the spatial reference coordinate system</span>
+<span class="sd">    yoff : float</span>
+<span class="sd">        y coordinate of the origin point (lower left corner of model grid)</span>
+<span class="sd">        in the spatial reference coordinate system</span>
+<span class="sd">    angrot : float</span>
+<span class="sd">        rotation angle of model grid, as it is rotated around the origin point</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    grid_type : enumeration</span>
+<span class="sd">        type of model grid (&#39;structured&#39;, &#39;vertex&#39;, &#39;unstructured&#39;)</span>
+<span class="sd">    top : float or ndarray</span>
+<span class="sd">        top elevations of cells in topmost layer</span>
+<span class="sd">    botm : float or ndarray</span>
+<span class="sd">        bottom elevations of all cells</span>
+<span class="sd">    idomain : int or ndarray</span>
+<span class="sd">        ibound/idomain value for each cell</span>
+<span class="sd">    crs : pyproj.CRS</span>
+<span class="sd">        Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">    lenuni : int</span>
+<span class="sd">        modflow lenuni parameter</span>
+<span class="sd">    xoffset : float</span>
+<span class="sd">        x coordinate of the origin point in the spatial reference coordinate</span>
+<span class="sd">        system</span>
+<span class="sd">    yoffset : float</span>
+<span class="sd">        y coordinate of the origin point in the spatial reference coordinate</span>
+<span class="sd">        system</span>
+<span class="sd">    angrot : float</span>
+<span class="sd">        rotation angle of model grid, as it is rotated around the origin point</span>
+<span class="sd">    angrot_radians : float</span>
+<span class="sd">        rotation angle of model grid, in radians</span>
+<span class="sd">    xgrid : ndarray</span>
+<span class="sd">        returns numpy meshgrid of x edges in reference frame defined by</span>
+<span class="sd">        point_type</span>
+<span class="sd">    ygrid : ndarray</span>
+<span class="sd">        returns numpy meshgrid of y edges in reference frame defined by</span>
+<span class="sd">        point_type</span>
+<span class="sd">    zgrid : ndarray</span>
+<span class="sd">        returns numpy meshgrid of z edges in reference frame defined by</span>
+<span class="sd">        point_type</span>
+<span class="sd">    xcenters : ndarray</span>
+<span class="sd">        returns x coordinate of cell centers</span>
+<span class="sd">    ycenters : ndarray</span>
+<span class="sd">        returns y coordinate of cell centers</span>
+<span class="sd">    ycenters : ndarray</span>
+<span class="sd">        returns z coordinate of cell centers</span>
+<span class="sd">    xyzgrid : [ndarray, ndarray, ndarray]</span>
+<span class="sd">        returns the location of grid edges of all model cells. if the model</span>
+<span class="sd">        grid contains spatial reference information, the grid edges are in the</span>
+<span class="sd">        coordinate system provided by the spatial reference information.</span>
+<span class="sd">        returns a list of three ndarrays for the x, y, and z coordinates</span>
+<span class="sd">    xyzcellcenters : [ndarray, ndarray, ndarray]</span>
+<span class="sd">        returns the cell centers of all model cells in the model grid.  if</span>
+<span class="sd">        the model grid contains spatial reference information, the cell centers</span>
+<span class="sd">        are in the coordinate system provided by the spatial reference</span>
+<span class="sd">        information. otherwise the cell centers are based on a 0,0 location</span>
+<span class="sd">        for the upper left corner of the model grid. returns a list of three</span>
+<span class="sd">        ndarrays for the x, y, and z coordinates</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+<span class="sd">    get_coords(x, y)</span>
+<span class="sd">        transform point or array of points x, y from model coordinates to</span>
+<span class="sd">        spatial coordinates</span>
+<span class="sd">    grid_lines : (point_type=PointType.spatialxyz) : list</span>
+<span class="sd">        returns the model grid lines in a list.  each line is returned as a</span>
+<span class="sd">        list containing two tuples in the format [(x1,y1), (x2,y2)] where</span>
+<span class="sd">        x1,y1 and x2,y2 are the endpoints of the line.</span>
+<span class="sd">    xyvertices : (point_type) : ndarray</span>
+<span class="sd">        1D array of x and y coordinates of cell vertices for whole grid</span>
+<span class="sd">        (single layer) in C-style (row-major) order</span>
+<span class="sd">        (same as np.ravel())</span>
+<span class="sd">    intersect(x, y, local)</span>
+<span class="sd">        returns the row and column of the grid that the x, y point is in</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">grid_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">top</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">botm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">idomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">lenuni</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">proj4</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">xoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">yoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">angrot</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">lenunits</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;undefined&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;feet&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;meters&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;centimeters&quot;</span><span class="p">}</span>
+        <span class="n">LENUNI</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_ref_coords</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span> <span class="o">=</span> <span class="n">grid_type</span>
+        <span class="k">if</span> <span class="n">top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">top</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_top</span> <span class="o">=</span> <span class="n">top</span>
+        <span class="k">if</span> <span class="n">botm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">botm</span> <span class="o">=</span> <span class="n">botm</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_botm</span> <span class="o">=</span> <span class="n">botm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idomain</span> <span class="o">=</span> <span class="n">idomain</span>
+
+        <span class="k">if</span> <span class="n">lenuni</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lenuni</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lenuni</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">lenuni</span> <span class="o">=</span> <span class="n">LENUNI</span><span class="p">[</span><span class="n">lenuni</span><span class="o">.</span><span class="n">lower</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lenuni</span> <span class="o">=</span> <span class="n">lenuni</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">lenunits</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_lenuni</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span>
+            <span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">,</span> <span class="n">prj</span><span class="o">=</span><span class="n">prj</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">,</span> <span class="n">proj4</span><span class="o">=</span><span class="n">proj4</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epsg</span> <span class="o">=</span> <span class="n">epsg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_proj4</span> <span class="o">=</span> <span class="n">proj4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prj</span> <span class="o">=</span> <span class="n">prj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prjfile</span> <span class="o">=</span> <span class="n">prjfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">=</span> <span class="n">xoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span> <span class="o">=</span> <span class="n">yoff</span>
+        <span class="k">if</span> <span class="n">angrot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">angrot</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">=</span> <span class="n">angrot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iverts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_laycbd</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">###################################</span>
+    <span class="c1"># access to basic grid properties</span>
+    <span class="c1">###################################</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xoffset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">yoffset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">angrot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">items</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;xll:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">xoffset</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;yll:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">yoffset</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;rotation:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">angrot</span><span class="si">!s}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">crs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;crs:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">crs</span><span class="o">.</span><span class="n">srs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;units:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;lenuni:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_botm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idomain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grid_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">yoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">angrot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">angrot_radians</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">crs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span>
+
+    <span class="nd">@crs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">crs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">crs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">epsg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span><span class="o">.</span><span class="n">to_epsg</span><span class="p">()</span>
+
+    <span class="nd">@epsg</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">epsg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epsg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span><span class="o">.</span><span class="n">to_epsg</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">proj4</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span><span class="o">.</span><span class="n">to_proj4</span><span class="p">()</span>
+
+    <span class="nd">@proj4</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">proj4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj4</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">proj4</span><span class="o">=</span><span class="n">proj4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_proj4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span><span class="o">.</span><span class="n">to_proj4</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prj</span>
+
+    <span class="nd">@prj</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">prj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prj</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">prj</span><span class="o">=</span><span class="n">prj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prj</span> <span class="o">=</span> <span class="n">prj</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prjfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prjfile</span>
+
+    <span class="nd">@prjfile</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">prjfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prjfile</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prjfile</span> <span class="o">=</span> <span class="n">prjfile</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_top</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">botm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_botm</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">top_botm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define top_botm in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">laycbd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_laycbd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_laycbd</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cell_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the cell thickness for a structured, vertex, or unstructured grid.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            thick : calculated thickness</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top_botm</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_botm</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">thick</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DEPRECATED method. thick will be removed in version 3.3.9</span>
+
+<span class="sd">        Get the cell thickness for a structured, vertex, or unstructured grid.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            thick : calculated thickness</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;thick has been replaced with cell_thickness and will be removed in version 3.3.9,&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_thickness</span>
+
+<div class="viewcode-block" id="Grid.saturated_thickness"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.saturated_thickness">[docs]</a>    <span class="k">def</span> <span class="nf">saturated_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the saturated thickness for a structured, vertex, or unstructured</span>
+<span class="sd">        grid. If the optional array is passed then thickness is returned</span>
+<span class="sd">        relative to array values (saturated thickness). Returned values</span>
+<span class="sd">        ranges from zero to cell thickness if optional array is passed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        array : ndarray</span>
+<span class="sd">            array of elevations that will be used to adjust the cell thickness</span>
+<span class="sd">        mask: float, list, tuple, ndarray</span>
+<span class="sd">            array values to replace with a nan value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            thickness : calculated saturated thickness</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">thickness</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_thickness</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_botm</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">thickness</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">bot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_botm</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">thickness</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">thickness</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_confining_beds</span><span class="p">(</span><span class="n">thickness</span><span class="p">)</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_confining_beds</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+        <span class="n">bot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_confining_beds</span><span class="p">(</span><span class="n">bot</span><span class="p">)</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_confining_beds</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">array</span> <span class="o">&lt;</span> <span class="n">top</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">array</span> <span class="o">&gt;</span> <span class="n">bot</span><span class="p">))</span>
+        <span class="n">thickness</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">bot</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">array</span> <span class="o">&lt;=</span> <span class="n">bot</span><span class="p">)</span>
+        <span class="n">thickness</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">mask</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">mask_value</span> <span class="ow">in</span> <span class="n">mask</span><span class="p">:</span>
+                <span class="n">thickness</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">array</span> <span class="o">==</span> <span class="n">mask_value</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">return</span> <span class="n">thickness</span></div>
+
+<div class="viewcode-block" id="Grid.saturated_thick"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.saturated_thick">[docs]</a>    <span class="k">def</span> <span class="nf">saturated_thick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DEPRECATED method. saturated_thick will be removed in version 3.3.9</span>
+
+<span class="sd">        Get the saturated thickness for a structured, vertex, or unstructured</span>
+<span class="sd">        grid. If the optional array is passed then thickness is returned</span>
+<span class="sd">        relative to array values (saturated thickness). Returned values</span>
+<span class="sd">        ranges from zero to cell thickness if optional array is passed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        array : ndarray</span>
+<span class="sd">            array of elevations that will be used to adjust the cell thickness</span>
+<span class="sd">        mask: float, list, tuple, ndarray</span>
+<span class="sd">            array values to replace with a nan value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            thick : calculated saturated thickness</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;saturated_thick has been replaced with saturated_thickness and will be removed in version 3.3.9,&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">saturated_thickness</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lenuni</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lenuni</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">idomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_idomain</span><span class="p">)</span>
+
+    <span class="nd">@idomain</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">idomain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idomain</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idomain</span> <span class="o">=</span> <span class="n">idomain</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nlay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define nlay in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncpl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define ncpl in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nnodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define nnodes in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nvert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define nvert in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">iverts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define iverts in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">verts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define vertices in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define shape in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define extent in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xyzextent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grid_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define grid_lines in child class&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xcellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzcellcenters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Grid.get_xcellcenters_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_xcellcenters_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_xcellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="c1"># default is not layer dependent; must override for unstructured grid</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xcellcenters</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ycellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzcellcenters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Grid.get_ycellcenters_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_ycellcenters_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_ycellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="c1"># default is not layer dependent; must override for unstructured grid</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ycellcenters</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zcellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzcellcenters</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xyzcellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define get_cellcenters in child &quot;</span>
+            <span class="s2">&quot;class to use this base class&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xvertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Grid.get_xvertices_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_xvertices_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_xvertices_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="c1"># default is not layer dependent; must override for unstructured grid</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xvertices</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">yvertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Grid.get_yvertices_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_yvertices_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_yvertices_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="c1"># default is not layer dependent; must override for unstructured grid</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvertices</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zvertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xyzvertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define xyzvertices in child class&quot;</span><span class="p">)</span>
+
+    <span class="c1"># @property</span>
+    <span class="c1"># def indices(self):</span>
+    <span class="c1">#    raise NotImplementedError(</span>
+    <span class="c1">#        &#39;must define indices in child &#39;</span>
+    <span class="c1">#        &#39;class to use this base class&#39;)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cross_section_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Grid.neighbors"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.neighbors">[docs]</a>    <span class="k">def</span> <span class="nf">neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get nearest neighbors of a cell</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        node : int</span>
+<span class="sd">            model grid node number</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list : list of cell node numbers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ncpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span>
+
+        <span class="n">lay</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">node</span> <span class="o">&gt;=</span> <span class="n">ncpl</span><span class="p">:</span>
+            <span class="n">node</span> <span class="o">-=</span> <span class="n">ncpl</span>
+            <span class="n">lay</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">neigh</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">xverts</span><span class="p">,</span> <span class="n">yverts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_section_vertices</span>
+            <span class="n">xverts</span><span class="p">,</span> <span class="n">yverts</span> <span class="o">=</span> <span class="n">UnstructuredPlotUtilities</span><span class="o">.</span><span class="n">irregular_shape_patch</span><span class="p">(</span>
+                <span class="n">xverts</span><span class="p">,</span> <span class="n">yverts</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpl</span><span class="p">):</span>
+                <span class="n">conn</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">verts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cell_vertices</span><span class="p">(</span><span class="n">nn</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">verts</span><span class="p">)):</span>
+                    <span class="n">xv0</span><span class="p">,</span> <span class="n">yv0</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="n">xv1</span><span class="p">,</span> <span class="n">yv1</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span>
+                    <span class="n">idx0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">xverts</span> <span class="o">==</span> <span class="n">xv0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">yverts</span> <span class="o">==</span> <span class="n">yv0</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">idx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">xverts</span> <span class="o">==</span> <span class="n">xv1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">yverts</span> <span class="o">==</span> <span class="n">yv1</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">idx0</span><span class="p">,</span> <span class="n">idx1</span><span class="p">)</span>
+                    <span class="n">conn</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx0</span><span class="p">[</span><span class="n">mask</span><span class="p">]]</span>
+
+                <span class="n">conn</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">conn</span><span class="p">))</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">conn</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">nn</span><span class="p">))</span>
+                <span class="n">neigh</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">=</span> <span class="n">conn</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="o">=</span> <span class="n">neigh</span>
+
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="p">(</span><span class="n">ncpl</span> <span class="o">*</span> <span class="n">lay</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">neighbors</span></div>
+
+<div class="viewcode-block" id="Grid.remove_confining_beds"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.remove_confining_beds">[docs]</a>    <span class="k">def</span> <span class="nf">remove_confining_beds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to remove confining bed layers from an array</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        array : np.ndarray</span>
+<span class="sd">            array to remove quasi3d confining bed data from. Shape of axis 0</span>
+<span class="sd">            should be (self.lay + ncb) to remove beds</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            np.ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ncb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ncb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">ncb</span><span class="p">:</span>
+                    <span class="n">cb</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">):</span>
+                        <span class="n">idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span> <span class="o">+</span> <span class="n">cb</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">cb</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">array</span></div>
+
+<div class="viewcode-block" id="Grid.cross_section_lay_ncpl_ncb"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.cross_section_lay_ncpl_ncb">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_lay_ncpl_ncb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ncb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get PlotCrossSection compatible layers, ncpl, and ncb</span>
+<span class="sd">        variables</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ncb : int</span>
+<span class="sd">            number of confining beds</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple : (int, int, int) layers, ncpl, ncb</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">,</span> <span class="n">ncb</span></div>
+
+<div class="viewcode-block" id="Grid.cross_section_nodeskip"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.cross_section_nodeskip">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_nodeskip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">xypts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a nodeskip list for PlotCrossSection. This is a correction</span>
+<span class="sd">        for UnstructuredGridPlotting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nlay : int</span>
+<span class="sd">            nlay is nlay + ncb</span>
+<span class="sd">        xypts : dict</span>
+<span class="sd">            dictionary of node number and xyvertices of a cross-section</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list : n-dimensional list of nodes to not plot for each layer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="Grid.cross_section_adjust_indicies"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.cross_section_adjust_indicies">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_adjust_indicies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">cbcnt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get adjusted indicies by layer and confining bed</span>
+<span class="sd">        for PlotCrossSection plotting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        k : int</span>
+<span class="sd">            zero based layer number</span>
+<span class="sd">        cbcnt : int</span>
+<span class="sd">            confining bed counter</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple: (int, int, int) (adjusted layer, nodeskip layer, node</span>
+<span class="sd">            adjustment value based on number of confining beds and the layer)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">adjnn</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span>
+        <span class="n">ncbnn</span> <span class="o">=</span> <span class="n">adjnn</span> <span class="o">-</span> <span class="p">(</span><span class="n">cbcnt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ncbnn</span></div>
+
+<div class="viewcode-block" id="Grid.cross_section_set_contour_arrays"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.cross_section_set_contour_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_set_contour_arrays</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">,</span> <span class="n">head</span><span class="p">,</span> <span class="n">elev</span><span class="p">,</span> <span class="n">projpts</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to set countour array centers for rare instances where</span>
+<span class="sd">        matplotlib contouring is prefered over trimesh plotting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        plotarray : np.ndarray</span>
+<span class="sd">            array of data for contouring</span>
+<span class="sd">        xcenters : np.ndarray</span>
+<span class="sd">            xcenters array</span>
+<span class="sd">        zcenters : np.ndarray</span>
+<span class="sd">            zcenters array</span>
+<span class="sd">        head : np.ndarray</span>
+<span class="sd">            head array to adjust cell centers location</span>
+<span class="sd">        elev : np.ndarray</span>
+<span class="sd">            cell elevation array</span>
+<span class="sd">        projpts : dict</span>
+<span class="sd">            dictionary of projected cross sectional vertices</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple: (np.ndarray, np.ndarray, np.ndarray, bool)</span>
+<span class="sd">            plotarray, xcenter array, ycenter array, and a boolean flag</span>
+<span class="sd">            for contouring</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zcenters</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">head</span><span class="p">,</span> <span class="n">head</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">elev</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+
+            <span class="n">elev</span> <span class="o">=</span> <span class="n">elev</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ev</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">elev</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">zc</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">ev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">head</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">ev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="n">head</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">projpts</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">zc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">projpts</span><span class="p">)]</span>
+                <span class="n">zcenters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zc</span><span class="p">)</span>
+
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">))</span>
+            <span class="n">xcenters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">xcenters</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">))</span>
+            <span class="n">zcenters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zcenters</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">,</span> <span class="n">zcenters</span><span class="p">,</span> <span class="kc">True</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">map_polygons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;must define map_polygons in child class&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Grid.get_lni"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_lni">[docs]</a>    <span class="k">def</span> <span class="nf">get_lni</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the layer index and within-layer node index (both 0-based) for the given nodes</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nodes : node numbers (array-like)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list of tuples (layer index, node index)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ncpl</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">get_lni</span><span class="p">(</span><span class="n">ncpl</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.get_plottable_layer_array"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_plottable_layer_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_plottable_layer_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define get_plottable_layer_array in child class&quot;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.get_number_plottable_layers"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_number_plottable_layers">[docs]</a>    <span class="k">def</span> <span class="nf">get_number_plottable_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define get_number_plottable_layers in child class&quot;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.get_plottable_layer_shape"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_plottable_layer_shape">[docs]</a>    <span class="k">def</span> <span class="nf">get_plottable_layer_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine the shape that is required in order to plot a 2d array for</span>
+<span class="sd">        this grid.  For a regular MODFLOW grid, this is (nrow, ncol).  For</span>
+<span class="sd">        a vertex grid, this is (ncpl,) and for an unstructured grid this is</span>
+<span class="sd">        (ncpl[layer],).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        layer : int</span>
+<span class="sd">            Has no effect unless grid changes by layer</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        shape : tuple</span>
+<span class="sd">            required shape of array to plot for a layer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span></div>
+
+<div class="viewcode-block" id="Grid.get_coords"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_coords">[docs]</a>    <span class="k">def</span> <span class="nf">get_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given x and y array-like values, apply rotation, scale and offset,</span>
+<span class="sd">        to convert them from model coordinates to real-world coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span>
+        <span class="k">return</span> <span class="n">geometry</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angrot_radians</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.get_local_coords"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.get_local_coords">[docs]</a>    <span class="k">def</span> <span class="nf">get_local_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given x and y array-like values, apply rotation, scale and offset,</span>
+<span class="sd">        to convert them from real-world coordinates to model coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">y</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="c1"># x -= self._xoff</span>
+        <span class="c1"># y -= self._yoff</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="Grid.intersect"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.intersect">[docs]</a>    <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">local</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">forgive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">local</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_local_coords</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span></div>
+
+    <span class="k">def</span> <span class="nf">_warn_intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">lineno</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Warning for modelgrid intersect() interface change.</span>
+
+<span class="sd">        Should be be removed after a couple of releases. Added in 3.3.5</span>
+
+<span class="sd">        Updated in 3.3.6 to raise an error and exit if intersect interface</span>
+<span class="sd">        is called incorrectly.</span>
+
+<span class="sd">        Should be removed in flopy 3.3.7</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        module : str</span>
+<span class="sd">            module name path</span>
+<span class="sd">        lineno : int</span>
+<span class="sd">            line number where warning is called from</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">module</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">warning</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;The interface &#39;intersect(self, x, y, local=False, &quot;</span>
+            <span class="s2">&quot;forgive=False)&#39; has been deprecated. Use the &quot;</span>
+            <span class="s2">&quot;intersect(self, x, y, z=None, local=False, &quot;</span>
+            <span class="s2">&quot;forgive=False) interface instead.&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">UserWarning</span><span class="p">(</span><span class="n">warning</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Grid.set_coord_info"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.set_coord_info">[docs]</a>    <span class="k">def</span> <span class="nf">set_coord_info</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">xoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">yoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">angrot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">proj4</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">merge_coord_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">new_crs</span> <span class="o">=</span> <span class="n">get_crs</span><span class="p">(</span><span class="n">prjfile</span><span class="o">=</span><span class="n">prjfile</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">,</span> <span class="n">proj4</span><span class="o">=</span><span class="n">proj4</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">merge_coord_info</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">xoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">xoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span>
+            <span class="k">if</span> <span class="n">yoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">yoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span>
+            <span class="k">if</span> <span class="n">angrot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">angrot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span>
+            <span class="k">if</span> <span class="n">new_crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_crs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crs</span>
+
+        <span class="k">if</span> <span class="n">xoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xoff</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">yoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">yoff</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">angrot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">angrot</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">=</span> <span class="n">xoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span> <span class="o">=</span> <span class="n">yoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">=</span> <span class="n">angrot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prjfile</span> <span class="o">=</span> <span class="n">prjfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crs</span> <span class="o">=</span> <span class="n">new_crs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_require_cache_updates</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Grid.load_coord_info"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.load_coord_info">[docs]</a>    <span class="k">def</span> <span class="nf">load_coord_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namefile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reffile</span><span class="o">=</span><span class="s2">&quot;usgs.model.reference&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attempts to load spatial reference information from</span>
+<span class="sd">        the following files (in order):</span>
+<span class="sd">        1) usgs.model.reference</span>
+<span class="sd">        2) NAM file (header comment)</span>
+<span class="sd">        3) defaults</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reffile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">namefile</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reffile</span><span class="p">)</span>
+        <span class="c1"># try to load reference file</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_usgs_model_reference_file</span><span class="p">(</span><span class="n">reffile</span><span class="p">):</span>
+            <span class="c1"># try to load nam file</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs_from_namfile_header</span><span class="p">(</span><span class="n">namefile</span><span class="p">):</span>
+                <span class="c1"># set defaults</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_coord_info</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Grid.attribs_from_namfile_header"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.attribs_from_namfile_header">[docs]</a>    <span class="k">def</span> <span class="nf">attribs_from_namfile_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namefile</span><span class="p">):</span>
+        <span class="c1"># check for reference info in the nam file header</span>
+        <span class="k">if</span> <span class="n">namefile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">xul</span><span class="p">,</span> <span class="n">yul</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">namefile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+                    <span class="k">break</span>
+                <span class="n">header</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;xll&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">xll</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">=</span> <span class="n">xll</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="s2">&quot;yll&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">yll</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span> <span class="o">=</span> <span class="n">yll</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="s2">&quot;xul&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">xul</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="s2">&quot;yul&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">yul</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="s2">&quot;rotation&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="s2">&quot;proj4_str&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_proj4</span> <span class="o">=</span> <span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proj4</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_proj4</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="s2">&quot;start&quot;</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">start_datetime</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+        <span class="c1"># we need to rotate the modelgrid first, then we can</span>
+        <span class="c1"># calculate the xll and yll from xul and yul</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">xul</span><span class="p">,</span> <span class="n">yul</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_coord_info</span><span class="p">(</span>
+                <span class="n">xoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_xul_to_xll</span><span class="p">(</span><span class="n">xul</span><span class="p">),</span>
+                <span class="n">yoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_yul_to_yll</span><span class="p">(</span><span class="n">yul</span><span class="p">),</span>
+                <span class="n">angrot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Grid.read_usgs_model_reference_file"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.read_usgs_model_reference_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_usgs_model_reference_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reffile</span><span class="o">=</span><span class="s2">&quot;usgs.model.reference&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;read spatial reference info from the usgs.model.reference file</span>
+<span class="sd">        https://water.usgs.gov/ogw/policy/gw-model/modelers-setup.html&quot;&quot;&quot;</span>
+        <span class="n">xul</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">yul</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">reffile</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">reffile</span><span class="p">)</span> <span class="k">as</span> <span class="nb">input</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                            <span class="n">info</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="n">data</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;xll&quot;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;yll&quot;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;xul&quot;</span><span class="p">:</span>
+                                    <span class="n">xul</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;yul&quot;</span><span class="p">:</span>
+                                    <span class="n">yul</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;rotation&quot;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;epsg&quot;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">crs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;proj4&quot;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">crs</span> <span class="o">=</span> <span class="n">data</span>
+                                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;start_date&quot;</span><span class="p">:</span>
+                                    <span class="n">start_datetime</span> <span class="o">=</span> <span class="n">data</span>
+
+            <span class="c1"># model must be rotated first, before setting xoff and yoff</span>
+            <span class="c1"># when xul and yul are provided.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">xul</span><span class="p">,</span> <span class="n">yul</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_coord_info</span><span class="p">(</span>
+                    <span class="n">xoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_xul_to_xll</span><span class="p">(</span><span class="n">xul</span><span class="p">),</span>
+                    <span class="n">yoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_yul_to_yll</span><span class="p">(</span><span class="n">yul</span><span class="p">),</span>
+                    <span class="n">angrot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="c1"># Internal</span>
+    <span class="k">def</span> <span class="nf">_xul_to_xll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xul</span><span class="p">,</span> <span class="n">angrot</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">yext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyedges</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">angrot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xul</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angrot</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">yext</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xul</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">)</span> <span class="o">*</span> <span class="n">yext</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_yul_to_yll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yul</span><span class="p">,</span> <span class="n">angrot</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">yext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyedges</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">angrot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yul</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angrot</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">yext</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yul</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">)</span> <span class="o">*</span> <span class="n">yext</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_sr_coord_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sr</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">xll</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">yll</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">rotation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epsg</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">epsg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_proj4</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">proj4_str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_require_cache_updates</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_require_cache_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">cache_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">cache_data</span><span class="o">.</span><span class="n">out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_has_ref_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yoff</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angrot</span> <span class="o">!=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span> <span class="nf">_load_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xoff</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">xul</span>
+
+    <span class="k">def</span> <span class="nf">_zcoords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">botm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">zcenters</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">top_3d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">zbdryelevs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">top_3d</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">botm</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">zbdryelevs</span><span class="p">)):</span>
+                <span class="n">zcenters</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">zbdryelevs</span><span class="p">[</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">zbdryelevs</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zbdryelevs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">zcenters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">zbdryelevs</span><span class="p">,</span> <span class="n">zcenters</span>
+
+    <span class="c1"># Exporting</span>
+<div class="viewcode-block" id="Grid.write_shapefile"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.write_shapefile">[docs]</a>    <span class="k">def</span> <span class="nf">write_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;grid.shp&quot;</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write a shapefile of the grid with just the row and column attributes.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..export.shapefile_utils</span> <span class="kn">import</span> <span class="n">write_grid_shapefile</span>
+
+        <span class="n">write_grid_shapefile</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">array_dict</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">nan_val</span><span class="o">=-</span><span class="mf">1.0e9</span><span class="p">,</span>
+            <span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span>
+            <span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">,</span>
+            <span class="n">prj</span><span class="o">=</span><span class="n">prj</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span></div>
+
+    <span class="c1"># initialize grid from a grb file</span>
+<div class="viewcode-block" id="Grid.from_binary_grid_file"><a class="viewcode-back" href="../../../source/flopy.discretization.grid.html#flopy.discretization.grid.Grid.from_binary_grid_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_binary_grid_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;must define from_binary_grid_file in child class&quot;</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

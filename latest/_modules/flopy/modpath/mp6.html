@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modpath.mp6 &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modpath.mp6</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modpath.mp6</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..mbase</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">.mp6sim</span> <span class="kn">import</span> <span class="n">Modpath6Sim</span>
+
+
+<div class="viewcode-block" id="Modpath6List"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6List">[docs]</a><span class="k">class</span> <span class="nc">Modpath6List</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    List package class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="n">listunit</span><span class="o">=</span><span class="mi">7</span><span class="p">):</span>
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="s2">&quot;LIST&quot;</span><span class="p">,</span> <span class="n">listunit</span><span class="p">)</span>
+        <span class="c1"># self.parent.add_package(self) This package is not added to the base</span>
+        <span class="c1"># model so that it is not included in get_name_file_entries()</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Modpath6List.write_file"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6List.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Not implemented for list class</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="Modpath6"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6">[docs]</a><span class="k">class</span> <span class="nc">Modpath6</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modpath6 class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    modelname : str, default &quot;modpathtest&quot;</span>
+<span class="sd">        Basename for MODPATH 6 input and output files.</span>
+<span class="sd">    simfile_ext : str, default &quot;mpsim&quot;</span>
+<span class="sd">        Filename extension of the MODPATH 6 simulation file.</span>
+<span class="sd">    namefile_ext : str, default mpnam&quot;</span>
+<span class="sd">        Filename extension of the MODPATH 6 namefile.</span>
+<span class="sd">    version : str, default &quot;modpath&quot;</span>
+<span class="sd">        String that defines the MODPATH version. Valid versions are</span>
+<span class="sd">        &quot;modpath&quot; (default).</span>
+<span class="sd">    exe_name : str or PathLike, default &quot;mp6&quot;</span>
+<span class="sd">        The name of the executable to use.</span>
+<span class="sd">    modflowmodel : flopy.modflow.Modflow</span>
+<span class="sd">        MODFLOW model object with one of LPF, BCF6, or UPW packages.</span>
+<span class="sd">    dis_file : str or PathLike</span>
+<span class="sd">        Required dis file name.</span>
+<span class="sd">    dis_unit : int, default 87</span>
+<span class="sd">        Optional dis file unit number.</span>
+<span class="sd">    head_file : str or PathLike</span>
+<span class="sd">        Required filename of the MODFLOW output head file.</span>
+<span class="sd">    budget_file : str or PathLike</span>
+<span class="sd">        Required filename of the MODFLOW output cell-by-cell budget file.</span>
+<span class="sd">    model_ws : str or PathLike, optional</span>
+<span class="sd">        Model workspace.  Directory name to create model data sets.</span>
+<span class="sd">        Default is the current working directory.</span>
+<span class="sd">    external_path : str or PathLike, optional</span>
+<span class="sd">        Location for external files.</span>
+<span class="sd">    verbose : bool, default False</span>
+<span class="sd">        Print additional information to the screen.</span>
+<span class="sd">    load : bool, default True</span>
+<span class="sd">         Load model.</span>
+<span class="sd">    listunit : int, default 7</span>
+<span class="sd">        LIST file unit number.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">modelname</span><span class="o">=</span><span class="s2">&quot;modpathtest&quot;</span><span class="p">,</span>
+        <span class="n">simfile_ext</span><span class="o">=</span><span class="s2">&quot;mpsim&quot;</span><span class="p">,</span>
+        <span class="n">namefile_ext</span><span class="o">=</span><span class="s2">&quot;mpnam&quot;</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;modpath&quot;</span><span class="p">,</span>
+        <span class="n">exe_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mp6&quot;</span><span class="p">,</span>
+        <span class="n">modflowmodel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dis_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dis_unit</span><span class="o">=</span><span class="mi">87</span><span class="p">,</span>
+        <span class="n">head_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">budget_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_ws</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">external_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">load</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">listunit</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">modelname</span><span class="p">,</span>
+            <span class="n">simfile_ext</span><span class="p">,</span>
+            <span class="n">exe_name</span><span class="p">,</span>
+            <span class="n">model_ws</span><span class="o">=</span><span class="n">model_ws</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">version_types</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;modpath&quot;</span><span class="p">:</span> <span class="s2">&quot;MODPATH&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_version</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span> <span class="o">=</span> <span class="n">modflowmodel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lst</span> <span class="o">=</span> <span class="n">Modpath6List</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">listunit</span><span class="o">=</span><span class="n">listunit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpnamefile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">namefile_ext</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpbas_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">modelname</span><span class="si">}</span><span class="s2">.mpbas&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># ensure that user-specified files are used</span>
+            <span class="n">iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">oc</span><span class="o">.</span><span class="n">iuhead</span>
+            <span class="n">head_file</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">iu</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">head_file</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="n">head_file</span>
+            <span class="p">)</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;LPF&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;BCF6&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;UPW&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;LPF, BCF6, or UPW packages must be included in the &quot;</span>
+                    <span class="s2">&quot;passed MODFLOW model&quot;</span>
+                <span class="p">)</span>
+            <span class="n">iu</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ipakcb</span>
+            <span class="n">budget_file</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">iu</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">budget_file</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="n">budget_file</span>
+            <span class="p">)</span>
+            <span class="n">dis_file</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">dis_file</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dis_file</span>
+            <span class="p">)</span>
+
+            <span class="n">dis_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nper</span>
+            <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_file</span> <span class="o">=</span> <span class="n">head_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budget_file</span> <span class="o">=</span> <span class="n">budget_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span> <span class="o">=</span> <span class="n">dis_file</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dis_unit</span> <span class="o">=</span> <span class="n">dis_unit</span>
+        <span class="c1"># make sure the valid files are available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;the head file in the MODFLOW model or passed &quot;</span>
+                <span class="s2">&quot;to __init__ cannot be None&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">budget_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;the budget file in the MODFLOW model or passed &quot;</span>
+                <span class="s2">&quot;to __init__ cannot be None&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;the dis file in the MODFLOW model or passed &quot;</span>
+                <span class="s2">&quot;to __init__ cannot be None&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># read from nper, lay, nrow, ncol from dis file, Item 1: NLAY, NROW, NCOL, NPER, ITMUNI, LENUNI</span>
+            <span class="n">read_dis</span> <span class="o">=</span> <span class="n">dis_file</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">read_dis</span><span class="p">):</span>
+                <span class="c1"># path doesn&#39;t exist, probably relative to model_ws</span>
+                <span class="n">read_dis</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="n">dis_file</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">read_dis</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">while</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nper</span><span class="p">,</span> <span class="n">itmuni</span><span class="p">,</span> <span class="n">lennuni</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">nrow</span><span class="p">),</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">ncol</span><span class="p">),</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">nlay</span><span class="p">),</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">nper</span><span class="p">),</span>
+                <span class="p">)</span>
+
+        <span class="c1"># set the rest of the attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__sim</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_free_format</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_format</span> <span class="o">=</span> <span class="s2">&quot;modflow&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external_path</span> <span class="o">=</span> <span class="n">external_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external_fnames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external_units</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external_binflag</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span> <span class="o">=</span> <span class="n">load</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__next_ext_unit</span> <span class="o">=</span> <span class="mi">500</span>
+        <span class="k">if</span> <span class="n">external_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span>
+                <span class="n">external_path</span>
+            <span class="p">),</span> <span class="s2">&quot;external_path does not exist&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">external</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Modpath model&quot;</span>
+
+    <span class="c1"># function to encapsulate next_ext_unit attribute</span>
+<div class="viewcode-block" id="Modpath6.next_ext_unit"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6.next_ext_unit">[docs]</a>    <span class="k">def</span> <span class="nf">next_ext_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__next_ext_unit</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__next_ext_unit</span></div>
+
+<div class="viewcode-block" id="Modpath6.getsim"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6.getsim">[docs]</a>    <span class="k">def</span> <span class="nf">getsim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sim</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packagelist</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Modpath6Sim</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__sim</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sim</span></div>
+
+<div class="viewcode-block" id="Modpath6.getmf"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6.getmf">[docs]</a>    <span class="k">def</span> <span class="nf">getmf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span></div>
+
+<div class="viewcode-block" id="Modpath6.write_name_file"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6.write_name_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_name_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the name file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fn_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpnamefile</span><span class="p">)</span>
+        <span class="n">f_nam</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpbas_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MPBAS  86 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mpbas_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DIS </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dis_unit</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dis_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HEAD  88 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">head_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">budget_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BUDGET  89 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">budget_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">external_units</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">external_fnames</span><span class="p">):</span>
+            <span class="n">f_nam</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DATA  </span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_nam</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="n">sim</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">getsim</span><span class="p">)</span>  <span class="c1"># Property has no setter, so read-only</span>
+    <span class="n">mf</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">getmf</span><span class="p">)</span>  <span class="c1"># Property has no setter, so read-only</span>
+
+<div class="viewcode-block" id="Modpath6.create_mpsim"><a class="viewcode-back" href="../../../source/flopy.modpath.mp6.html#flopy.modpath.mp6.Modpath6.create_mpsim">[docs]</a>    <span class="k">def</span> <span class="nf">create_mpsim</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">simtype</span><span class="o">=</span><span class="s2">&quot;pathline&quot;</span><span class="p">,</span>
+        <span class="n">trackdir</span><span class="o">=</span><span class="s2">&quot;forward&quot;</span><span class="p">,</span>
+        <span class="n">packages</span><span class="o">=</span><span class="s2">&quot;WEL&quot;</span><span class="p">,</span>
+        <span class="n">start_time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">default_ifaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ParticleColumnCount</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">ParticleRowCount</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">MinRow</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">MinColumn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">MaxRow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">MaxColumn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a MODPATH simulation file using available MODFLOW boundary</span>
+<span class="sd">        package data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        simtype : str</span>
+<span class="sd">            Keyword defining the MODPATH simulation type. Available simtype&#39;s</span>
+<span class="sd">             are &#39;endpoint&#39;, &#39;pathline&#39;, and &#39;timeseries&#39;.</span>
+<span class="sd">             (default is &#39;PATHLINE&#39;)</span>
+<span class="sd">        trackdir : str</span>
+<span class="sd">            Keyword that defines the MODPATH particle tracking direction.</span>
+<span class="sd">            Available trackdir&#39;s are &#39;backward&#39; and &#39;forward&#39;.</span>
+<span class="sd">            (default is &#39;forward&#39;)</span>
+<span class="sd">        packages : None, str or list of strings</span>
+<span class="sd">            Keyword defining the modflow packages used to create initial</span>
+<span class="sd">            particle locations. Supported packages are &#39;WEL&#39;, &#39;MNW2&#39; and &#39;RCH&#39;.</span>
+<span class="sd">            (default is &#39;WEL&#39;).</span>
+<span class="sd">        start_time : float or tuple</span>
+<span class="sd">            Sets the value of MODPATH reference time relative to MODFLOW time.</span>
+<span class="sd">            float : value of MODFLOW simulation time at which to start the particle tracking simulation.</span>
+<span class="sd">                    Sets the value of MODPATH ReferenceTimeOption to 1.</span>
+<span class="sd">            tuple : (period, step, time fraction) MODFLOW stress period, time step and fraction</span>
+<span class="sd">                    between 0 and 1 at which to start the particle tracking simulation.</span>
+<span class="sd">                    Sets the value of MODPATH ReferenceTimeOption to 2.</span>
+<span class="sd">        default_ifaces : list</span>
+<span class="sd">            List of cell faces (1-6; see MODPATH6 manual, fig. 7) on which to start particles.</span>
+<span class="sd">            (default is None, meaning ifaces will vary depending on packages argument above)</span>
+<span class="sd">        ParticleRowCount : int</span>
+<span class="sd">            Rows of particles to start on each cell index face (iface).</span>
+<span class="sd">        ParticleColumnCount : int</span>
+<span class="sd">            Columns of particles to start on each cell index face (iface).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mpsim : ModpathSim object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;cannot create simulation by packages if the Modflow model is None&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">packages</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">packages</span> <span class="o">=</span> <span class="p">[</span><span class="n">packages</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">packages</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">packages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pak_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">get_package_list</span><span class="p">()</span>
+
+        <span class="c1"># not sure if this is the best way to handle this</span>
+        <span class="n">ReferenceTimeOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ref_time</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ref_time_per_stp</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">ReferenceTimeOption</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># 1: specify value for ref. time, 2: specify kper, kstp, rel. time pos</span>
+            <span class="n">ref_time_per_stp</span> <span class="o">=</span> <span class="n">start_time</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_time</span> <span class="o">=</span> <span class="n">start_time</span>
+
+        <span class="c1"># set iface particle grids</span>
+        <span class="n">ptrow</span> <span class="o">=</span> <span class="n">ParticleRowCount</span>
+        <span class="n">ptcol</span> <span class="o">=</span> <span class="n">ParticleColumnCount</span>
+        <span class="n">side_faces</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">],</span>
+        <span class="p">]</span>
+        <span class="n">top_face</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">]</span>
+        <span class="n">botm_face</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">default_ifaces</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">default_ifaces</span> <span class="o">=</span> <span class="p">[[</span><span class="n">ifc</span><span class="p">,</span> <span class="n">ptrow</span><span class="p">,</span> <span class="n">ptcol</span><span class="p">]</span> <span class="k">for</span> <span class="n">ifc</span> <span class="ow">in</span> <span class="n">default_ifaces</span><span class="p">]</span>
+
+        <span class="n">Grid</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">GridCellRegionOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">PlacementOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ReleaseStartTime</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">ReleaseOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">CHeadOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">group_name</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">group_region</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">group_placement</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ifaces</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">face_ct</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">strt_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">package</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;WEL&quot;</span><span class="p">:</span>
+                <span class="n">ParticleGenerationOption</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="s2">&quot;WEL&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pak_list</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="s2">&quot;Error: no well package in the passed model&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">for</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+                    <span class="n">mflist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">wel</span><span class="o">.</span><span class="n">stress_period_data</span><span class="p">[</span><span class="n">kper</span><span class="p">]</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">],</span> <span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">mflist</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">])</span>
+                    <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">ngrp</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="n">icnt</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrow</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">arr</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="k">continue</span>
+                            <span class="n">group_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;wc</span><span class="si">{</span><span class="n">icnt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">group_placement</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                                <span class="p">[</span>
+                                    <span class="n">Grid</span><span class="p">,</span>
+                                    <span class="n">GridCellRegionOption</span><span class="p">,</span>
+                                    <span class="n">PlacementOption</span><span class="p">,</span>
+                                    <span class="n">ReleaseStartTime</span><span class="p">,</span>
+                                    <span class="n">ReleaseOption</span><span class="p">,</span>
+                                    <span class="n">CHeadOption</span><span class="p">,</span>
+                                <span class="p">]</span>
+                            <span class="p">)</span>
+                            <span class="n">group_region</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="n">default_ifaces</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">ifaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                                    <span class="n">side_faces</span> <span class="o">+</span> <span class="p">[</span><span class="n">top_face</span><span class="p">,</span> <span class="n">botm_face</span><span class="p">]</span>
+                                <span class="p">)</span>
+                                <span class="n">face_ct</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">ifaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">default_ifaces</span><span class="p">)</span>
+                                <span class="n">face_ct</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">default_ifaces</span><span class="p">))</span>
+                            <span class="n">icnt</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># this is kind of a band aid pending refactoring of mpsim class</span>
+            <span class="k">elif</span> <span class="s2">&quot;MNW&quot;</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                <span class="n">ParticleGenerationOption</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="s2">&quot;MNW2&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pak_list</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="s2">&quot;Error: no MNW2 package in the passed model&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">node_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">mnw2</span><span class="o">.</span><span class="n">get_allnode_data</span><span class="p">()</span>
+                <span class="n">node_data</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;wellid&quot;</span><span class="p">,</span> <span class="s2">&quot;k&quot;</span><span class="p">])</span>
+                <span class="n">wellids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">node_data</span><span class="o">.</span><span class="n">wellid</span><span class="p">)</span>
+
+                <span class="k">def</span> <span class="nf">append_node</span><span class="p">(</span><span class="n">ifaces_well</span><span class="p">,</span> <span class="n">wellid</span><span class="p">,</span> <span class="n">node_number</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;add a single MNW node&quot;&quot;&quot;</span>
+                    <span class="n">group_region</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">default_ifaces</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">ifaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ifaces_well</span><span class="p">)</span>
+                        <span class="n">face_ct</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ifaces_well</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ifaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">default_ifaces</span><span class="p">)</span>
+                        <span class="n">face_ct</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">default_ifaces</span><span class="p">))</span>
+                    <span class="n">group_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">wellid</span><span class="si">}{</span><span class="n">node_number</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">group_placement</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="n">Grid</span><span class="p">,</span>
+                            <span class="n">GridCellRegionOption</span><span class="p">,</span>
+                            <span class="n">PlacementOption</span><span class="p">,</span>
+                            <span class="n">ReleaseStartTime</span><span class="p">,</span>
+                            <span class="n">ReleaseOption</span><span class="p">,</span>
+                            <span class="n">CHeadOption</span><span class="p">,</span>
+                        <span class="p">]</span>
+                    <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">wellid</span> <span class="ow">in</span> <span class="n">wellids</span><span class="p">:</span>
+                    <span class="n">nd</span> <span class="o">=</span> <span class="n">node_data</span><span class="p">[</span><span class="n">node_data</span><span class="o">.</span><span class="n">wellid</span> <span class="o">==</span> <span class="n">wellid</span><span class="p">]</span>
+                    <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nd</span><span class="o">.</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nd</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">append_node</span><span class="p">(</span>
+                            <span class="n">side_faces</span> <span class="o">+</span> <span class="p">[</span><span class="n">top_face</span><span class="p">,</span> <span class="n">botm_face</span><span class="p">],</span>
+                            <span class="n">wellid</span><span class="p">,</span>
+                            <span class="mi">0</span><span class="p">,</span>
+                            <span class="n">k</span><span class="p">,</span>
+                            <span class="n">i</span><span class="p">,</span>
+                            <span class="n">j</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">append_node</span><span class="p">(</span>
+                            <span class="n">side_faces</span> <span class="o">+</span> <span class="p">[</span><span class="n">top_face</span><span class="p">],</span> <span class="n">wellid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nd</span><span class="p">))[</span><span class="mi">1</span><span class="p">:]:</span>
+                            <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">k</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">nd</span><span class="o">.</span><span class="n">i</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">nd</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="n">append_node</span><span class="p">(</span>
+                                    <span class="n">side_faces</span> <span class="o">+</span> <span class="p">[</span><span class="n">botm_face</span><span class="p">],</span>
+                                    <span class="n">wellid</span><span class="p">,</span>
+                                    <span class="n">n</span><span class="p">,</span>
+                                    <span class="n">k</span><span class="p">,</span>
+                                    <span class="n">i</span><span class="p">,</span>
+                                    <span class="n">j</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">append_node</span><span class="p">(</span><span class="n">side_faces</span><span class="p">,</span> <span class="n">wellid</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">package</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;RCH&quot;</span><span class="p">:</span>
+                <span class="n">ParticleGenerationOption</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="c1"># for j in range(nrow):</span>
+                <span class="c1">#    for i in range(ncol):</span>
+                <span class="c1">#        group_name.append(&#39;rch&#39;)</span>
+                <span class="n">group_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;rch&quot;</span><span class="p">)</span>
+                <span class="n">group_placement</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">Grid</span><span class="p">,</span>
+                        <span class="n">GridCellRegionOption</span><span class="p">,</span>
+                        <span class="n">PlacementOption</span><span class="p">,</span>
+                        <span class="n">ReleaseStartTime</span><span class="p">,</span>
+                        <span class="n">ReleaseOption</span><span class="p">,</span>
+                        <span class="n">CHeadOption</span><span class="p">,</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">group_region</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nrow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">default_ifaces</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">face_ct</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">ifaces</span><span class="o">.</span><span class="n">append</span><span class="p">([[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ifaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">default_ifaces</span><span class="p">)</span>
+                    <span class="n">face_ct</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">default_ifaces</span><span class="p">))</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">model_ws</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">model_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mf</span><span class="o">.</span><span class="n">model_ws</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_ws</span><span class="p">,</span> <span class="n">package</span><span class="p">)):</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;detected a particle starting locations file in packages&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="s2">&quot;if a particle starting locations file is passed, &quot;</span>
+                        <span class="s2">&quot;other packages cannot be specified&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">ParticleGenerationOption</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="n">strt_file</span> <span class="o">=</span> <span class="n">package</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;package &#39;</span><span class="si">{</span><span class="n">package</span><span class="si">}</span><span class="s2">&#39; not supported&quot;</span><span class="p">)</span>
+
+        <span class="n">SimulationType</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">simtype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;endpoint&quot;</span><span class="p">:</span>
+            <span class="n">SimulationType</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">simtype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;pathline&quot;</span><span class="p">:</span>
+            <span class="n">SimulationType</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">simtype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;timeseries&quot;</span><span class="p">:</span>
+            <span class="n">SimulationType</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">trackdir</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;forward&quot;</span><span class="p">:</span>
+            <span class="n">TrackingDirection</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">trackdir</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;backward&quot;</span><span class="p">:</span>
+            <span class="n">TrackingDirection</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">WeakSinkOption</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">WeakSourceOption</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">StopOption</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">SimulationType</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">TimePointOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">TimePointOption</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">BudgetOutputOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ZoneArrayOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">RetardationOption</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">AdvectiveObservationsOption</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">mpoptions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">SimulationType</span><span class="p">,</span>
+            <span class="n">TrackingDirection</span><span class="p">,</span>
+            <span class="n">WeakSinkOption</span><span class="p">,</span>
+            <span class="n">WeakSourceOption</span><span class="p">,</span>
+            <span class="n">ReferenceTimeOption</span><span class="p">,</span>
+            <span class="n">StopOption</span><span class="p">,</span>
+            <span class="n">ParticleGenerationOption</span><span class="p">,</span>
+            <span class="n">TimePointOption</span><span class="p">,</span>
+            <span class="n">BudgetOutputOption</span><span class="p">,</span>
+            <span class="n">ZoneArrayOption</span><span class="p">,</span>
+            <span class="n">RetardationOption</span><span class="p">,</span>
+            <span class="n">AdvectiveObservationsOption</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Modpath6Sim</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ref_time</span><span class="o">=</span><span class="n">ref_time</span><span class="p">,</span>
+            <span class="n">ref_time_per_stp</span><span class="o">=</span><span class="n">ref_time_per_stp</span><span class="p">,</span>
+            <span class="n">option_flags</span><span class="o">=</span><span class="n">mpoptions</span><span class="p">,</span>
+            <span class="n">group_placement</span><span class="o">=</span><span class="n">group_placement</span><span class="p">,</span>
+            <span class="n">group_name</span><span class="o">=</span><span class="n">group_name</span><span class="p">,</span>
+            <span class="n">group_region</span><span class="o">=</span><span class="n">group_region</span><span class="p">,</span>
+            <span class="n">face_ct</span><span class="o">=</span><span class="n">face_ct</span><span class="p">,</span>
+            <span class="n">ifaces</span><span class="o">=</span><span class="n">ifaces</span><span class="p">,</span>
+            <span class="n">strt_file</span><span class="o">=</span><span class="n">strt_file</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mfusg.mfusgdisu &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mfusg.mfusgdisu</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mfusg.mfusgdisu</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfdisu module.  Contains the MfUsgDisU class. Note that the user can access</span>
+<span class="sd">the MfUsgDisU class as `flopy.mfusg.MfUsgDisU`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..discretization.unstructuredgrid</span> <span class="kn">import</span> <span class="n">UnstructuredGrid</span>
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util2d</span><span class="p">,</span> <span class="n">Util3d</span><span class="p">,</span> <span class="n">read1d</span>
+<span class="kn">from</span> <span class="nn">..utils.reference</span> <span class="kn">import</span> <span class="n">TemporalReference</span>
+<span class="kn">from</span> <span class="nn">.mfusg</span> <span class="kn">import</span> <span class="n">MfUsg</span>
+
+<span class="n">ITMUNI</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}</span>
+<span class="n">LENUNI</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="MfUsgDisU"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgdisu.html#flopy.mfusg.MfUsgDisU">[docs]</a><span class="k">class</span> <span class="nc">MfUsgDisU</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Unstructured Discretization Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.mfusg.MfUsg`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    nodes : int</span>
+<span class="sd">        Number of nodes in the model grid (default is 2).</span>
+<span class="sd">    nlay : int</span>
+<span class="sd">        Number of layers in the model grid (default is 1).</span>
+<span class="sd">    njag : int</span>
+<span class="sd">        Total number of connections of an unstructured grid. njag is used to</span>
+<span class="sd">        dimension the sparse matrix in a compressed row storage format. For</span>
+<span class="sd">        symmetric arrays, only the upper triangle of the matrix may be</span>
+<span class="sd">        entered. For that case, the symmetric portion (minus the diagonal</span>
+<span class="sd">        terms) is dimensioned as njags = (njag - nodes) / 2.</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    ivsd : int</span>
+<span class="sd">        is the vertical sub-discretization index. For purposes of this flag,</span>
+<span class="sd">        vertical sub-discretization is defined to occur when all layers are</span>
+<span class="sd">        not a stacked representation of each other.</span>
+<span class="sd">        If IVSD = 0 there is no sub-discretization of layers within the model</span>
+<span class="sd">        domain. That is, grids are not nested in the vertical direction.</span>
+<span class="sd">        However, one layer may have a different grid structure from the next</span>
+<span class="sd">        due to different sub-gridding structures within each layer.</span>
+<span class="sd">        If IVSD = 1 there could be sub-discretization of layers with</span>
+<span class="sd">        vertically nested grids (as shown in Figure 5c in the MODFLOW-USG</span>
+<span class="sd">        document) within the domain. For this case, the vertical connection</span>
+<span class="sd">        index IVC is required to determine the vertical connections of every</span>
+<span class="sd">        node. Otherwise, the vertical connections are internally computed and</span>
+<span class="sd">        IVC is not read.</span>
+<span class="sd">        If IVSD = -1 there is no vertical sub-discretization of layers, and</span>
+<span class="sd">        further, the horizontal discretization of all layers is the same. For</span>
+<span class="sd">        this case, the cell areas (AREA) are read only for one layer and are</span>
+<span class="sd">        computed to be the same for all the stacked layers. A structured</span>
+<span class="sd">        finite-difference grid is an example of this condition.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    nper : int</span>
+<span class="sd">        Number of model stress periods (the default is 1).</span>
+<span class="sd">    itmuni : int</span>
+<span class="sd">        Time units, default is days (4)</span>
+<span class="sd">    lenuni : int</span>
+<span class="sd">        Length units, default is meters (2)</span>
+<span class="sd">    idsymrd : int</span>
+<span class="sd">        A flag indicating if the finite-volume connectivity information of an</span>
+<span class="sd">        unstructured grid is input as a full matrix or as a symmetric matrix</span>
+<span class="sd">        in the input file.</span>
+<span class="sd">        If idsymrd is 0 the finite-volume connectivity information is provided</span>
+<span class="sd">        for the full matrix of the porous matrix grid-block connections of an</span>
+<span class="sd">        unstructured grid. The code internally stores only the symmetric</span>
+<span class="sd">        portion of this information. This input structure (IDSYMRD=0) is easy</span>
+<span class="sd">        to organize but contains unwanted information which is parsed out</span>
+<span class="sd">        when the information is stored.</span>
+<span class="sd">        If idsymrd is 1 then finite-volume connectivity information is</span>
+<span class="sd">        provided only for the upper triangular portion of the porous matrix</span>
+<span class="sd">        grid-block connections within the unstructured grid. This input</span>
+<span class="sd">        structure (IDSYMRD=1) is compact but is slightly more complicated to</span>
+<span class="sd">        organize. Only the non-zero upper triangular items of each row are</span>
+<span class="sd">        read in sequence for all symmetric matrices.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    laycbd : int or array of ints (nlay), optional</span>
+<span class="sd">        An array of flags indicating whether or not a layer has a Quasi-3D</span>
+<span class="sd">        confining bed below it. 0 indicates no confining bed, and not zero</span>
+<span class="sd">        indicates a confining bed. LAYCBD for the bottom layer must be 0. (the</span>
+<span class="sd">        default is 0)</span>
+<span class="sd">    nodelay : int or array of ints (nlay)</span>
+<span class="sd">        The number of cells in each layer. (the default is None, which means</span>
+<span class="sd">        the number of cells in a layer is equal to nodes / nlay).</span>
+<span class="sd">    top : float or array of floats (nodes), optional</span>
+<span class="sd">        An array of the top elevation for every cell. For the situation in</span>
+<span class="sd">        which the top layer represents a water-table aquifer, it may be</span>
+<span class="sd">        reasonable to set Top equal to land-surface elevation (the default is</span>
+<span class="sd">        1.0)</span>
+<span class="sd">    bot : float or array of floats (nodes), optional</span>
+<span class="sd">        An array of the bottom elevation for each model cell (the default is</span>
+<span class="sd">        0.)</span>
+<span class="sd">    area : float or array of floats</span>
+<span class="sd">        Surface area for model cells.  Area is for only one layer if IVSD = -1</span>
+<span class="sd">        to indicate that the grid is vertically stacked. Otherwise, area is</span>
+<span class="sd">        required for each layer in the model grid. Note that there may be</span>
+<span class="sd">        different number of nodes per layer (ndslay) for an unstructured grid.</span>
+<span class="sd">        (default is 1.0)</span>
+<span class="sd">    iac : array of integers</span>
+<span class="sd">        is a vector indicating the number of connections plus 1 for each</span>
+<span class="sd">        node. Note that the IAC array is only supplied for the GWF cells;</span>
+<span class="sd">        the IAC array is internally expanded to include CLN or GNC nodes if</span>
+<span class="sd">        they are present in a simulation.</span>
+<span class="sd">        (default is None. iac must be provided).</span>
+<span class="sd">    ja : array of integers</span>
+<span class="sd">        is a list of cell number (n) followed by its connecting cell numbers</span>
+<span class="sd">        (m) for each of the m cells connected to cell n. This list is</span>
+<span class="sd">        sequentially provided for the first to the last GWF cell. Note that</span>
+<span class="sd">        the cell and its connections are only supplied for the GWF cells and</span>
+<span class="sd">        their connections to the other GWF cells. This connectivity is</span>
+<span class="sd">        internally expanded if CLN or GNC nodes are present in a simulation.</span>
+<span class="sd">        Also note that the JA list input may be chopped up to have every node</span>
+<span class="sd">        number and its connectivity list on a separate line for ease in</span>
+<span class="sd">        readability of the file. To further ease readability of the file, the</span>
+<span class="sd">        node number of the cell whose connectivity is subsequently listed,</span>
+<span class="sd">        may be expressed as a negative number the sign of which is</span>
+<span class="sd">        subsequently corrected by the code.</span>
+<span class="sd">        (default is None.  ja must be provided).</span>
+<span class="sd">    ivc : int or array of integers</span>
+<span class="sd">        is an index array indicating the direction between a node n and all</span>
+<span class="sd">        its m connections. IVC = 0 if the connection between n and m is</span>
+<span class="sd">        horizontal.  IVC = 1 if the connecting node m is vertically oriented</span>
+<span class="sd">        to node n.  Note that if the CLN Process is active, the connection</span>
+<span class="sd">        between two CLN cells has IVC = 2 and the connection between a CLN</span>
+<span class="sd">        cell and a GWF cell has IVC = 3.</span>
+<span class="sd">        (default is None.  ivc must be provided if ivsd = 1)</span>
+<span class="sd">    cl1 : float or array of floats</span>
+<span class="sd">        is the perpendicular length between the center of a node (node 1) and</span>
+<span class="sd">        the interface between the node and its adjoining node (node 2).</span>
+<span class="sd">        (default is None.  cl1 and cl2 must be specified, or cl12 must be</span>
+<span class="sd">        specified)</span>
+<span class="sd">    cl2 : float or array of floats</span>
+<span class="sd">        is the perpendicular length between node 2 and the interface between</span>
+<span class="sd">        nodes 1 and 2, and is at the symmetric location of CL1.</span>
+<span class="sd">        (default is None.  cl1 and cl2 must be specified, or cl12 must be</span>
+<span class="sd">        specified)</span>
+<span class="sd">    cl12 : float or array of floats</span>
+<span class="sd">        is the array containing CL1 and CL2 lengths, where CL1 is the</span>
+<span class="sd">        perpendicular length between the center of a node (node 1) and the</span>
+<span class="sd">        interface between the node and its adjoining node (node 2). CL2,</span>
+<span class="sd">        which is the perpendicular length between node 2 and the interface</span>
+<span class="sd">        between nodes 1 and 2 is at the symmetric location of CL1. The array</span>
+<span class="sd">        CL12 reads both CL1 and CL2 in the upper and lower triangular</span>
+<span class="sd">        portions of the matrix respectively. Note that the CL1 and CL2 arrays</span>
+<span class="sd">        are only supplied for the GWF cell connections and are internally</span>
+<span class="sd">        expanded if CLN or GNC nodes exist in a simulation.</span>
+<span class="sd">        (default is None.  cl1 and cl2 must be specified, or cl12 must be</span>
+<span class="sd">        specified)</span>
+<span class="sd">    fahl : float or arry of floats</span>
+<span class="sd">        Area of the interface Anm between nodes n and m.</span>
+<span class="sd">        (default is None.  fahl must be specified.)</span>
+<span class="sd">    perlen : float or array of floats (nper)</span>
+<span class="sd">        An array of the stress period lengths.</span>
+<span class="sd">    nstp : int or array of ints (nper)</span>
+<span class="sd">        Number of time steps in each stress period (default is 1).</span>
+<span class="sd">    tsmult : float or array of floats (nper)</span>
+<span class="sd">        Time step multiplier (default is 1.0).</span>
+<span class="sd">    steady : bool or array of bool (nper)</span>
+<span class="sd">        True or False indicating whether or not stress period is steady state</span>
+<span class="sd">        (default is True).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;dis&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package. If filenames=None the package name</span>
+<span class="sd">        will be created using the model name and package extension. If a</span>
+<span class="sd">        single string is passed the package will be set to the string.</span>
+<span class="sd">        Default is None.</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    heading : str</span>
+<span class="sd">        Text string written to top of package input file.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Now works for multi-layer USG models since u3d was modified to handle</span>
+<span class="sd">    multiple u2d instances of different size.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.mfusg.MfUsg()</span>
+<span class="sd">    &gt;&gt;&gt; disu = flopy.mfusg.MfUsgDisU(m)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nodes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">njag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ivsd</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">nper</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">itmuni</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">lenuni</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">idsymrd</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">laycbd</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">nodelay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">top</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">bot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">area</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">iac</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ja</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ivc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cl1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cl2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cl12</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">fahl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">perlen</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nstp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">tsmult</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">steady</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;disu&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_datetime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set values of all parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">=</span> <span class="n">nlay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">njag</span> <span class="o">=</span> <span class="n">njag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ivsd</span> <span class="o">=</span> <span class="n">ivsd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nper</span> <span class="o">=</span> <span class="n">nper</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">itmuni</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span> <span class="o">=</span> <span class="n">ITMUNI</span><span class="p">[</span><span class="n">itmuni</span><span class="o">.</span><span class="n">lower</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lenuni</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span> <span class="o">=</span> <span class="n">LENUNI</span><span class="p">[</span><span class="n">lenuni</span><span class="o">.</span><span class="n">lower</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idsymrd</span> <span class="o">=</span> <span class="n">idsymrd</span>
+
+        <span class="c1"># LAYCBD</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">laycbd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;laycbd&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># bottom layer must be zero</span>
+
+        <span class="c1"># NODELAY</span>
+        <span class="k">if</span> <span class="n">nodelay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">npl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nodes</span> <span class="o">/</span> <span class="n">nlay</span><span class="p">)</span>
+            <span class="n">nodelay</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+                <span class="n">nodelay</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">npl</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodelay</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">nodelay</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nodelay&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># set ncol and nrow for array readers</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodelay</span><span class="o">.</span><span class="n">array</span><span class="p">[:]</span>
+
+        <span class="c1"># Top and bot are both 1d arrays of size nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">top</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bot</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">bot</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bot&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Area is Util2d if ivsd == -1, otherwise it is Util3d</span>
+        <span class="k">if</span> <span class="n">ivsd</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">area</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodelay</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">area</span><span class="p">,</span>
+                <span class="s2">&quot;area&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">area</span> <span class="o">=</span> <span class="n">Util3d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">area</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;area&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Connectivity and ivc</span>
+        <span class="k">if</span> <span class="n">iac</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;iac must be provided&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iac</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">iac</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;iac&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">iac</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">njag</span><span class="p">,</span> <span class="s2">&quot;The sum of iac must equal njag.&quot;</span>
+        <span class="k">if</span> <span class="n">ja</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;ja must be provided&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ja</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># convert from zero-based to one-based</span>
+            <span class="n">ja</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ja</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">njag</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">ja</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ja&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ivc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ivsd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ivc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;ivc must be provided if ivsd is 1.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ivc</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">njag</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">ivc</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ivc&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Connection lengths</span>
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">njags</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">njag</span> <span class="o">-</span> <span class="n">nodes</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cl1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;idsymrd is 1 but cl1 was not specified.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cl2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;idsymrd is 1 but cl2 was not specified.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cl1</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">njags</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">cl1</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cl1&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cl2</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">njags</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">cl2</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cl2&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cl12</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;idsymrd is 0 but cl12 was not specified&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cl12</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">njag</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">cl12</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cl12&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Flow area (set size of array to njag or njags depending on idsymrd)</span>
+        <span class="k">if</span> <span class="n">fahl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;fahl must be provided&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">njags</span>
+        <span class="k">elif</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">njag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fahl</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">n</span><span class="p">,),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">fahl</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;fahl&quot;</span><span class="p">,</span>
+            <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Stress period information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perlen</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">perlen</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;perlen&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nstp</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">nstp</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nstp&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tsmult</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tsmult</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tsmult&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steady</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,),</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">steady</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;steady&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">itmuni_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;undefined&quot;</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;seconds&quot;</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;minutes&quot;</span><span class="p">,</span>
+            <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;hours&quot;</span><span class="p">,</span>
+            <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;days&quot;</span><span class="p">,</span>
+            <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;years&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">start_datetime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start_datetime</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_start_datetime</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span> <span class="o">=</span> <span class="n">UnstructuredGrid</span><span class="p">(</span>
+                <span class="n">ncpl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nodelay</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">top</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">botm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+                <span class="n">lenuni</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tr</span> <span class="o">=</span> <span class="n">TemporalReference</span><span class="p">(</span>
+            <span class="n">itmuni</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span><span class="p">,</span> <span class="n">start_datetime</span><span class="o">=</span><span class="n">start_datetime</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_datetime</span> <span class="o">=</span> <span class="n">start_datetime</span>
+
+        <span class="c1"># get neighboring nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_neighboring_nodes</span><span class="p">()</span>
+
+        <span class="c1"># Add package and return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="MfUsgDisU.checklayerthickness"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgdisu.html#flopy.mfusg.MfUsgDisU.checklayerthickness">[docs]</a>    <span class="k">def</span> <span class="nf">checklayerthickness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check layer thickness.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span><span class="o">.</span><span class="n">cell_thickness</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MfUsgDisU.get_cell_volumes"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgdisu.html#flopy.mfusg.MfUsgDisU.get_cell_volumes">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_volumes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an array of cell volumes.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vol : array of floats (nodes)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">):</span>
+            <span class="n">nn</span> <span class="o">=</span> <span class="n">n</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ivsd</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">nn</span> <span class="o">=</span> <span class="n">n</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodelay</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">area</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+            <span class="n">vol</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">area</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bot</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">vol</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zcentroids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an array of size nodes that contains the vertical cell center</span>
+<span class="sd">        elevation.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,))</span>
+        <span class="n">z</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">array</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">array</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="k">return</span> <span class="n">z</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncpl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span>
+
+<div class="viewcode-block" id="MfUsgDisU.load"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgdisu.html#flopy.mfusg.MfUsgDisU.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.mfusg.MfUsg`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+<span class="sd">        check : bool</span>
+<span class="sd">            Check package data for common errors. (default False; not setup yet)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dis : MfUsgDisU object</span>
+<span class="sd">            MfUsgDisU object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.mfusg.MfUsg()</span>
+<span class="sd">        &gt;&gt;&gt; disu = flopy.mfusg.MfUsgDisU.load(&#39;test.disu&#39;, m)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading disu package file...&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">!=</span> <span class="s2">&quot;mfusg&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Warning: model version was reset from &#39;</span><span class="si">{}</span><span class="s2">&#39; to &#39;mfusg&#39; &quot;</span>
+                <span class="s2">&quot;in order to load a DISU file&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;mfusg&quot;</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># dataset 1</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;   loading NODES, NLAY, NJAG, IVSD, NPER, ITMUNI, LENUNI,&quot;</span>
+                <span class="s2">&quot; IDSYMRD...&quot;</span>
+            <span class="p">)</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">njag</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">ivsd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">nper</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="c1"># mimic urword behavior in case these values aren&#39;t present on line</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">itmuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">itmuni</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lenuni</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lenuni</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">idsymrd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idsymrd</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NODES </span><span class="si">{</span><span class="n">nodes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NLAY </span><span class="si">{</span><span class="n">nlay</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NJAG </span><span class="si">{</span><span class="n">njag</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IVSD </span><span class="si">{</span><span class="n">ivsd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NPER </span><span class="si">{</span><span class="n">nper</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ITMUNI </span><span class="si">{</span><span class="n">itmuni</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   LENUNI </span><span class="si">{</span><span class="n">lenuni</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IDSYMRD </span><span class="si">{</span><span class="n">idsymrd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Calculate njags</span>
+        <span class="n">njags</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">njag</span> <span class="o">-</span> <span class="n">nodes</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NJAGS calculated as </span><span class="si">{</span><span class="n">njags</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 2 -- laycbd</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading LAYCBD...&quot;</span><span class="p">)</span>
+        <span class="n">laycbd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nlay</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">laycbd</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">laycbd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   LAYCBD </span><span class="si">{</span><span class="n">laycbd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 3 -- nodelay</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading NODELAY...&quot;</span><span class="p">)</span>
+        <span class="n">nodelay</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nlay</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;nodelay&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NODELAY </span><span class="si">{</span><span class="n">nodelay</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 4 -- top</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading TOP...&quot;</span><span class="p">)</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">tpk</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nodelay</span><span class="p">[</span><span class="n">k</span><span class="p">],),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+            <span class="n">top</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpk</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">tpk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">top</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   TOP layer </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">tpk</span><span class="o">.</span><span class="n">array</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 5 -- bot</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading BOT...&quot;</span><span class="p">)</span>
+        <span class="n">bot</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">btk</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nodelay</span><span class="p">[</span><span class="n">k</span><span class="p">],),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;btk&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+            <span class="n">bot</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">btk</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">btk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bot</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   BOT layer </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">btk</span><span class="o">.</span><span class="n">array</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 6 -- area</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading AREA...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ivsd</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">area</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nodelay</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;area&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">area</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+                <span class="n">ak</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nodelay</span><span class="p">[</span><span class="n">k</span><span class="p">],),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;ak&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+                <span class="p">)</span>
+                <span class="n">area</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">ak</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ak</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">area</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   AREA layer </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">ak</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 7 -- iac</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading IAC...&quot;</span><span class="p">)</span>
+        <span class="n">iac</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">nodes</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;iac&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IAC </span><span class="si">{</span><span class="n">iac</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 8 -- ja</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading JA...&quot;</span><span class="p">)</span>
+        <span class="n">ja</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njag</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;ja&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   JA </span><span class="si">{</span><span class="n">ja</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 9 -- ivc</span>
+        <span class="n">ivc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">ivsd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading IVC...&quot;</span><span class="p">)</span>
+            <span class="n">ivc</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njag</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s2">&quot;ivc&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   IVC </span><span class="si">{</span><span class="n">ivc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 10a -- cl1</span>
+        <span class="n">cl1</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading CL1...&quot;</span><span class="p">)</span>
+            <span class="n">cl1</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njags</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;cl1&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CL1 </span><span class="si">{</span><span class="n">cl1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 10b -- cl2</span>
+        <span class="n">cl2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading CL2...&quot;</span><span class="p">)</span>
+            <span class="n">cl2</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njags</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;cl2&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CL2 </span><span class="si">{</span><span class="n">cl2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 11 -- cl12</span>
+        <span class="n">cl12</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading CL12...&quot;</span><span class="p">)</span>
+            <span class="n">cl12</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njag</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;cl12&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   CL12 </span><span class="si">{</span><span class="n">cl12</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 12 -- fahl</span>
+        <span class="n">fahl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">njag</span>
+        <span class="k">elif</span> <span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">njags</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading FAHL...&quot;</span><span class="p">)</span>
+        <span class="n">fahl</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;fahl&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   FAHL </span><span class="si">{</span><span class="n">fahl</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 7 -- stress period info</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading stress period data...&quot;</span><span class="p">)</span>
+        <span class="n">perlen</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">nstp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tsmult</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">steady</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">a3</span><span class="p">,</span> <span class="n">a4</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">a1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+            <span class="n">a2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+            <span class="n">a3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a4</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;TR&quot;</span><span class="p">:</span>
+                <span class="n">a4</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">a4</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">perlen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+            <span class="n">nstp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+            <span class="n">tsmult</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a3</span><span class="p">)</span>
+            <span class="n">steady</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a4</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   PERLEN </span><span class="si">{</span><span class="n">perlen</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   NSTP </span><span class="si">{</span><span class="n">nstp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   TSMULT </span><span class="si">{</span><span class="n">tsmult</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   STEADY </span><span class="si">{</span><span class="n">steady</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="c1"># create dis object instance</span>
+        <span class="n">disu</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span>
+            <span class="n">nlay</span><span class="o">=</span><span class="n">nlay</span><span class="p">,</span>
+            <span class="n">njag</span><span class="o">=</span><span class="n">njag</span><span class="p">,</span>
+            <span class="n">ivsd</span><span class="o">=</span><span class="n">ivsd</span><span class="p">,</span>
+            <span class="n">nper</span><span class="o">=</span><span class="n">nper</span><span class="p">,</span>
+            <span class="n">itmuni</span><span class="o">=</span><span class="n">itmuni</span><span class="p">,</span>
+            <span class="n">lenuni</span><span class="o">=</span><span class="n">lenuni</span><span class="p">,</span>
+            <span class="n">idsymrd</span><span class="o">=</span><span class="n">idsymrd</span><span class="p">,</span>
+            <span class="n">laycbd</span><span class="o">=</span><span class="n">laycbd</span><span class="p">,</span>
+            <span class="n">nodelay</span><span class="o">=</span><span class="n">nodelay</span><span class="p">,</span>
+            <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span>
+            <span class="n">bot</span><span class="o">=</span><span class="n">bot</span><span class="p">,</span>
+            <span class="n">area</span><span class="o">=</span><span class="n">area</span><span class="p">,</span>
+            <span class="n">iac</span><span class="o">=</span><span class="n">iac</span><span class="p">,</span>
+            <span class="n">ja</span><span class="o">=</span><span class="n">ja</span><span class="p">,</span>
+            <span class="n">ivc</span><span class="o">=</span><span class="n">ivc</span><span class="p">,</span>
+            <span class="n">cl1</span><span class="o">=</span><span class="n">cl1</span><span class="p">,</span>
+            <span class="n">cl2</span><span class="o">=</span><span class="n">cl2</span><span class="p">,</span>
+            <span class="n">cl12</span><span class="o">=</span><span class="n">cl12</span><span class="p">,</span>
+            <span class="n">fahl</span><span class="o">=</span><span class="n">fahl</span><span class="p">,</span>
+            <span class="n">perlen</span><span class="o">=</span><span class="n">perlen</span><span class="p">,</span>
+            <span class="n">nstp</span><span class="o">=</span><span class="n">nstp</span><span class="p">,</span>
+            <span class="n">tsmult</span><span class="o">=</span><span class="n">tsmult</span><span class="p">,</span>
+            <span class="n">steady</span><span class="o">=</span><span class="n">steady</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># return dis object instance</span>
+        <span class="k">return</span> <span class="n">disu</span></div>
+
+<div class="viewcode-block" id="MfUsgDisU.write_file"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusgdisu.html#flopy.mfusg.MfUsgDisU.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Open file for writing</span>
+        <span class="n">f_dis</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 0: heading</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 1: NODES NLAY NJAG IVSD NPER ITMUNI LENUNI IDSYMRD</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">njag</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ivsd</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">itmuni</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lenuni</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">idsymrd</span><span class="p">,</span>
+        <span class="p">]:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 2: LAYCBD</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">laycbd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 3: NODELAY</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodelay</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 4: TOP</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 5: BOT</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 6: AREA</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">area</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 7: IAC</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iac</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 8: JA</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ja</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 9: IVC</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ivsd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ivc</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 10a: CL1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cl1</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 10b: CL2</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cl2</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 11: CL12</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idsymrd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cl12</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 12: FAHL</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fahl</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="c1"># Item 13: NPER, NSTP, TSMULT, Ss/tr</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nper</span><span class="p">):</span>
+            <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">perlen</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="si">:</span><span class="s2">14f</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">nstp</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="si">:</span><span class="s2">14d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">tsmult</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="si">:</span><span class="s2">10f</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady</span><span class="p">[</span><span class="n">t</span><span class="p">]:</span>
+                <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; SS</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_dis</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; TR</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Close and return</span>
+        <span class="n">f_dis</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;DISU&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">11</span>
+
+    <span class="k">def</span> <span class="nf">_get_neighboring_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each node, get node numbers for all neighbors.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Jagged list of numpy arrays for each node.</span>
+<span class="sd">        Each array contains base-1 neighboring node indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ja</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ja</span><span class="o">.</span><span class="n">array</span>
+        <span class="n">iac_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iac</span><span class="o">.</span><span class="n">array</span><span class="p">)</span>
+        <span class="n">ja_slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">s_</span><span class="p">[</span><span class="n">iac_sum</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">x</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">s_</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">x</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iac_sum</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>  <span class="c1"># note: this removes the diagonal - neighbors only</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_neighboring_nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ja</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="k">for</span> <span class="n">sl</span> <span class="ow">in</span> <span class="n">ja_slices</span><span class="p">]</span>
+        <span class="k">return</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

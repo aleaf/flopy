@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mfusg.mfusglpf &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mfusg.mfusglpf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mfusg.mfusglpf</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Mfusglpf module.</span>
+
+<span class="sd">Contains the MfUsgLpf class. Note that the user can access</span>
+<span class="sd">the MfUsgLpf class as `flopy.mfusg.MfUsgLpf`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/lpf.html&gt;`_.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..modflow.mflpf</span> <span class="kn">import</span> <span class="n">ModflowLpf</span>
+<span class="kn">from</span> <span class="nn">..modflow.mfpar</span> <span class="kn">import</span> <span class="n">ModflowPar</span> <span class="k">as</span> <span class="n">mfpar</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Util2d</span><span class="p">,</span> <span class="n">read1d</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span>
+<span class="kn">from</span> <span class="nn">..utils.utils_def</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_open_file_object</span><span class="p">,</span>
+    <span class="n">get_unitnumber_from_ext_unit_dict</span><span class="p">,</span>
+    <span class="n">get_util2d_shape_for_layer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.mfusg</span> <span class="kn">import</span> <span class="n">MfUsg</span>
+
+
+<div class="viewcode-block" id="MfUsgLpf"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusglpf.html#flopy.mfusg.MfUsgLpf">[docs]</a><span class="k">class</span> <span class="nc">MfUsgLpf</span><span class="p">(</span><span class="n">ModflowLpf</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MODFLOW Layer Property Flow Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflowusg.mfusg.MfUsg`) to which</span>
+<span class="sd">        this package will be added.</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is 0)</span>
+<span class="sd">    hdry : float</span>
+<span class="sd">        Is the head that is assigned to cells that are converted to dry during</span>
+<span class="sd">        a simulation. Although this value plays no role in the model</span>
+<span class="sd">        calculations, it is useful as an indicator when looking at the</span>
+<span class="sd">        resulting heads that are output from the model. HDRY is thus similar</span>
+<span class="sd">        to HNOFLO in the Basic Package, which is the value assigned to cells</span>
+<span class="sd">        that are no-flow cells at the start of a model simulation.</span>
+<span class="sd">        (default is -1.e30).</span>
+<span class="sd">    laytyp : int or array of ints (nlay)</span>
+<span class="sd">        Layer type, contains a flag for each layer that specifies the layer</span>
+<span class="sd">        type.</span>
+<span class="sd">        0 confined</span>
+<span class="sd">        &gt;0 convertible</span>
+<span class="sd">        &lt;0 convertible unless the THICKSTRT option is in effect.</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    layavg : int or array of ints (nlay)</span>
+<span class="sd">        Layer average</span>
+<span class="sd">        0 is harmonic mean</span>
+<span class="sd">        1 is logarithmic mean</span>
+<span class="sd">        2 is arithmetic mean of saturated thickness and logarithmic mean of</span>
+<span class="sd">        of hydraulic conductivity</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    chani : float or array of floats (nlay)</span>
+<span class="sd">        contains a value for each layer that is a flag or the horizontal</span>
+<span class="sd">        anisotropy. If CHANI is less than or equal to 0, then variable HANI</span>
+<span class="sd">        defines horizontal anisotropy. If CHANI is greater than 0, then CHANI</span>
+<span class="sd">        is the horizontal anisotropy for the entire layer, and HANI is not</span>
+<span class="sd">        read. If any HANI parameters are used, CHANI for all layers must be</span>
+<span class="sd">        less than or equal to 0. Use as many records as needed to enter a</span>
+<span class="sd">        value of CHANI for each layer. The horizontal anisotropy is the ratio</span>
+<span class="sd">        of the hydraulic conductivity along columns (the Y direction) to the</span>
+<span class="sd">        hydraulic conductivity along rows (the X direction).</span>
+<span class="sd">        (default is 1).</span>
+<span class="sd">    layvka : int or array of ints (nlay)</span>
+<span class="sd">        a flag for each layer that indicates whether variable VKA is vertical</span>
+<span class="sd">        hydraulic conductivity or the ratio of horizontal to vertical</span>
+<span class="sd">        hydraulic conductivity.</span>
+<span class="sd">        0: VKA is vertical hydraulic conductivity</span>
+<span class="sd">        not 0: VKA is the ratio of horizontal to vertical hydraulic conductivity</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    laywet : int or array of ints (nlay)</span>
+<span class="sd">        contains a flag for each layer that indicates if wetting is active.</span>
+<span class="sd">        0 wetting is inactive</span>
+<span class="sd">        not 0 wetting is active</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    wetfct : float</span>
+<span class="sd">        is a factor that is included in the calculation of the head that is</span>
+<span class="sd">        initially established at a cell when it is converted from dry to wet.</span>
+<span class="sd">        (default is 0.1).</span>
+<span class="sd">    iwetit : int</span>
+<span class="sd">        is the iteration interval for attempting to wet cells. Wetting is</span>
+<span class="sd">        attempted every IWETIT iteration. If using the PCG solver</span>
+<span class="sd">        (Hill, 1990), this applies to outer iterations, not inner iterations.</span>
+<span class="sd">        If IWETIT  less than or equal to 0, it is changed to 1.</span>
+<span class="sd">        (default is 1).</span>
+<span class="sd">    ihdwet : int</span>
+<span class="sd">        is a flag that determines which equation is used to define the</span>
+<span class="sd">        initial head at cells that become wet.</span>
+<span class="sd">        (default is 0)</span>
+<span class="sd">    ikcflag : int</span>
+<span class="sd">        flag indicating if hydraulic conductivity or transmissivity</span>
+<span class="sd">        information is input for each of the nodes or whether this information</span>
+<span class="sd">        is directly input for the nodal connections. The easiest input format</span>
+<span class="sd">        is to provide the hydraulic conductivity or transmissivity values to</span>
+<span class="sd">        the cells using a zero value for IKCFLAG.</span>
+<span class="sd">    anglex : float or array of floats (njag)</span>
+<span class="sd">        is the angle (in radians) between the horizontal x-axis and the outward</span>
+<span class="sd">        normal to the face between a node and its connecting nodes. The angle</span>
+<span class="sd">        varies between zero and 6.283185 (two pi being 360 degrees).</span>
+<span class="sd">    hk : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is the hydraulic conductivity along rows. HK is multiplied by</span>
+<span class="sd">        horizontal anisotropy (see CHANI and HANI) to obtain hydraulic</span>
+<span class="sd">        conductivity along columns.</span>
+<span class="sd">        (default is 1.0).</span>
+<span class="sd">    hani : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is the ratio of hydraulic conductivity along columns to hydraulic</span>
+<span class="sd">        conductivity along rows, where HK of item 10 specifies the hydraulic</span>
+<span class="sd">        conductivity along rows. Thus, the hydraulic conductivity along</span>
+<span class="sd">        columns is the product of the values in HK and HANI.</span>
+<span class="sd">        (default is 1.0).</span>
+<span class="sd">    vka : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is either vertical hydraulic conductivity or the ratio of horizontal</span>
+<span class="sd">        to vertical hydraulic conductivity depending on the value of LAYVKA.</span>
+<span class="sd">        (default is 1.0).</span>
+<span class="sd">    ss : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is specific storage unless the STORAGECOEFFICIENT option is used.</span>
+<span class="sd">        When STORAGECOEFFICIENT is used, Ss is confined storage coefficient.</span>
+<span class="sd">        (default is 1.e-5).</span>
+<span class="sd">    sy : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is specific yield.</span>
+<span class="sd">        (default is 0.15).</span>
+<span class="sd">    vkcb : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is the vertical hydraulic conductivity of a Quasi-three-dimensional</span>
+<span class="sd">        confining bed below a layer. (default is 0.0).  Note that if an array</span>
+<span class="sd">        is passed for vkcb it must be of size (nlay, nrow, ncol) even though</span>
+<span class="sd">        the information for the bottom layer is not needed.</span>
+<span class="sd">    wetdry : float or array of floats (nlay, nrow, ncol)</span>
+<span class="sd">        is a combination of the wetting threshold and a flag to indicate</span>
+<span class="sd">        which neighboring cells can cause a cell to become wet.</span>
+<span class="sd">        (default is -0.01).</span>
+<span class="sd">    ksat : float or array of floats (njag)</span>
+<span class="sd">        inter-block saturated hydraulic conductivity or transmissivity</span>
+<span class="sd">        (if IKCFLAG = 1) or the inter-block conductance (if IKCFLAG = - 1)</span>
+<span class="sd">        of the connection between nodes n and m.</span>
+<span class="sd">    storagecoefficient : boolean</span>
+<span class="sd">        indicates that variable Ss and SS parameters are read as storage</span>
+<span class="sd">        coefficient rather than specific storage.</span>
+<span class="sd">        (default is False).</span>
+<span class="sd">    constantcv : boolean</span>
+<span class="sd">         indicates that vertical conductance for an unconfined cell is</span>
+<span class="sd">         computed from the cell thickness rather than the saturated thickness.</span>
+<span class="sd">         The CONSTANTCV option automatically invokes the NOCVCORRECTION</span>
+<span class="sd">         option. (default is False).</span>
+<span class="sd">    thickstrt : boolean</span>
+<span class="sd">        indicates that layers having a negative LAYTYP are confined, and their</span>
+<span class="sd">        cell thickness for conductance calculations will be computed as</span>
+<span class="sd">        STRT-BOT rather than TOP-BOT. (default is False).</span>
+<span class="sd">    nocvcorrection : boolean</span>
+<span class="sd">        indicates that vertical conductance is not corrected when the vertical</span>
+<span class="sd">        flow correction is applied. (default is False).</span>
+<span class="sd">    novfc : boolean</span>
+<span class="sd">         turns off the vertical flow correction under dewatered conditions.</span>
+<span class="sd">         This option turns off the vertical flow calculation described on p.</span>
+<span class="sd">         5-8 of USGS Techniques and Methods Report 6-A16 and the vertical</span>
+<span class="sd">         conductance correction described on p. 5-18 of that report.</span>
+<span class="sd">         (default is False).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;lpf&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output name will be created using</span>
+<span class="sd">        the model name and .cbc extension (for example, modflowtest.cbc),</span>
+<span class="sd">        if ipakcbc is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and cbc output name will be</span>
+<span class="sd">        created using the model name and .cbc extension, if ipakcbc is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+<span class="sd">    add_package : bool</span>
+<span class="sd">        Flag to add the initialised package object to the parent model object.</span>
+<span class="sd">        Default is True.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.mfusg.MfUsg()</span>
+<span class="sd">    &gt;&gt;&gt; disu = flopy.mfusg.MfUsgDisU(</span>
+<span class="sd">        model=m, nlay=1, nodes=1, iac=[1], njag=1,ja=np.array([0]), fahl=[1.0], cl12=[1.0])</span>
+<span class="sd">    &gt;&gt;&gt; lpf = flopy.mfusg.MfUsgLpf(m)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">laytyp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">layavg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">chani</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">layvka</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">laywet</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">hdry</span><span class="o">=-</span><span class="mf">1e30</span><span class="p">,</span>
+        <span class="n">iwdflg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">wetfct</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">iwetit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">ihdwet</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ikcflag</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">anglex</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">hk</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">hani</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">vka</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">ss</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">sy</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span>
+        <span class="n">vkcb</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">wetdry</span><span class="o">=-</span><span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">ksat</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">storagecoefficient</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">constantcv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">thickstrt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">nocvcorrection</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">novfc</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;lpf&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">add_package</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructs the MfUsgBcf object.</span>
+
+<span class="sd">        Overrides the parent ModflowBcf object.&quot;&quot;&quot;</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">laytyp</span><span class="o">=</span><span class="n">laytyp</span><span class="p">,</span>
+            <span class="n">layavg</span><span class="o">=</span><span class="n">layavg</span><span class="p">,</span>
+            <span class="n">chani</span><span class="o">=</span><span class="n">chani</span><span class="p">,</span>
+            <span class="n">layvka</span><span class="o">=</span><span class="n">layvka</span><span class="p">,</span>
+            <span class="n">laywet</span><span class="o">=</span><span class="n">laywet</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">hdry</span><span class="o">=</span><span class="n">hdry</span><span class="p">,</span>
+            <span class="n">iwdflg</span><span class="o">=</span><span class="n">iwdflg</span><span class="p">,</span>
+            <span class="n">wetfct</span><span class="o">=</span><span class="n">wetfct</span><span class="p">,</span>
+            <span class="n">iwetit</span><span class="o">=</span><span class="n">iwetit</span><span class="p">,</span>
+            <span class="n">ihdwet</span><span class="o">=</span><span class="n">ihdwet</span><span class="p">,</span>
+            <span class="n">hk</span><span class="o">=</span><span class="n">hk</span><span class="p">,</span>
+            <span class="n">hani</span><span class="o">=</span><span class="n">hani</span><span class="p">,</span>
+            <span class="n">vka</span><span class="o">=</span><span class="n">vka</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span>
+            <span class="n">sy</span><span class="o">=</span><span class="n">sy</span><span class="p">,</span>
+            <span class="n">vkcb</span><span class="o">=</span><span class="n">vkcb</span><span class="p">,</span>
+            <span class="n">wetdry</span><span class="o">=</span><span class="n">wetdry</span><span class="p">,</span>
+            <span class="n">storagecoefficient</span><span class="o">=</span><span class="n">storagecoefficient</span><span class="p">,</span>
+            <span class="n">constantcv</span><span class="o">=</span><span class="n">constantcv</span><span class="p">,</span>
+            <span class="n">thickstrt</span><span class="o">=</span><span class="n">thickstrt</span><span class="p">,</span>
+            <span class="n">nocvcorrection</span><span class="o">=</span><span class="n">nocvcorrection</span><span class="p">,</span>
+            <span class="n">novfc</span><span class="o">=</span><span class="n">novfc</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+            <span class="n">add_package</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+        <span class="n">structured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ikcflag</span> <span class="o">=</span> <span class="n">ikcflag</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ikcflag</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+        <span class="k">if</span> <span class="n">storagecoefficient</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">+</span> <span class="s2">&quot;STORAGECOEFFICIENT &quot;</span>
+        <span class="k">if</span> <span class="n">constantcv</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">+</span> <span class="s2">&quot;CONSTANTCV &quot;</span>
+        <span class="k">if</span> <span class="n">thickstrt</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">+</span> <span class="s2">&quot;THICKSTRT &quot;</span>
+        <span class="k">if</span> <span class="n">nocvcorrection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">+</span> <span class="s2">&quot;NOCVCORRECTION &quot;</span>
+        <span class="k">if</span> <span class="n">novfc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">+</span> <span class="s2">&quot;NOVFC &quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">njag</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">njag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anglex</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">njag</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">anglex</span><span class="p">,</span>
+                <span class="s2">&quot;anglex&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">njag</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">njag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ksat</span> <span class="o">=</span> <span class="n">Util2d</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">njag</span><span class="p">,),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">ksat</span><span class="p">,</span>
+                <span class="s2">&quot;ksat&quot;</span><span class="p">,</span>
+                <span class="n">locat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">add_package</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MfUsgLpf.write_file"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusglpf.html#flopy.mfusg.MfUsgLpf.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        check : boolean</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># allows turning off package checks when writing files at model level</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># get model information</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open file for writing</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_obj</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 0: text</span>
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Item 1: IBCFCB, HDRY, NPLPF, &lt;IKCFLAG&gt;, OPTIONS</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;mfusg&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hdry</span><span class="si">:</span><span class="s2">9.5G</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nplpf</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ikcflag</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="si">:</span><span class="s2">s</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hdry</span><span class="si">:</span><span class="s2">9.5G</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nplpf</span><span class="si">:</span><span class="s2">9d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># LAYTYP array</span>
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">laytyp</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+        <span class="c1"># LAYAVG array</span>
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layavg</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+        <span class="c1"># CHANI array</span>
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chani</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+        <span class="c1"># LAYVKA array</span>
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layvka</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+        <span class="c1"># LAYWET array</span>
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">laywet</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+        <span class="c1"># Item 7: WETFCT, IWETIT, IHDWET</span>
+        <span class="n">iwetdry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">laywet</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">iwetdry</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">wetfct</span><span class="si">:</span><span class="s2">10f</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">iwetit</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">ihdwet</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">transient</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="n">structured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span>
+        <span class="n">anis</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">ch</span> <span class="o">!=</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chani</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">structured</span><span class="p">)</span> <span class="ow">and</span> <span class="n">anis</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">anglex</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ikcflag</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># mfusg</span>
+                <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hk</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chani</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hani</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vka</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">transient</span><span class="p">:</span>
+                <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">laytyp</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sy</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ikcflag</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vkcb</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">laywet</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">laytyp</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wetdry</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ikcflag</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ksat</span><span class="o">.</span><span class="n">get_file_entry</span><span class="p">())</span>
+
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MfUsgLpf.load"><a class="viewcode-back" href="../../../source/flopy.mfusg.mfusglpf.html#flopy.mfusg.MfUsgLpf.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.mfusg.MfUsg`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+<span class="sd">        check : boolean</span>
+<span class="sd">            Check package data for common errors. (default True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lpf : MfUsgLpf object</span>
+<span class="sd">            MfUsgLpf object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.mfusg.MfUsg()</span>
+<span class="sd">        &gt;&gt;&gt; disu = flopy.mfusg.MfUsgDisU(</span>
+<span class="sd">            model=m, nlay=1, nodes=1, iac=[1], njag=1,ja=np.array([0]), fahl=[1.0], cl12=[1.0])</span>
+<span class="sd">        &gt;&gt;&gt; lpf = flopy.mfusg.MfUsgLpf.load(&#39;test.lpf&#39;, m)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Model object must be of type flopy.mfusg.MfUsg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but received type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MfUsg</span><span class="p">),</span> <span class="n">msg</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading lpf package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">f_obj</span> <span class="o">=</span> <span class="n">get_open_file_object</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># determine problem dimensions</span>
+        <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DIS&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dis</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_package</span><span class="p">(</span><span class="s2">&quot;DISU&quot;</span><span class="p">)</span>
+            <span class="n">njag</span> <span class="o">=</span> <span class="n">dis</span><span class="o">.</span><span class="n">njag</span>
+
+        <span class="p">(</span>
+            <span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">hdry</span><span class="p">,</span>
+            <span class="n">nplpf</span><span class="p">,</span>
+            <span class="n">ikcflag</span><span class="p">,</span>
+            <span class="n">storagecoefficient</span><span class="p">,</span>
+            <span class="n">constantcv</span><span class="p">,</span>
+            <span class="n">thickstrt</span><span class="p">,</span>
+            <span class="n">nocvcorrection</span><span class="p">,</span>
+            <span class="n">novfc</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_load_item1</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
+        <span class="p">(</span>
+            <span class="n">laytyp</span><span class="p">,</span>
+            <span class="n">layavg</span><span class="p">,</span>
+            <span class="n">chani</span><span class="p">,</span>
+            <span class="n">layvka</span><span class="p">,</span>
+            <span class="n">laywet</span><span class="p">,</span>
+            <span class="n">wetfct</span><span class="p">,</span>
+            <span class="n">iwetit</span><span class="p">,</span>
+            <span class="n">ihdwet</span><span class="p">,</span>
+            <span class="n">iwetdry</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_load_items_2_to_7</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
+        <span class="c1"># ANGLEX for unstructured grid with anisotropy</span>
+        <span class="n">anis</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">ch</span> <span class="o">!=</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">chani</span><span class="p">)</span>
+        <span class="n">anglex</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">)</span> <span class="ow">and</span> <span class="n">anis</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mfusg:   loading ANGLEX...&quot;</span><span class="p">)</span>
+            <span class="n">anglex</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njag</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;anglex&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+
+        <span class="c1"># load layer properties</span>
+        <span class="p">(</span><span class="n">hk</span><span class="p">,</span> <span class="n">hani</span><span class="p">,</span> <span class="n">vka</span><span class="p">,</span> <span class="n">ss</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">vkcb</span><span class="p">,</span> <span class="n">wetdry</span><span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_load_layer_properties</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">f_obj</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">dis</span><span class="p">,</span>
+            <span class="n">ikcflag</span><span class="p">,</span>
+            <span class="n">layvka</span><span class="p">,</span>
+            <span class="n">chani</span><span class="p">,</span>
+            <span class="n">laytyp</span><span class="p">,</span>
+            <span class="n">laywet</span><span class="p">,</span>
+            <span class="n">nplpf</span><span class="p">,</span>
+            <span class="n">ext_unit_dict</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Ksat  mfusg</span>
+        <span class="n">ksat</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ikcflag</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading ksat...&quot;</span><span class="p">)</span>
+            <span class="n">ksat</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">njag</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;ksat&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+
+        <span class="n">f_obj</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number and io file names</span>
+        <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span> <span class="o">=</span> <span class="n">get_unitnumber_from_ext_unit_dict</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">ipakcb</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create instance of lpf class</span>
+        <span class="n">lpf</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">laytyp</span><span class="o">=</span><span class="n">laytyp</span><span class="p">,</span>
+            <span class="n">layavg</span><span class="o">=</span><span class="n">layavg</span><span class="p">,</span>
+            <span class="n">chani</span><span class="o">=</span><span class="n">chani</span><span class="p">,</span>
+            <span class="n">layvka</span><span class="o">=</span><span class="n">layvka</span><span class="p">,</span>
+            <span class="n">laywet</span><span class="o">=</span><span class="n">laywet</span><span class="p">,</span>
+            <span class="n">hdry</span><span class="o">=</span><span class="n">hdry</span><span class="p">,</span>
+            <span class="n">iwdflg</span><span class="o">=</span><span class="n">iwetdry</span><span class="p">,</span>
+            <span class="n">wetfct</span><span class="o">=</span><span class="n">wetfct</span><span class="p">,</span>
+            <span class="n">iwetit</span><span class="o">=</span><span class="n">iwetit</span><span class="p">,</span>
+            <span class="n">ihdwet</span><span class="o">=</span><span class="n">ihdwet</span><span class="p">,</span>
+            <span class="n">ikcflag</span><span class="o">=</span><span class="n">ikcflag</span><span class="p">,</span>
+            <span class="n">anglex</span><span class="o">=</span><span class="n">anglex</span><span class="p">,</span>
+            <span class="n">hk</span><span class="o">=</span><span class="n">hk</span><span class="p">,</span>
+            <span class="n">hani</span><span class="o">=</span><span class="n">hani</span><span class="p">,</span>
+            <span class="n">vka</span><span class="o">=</span><span class="n">vka</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span>
+            <span class="n">sy</span><span class="o">=</span><span class="n">sy</span><span class="p">,</span>
+            <span class="n">vkcb</span><span class="o">=</span><span class="n">vkcb</span><span class="p">,</span>
+            <span class="n">wetdry</span><span class="o">=</span><span class="n">wetdry</span><span class="p">,</span>
+            <span class="n">ksat</span><span class="o">=</span><span class="n">ksat</span><span class="p">,</span>
+            <span class="n">storagecoefficient</span><span class="o">=</span><span class="n">storagecoefficient</span><span class="p">,</span>
+            <span class="n">constantcv</span><span class="o">=</span><span class="n">constantcv</span><span class="p">,</span>
+            <span class="n">thickstrt</span><span class="o">=</span><span class="n">thickstrt</span><span class="p">,</span>
+            <span class="n">novfc</span><span class="o">=</span><span class="n">novfc</span><span class="p">,</span>
+            <span class="n">nocvcorrection</span><span class="o">=</span><span class="n">nocvcorrection</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="n">lpf</span><span class="o">.</span><span class="n">check</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lpf</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.chk&quot;</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">lpf</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">lpf</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_item1</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Loads LPF item 1 and options.&quot;&quot;&quot;</span>
+        <span class="c1"># Item 1: IBCFCB, HDRY, NPLPF - line already read above</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading IBCFCB, HDRY, NPLPF...&quot;</span><span class="p">)</span>
+        <span class="n">text_list</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">ipakcb</span><span class="p">,</span> <span class="n">hdry</span><span class="p">,</span> <span class="n">nplpf</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+        <span class="p">)</span>
+        <span class="n">ikcflag</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+            <span class="n">ikcflag</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">storagecoefficient</span> <span class="o">=</span> <span class="s2">&quot;STORAGECOEFFICIENT&quot;</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="n">item</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">text_list</span>
+        <span class="p">]</span>
+        <span class="n">constantcv</span> <span class="o">=</span> <span class="s2">&quot;CONSTANTCV&quot;</span> <span class="ow">in</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">text_list</span><span class="p">]</span>
+        <span class="n">thickstrt</span> <span class="o">=</span> <span class="s2">&quot;THICKSTRT&quot;</span> <span class="ow">in</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">text_list</span><span class="p">]</span>
+        <span class="n">nocvcorrection</span> <span class="o">=</span> <span class="s2">&quot;NOCVCORRECTION&quot;</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="n">item</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">text_list</span>
+        <span class="p">]</span>
+        <span class="n">novfc</span> <span class="o">=</span> <span class="s2">&quot;NOVFC&quot;</span> <span class="ow">in</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">text_list</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">hdry</span><span class="p">,</span>
+            <span class="n">nplpf</span><span class="p">,</span>
+            <span class="n">ikcflag</span><span class="p">,</span>
+            <span class="n">storagecoefficient</span><span class="p">,</span>
+            <span class="n">constantcv</span><span class="p">,</span>
+            <span class="n">thickstrt</span><span class="p">,</span>
+            <span class="n">nocvcorrection</span><span class="p">,</span>
+            <span class="n">novfc</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_items_2_to_7</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Loads LPF items 2 through 7.&quot;&quot;&quot;</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+
+        <span class="c1"># LAYTYP array</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading LAYTYP...&quot;</span><span class="p">)</span>
+        <span class="n">laytyp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nlay</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">laytyp</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">laytyp</span><span class="p">)</span>
+
+        <span class="c1"># LAYAVG array</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading LAYAVG...&quot;</span><span class="p">)</span>
+        <span class="n">layavg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nlay</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">layavg</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">layavg</span><span class="p">)</span>
+
+        <span class="c1"># CHANI array</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading CHANI...&quot;</span><span class="p">)</span>
+        <span class="n">chani</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nlay</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">chani</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">chani</span><span class="p">)</span>
+
+        <span class="c1"># LAYVKA array</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading LAYVKA...&quot;</span><span class="p">)</span>
+        <span class="n">layvka</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nlay</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">layvka</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">layvka</span><span class="p">)</span>
+
+        <span class="c1"># LAYWET array</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading LAYWET...&quot;</span><span class="p">)</span>
+        <span class="n">laywet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nlay</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">laywet</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">laywet</span><span class="p">)</span>
+
+        <span class="c1"># Item 7: WETFCT, IWETIT, IHDWET</span>
+        <span class="n">wetfct</span><span class="p">,</span> <span class="n">iwetit</span><span class="p">,</span> <span class="n">ihdwet</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">iwetdry</span> <span class="o">=</span> <span class="n">laywet</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">iwetdry</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   loading WETFCT, IWETIT, IHDWET...&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">text_list</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">wetfct</span><span class="p">,</span> <span class="n">iwetit</span><span class="p">,</span> <span class="n">ihdwet</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">text_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">laytyp</span><span class="p">,</span>
+            <span class="n">layavg</span><span class="p">,</span>
+            <span class="n">chani</span><span class="p">,</span>
+            <span class="n">layvka</span><span class="p">,</span>
+            <span class="n">laywet</span><span class="p">,</span>
+            <span class="n">wetfct</span><span class="p">,</span>
+            <span class="n">iwetit</span><span class="p">,</span>
+            <span class="n">ihdwet</span><span class="p">,</span>
+            <span class="n">iwetdry</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_hy_tran_kv_vcont</span><span class="p">(</span>
+        <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">layer_vars</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">par_types_parm_dict</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads hy/tran and kv/vcont file entries.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f_obj : open file object.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        layer_vars : dict. Key/value pairs must be:</span>
+<span class="sd">            &quot;layer&quot;: layer number k (base 0),</span>
+<span class="sd">            &quot;layvka&quot;: layvka for layer k,</span>
+<span class="sd">            &quot;chani&quot;: chani for layer k</span>
+<span class="sd">        ext_unit_dict : external unit dictionary</span>
+<span class="sd">        par_types_parm_dict : tuple of (par_types, parm_dict)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hk_k : Numpy array of hk values for layer k (or 0)</span>
+<span class="sd">        hani_k : Numpy array of hani values for layer k (or 0)</span>
+<span class="sd">        vka_k : Numpy array of vka values for layer k (or 0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">par_types</span><span class="p">,</span> <span class="n">parm_dict</span> <span class="o">=</span> <span class="n">par_types_parm_dict</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">layer_vars</span><span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">]</span>
+        <span class="n">layvka_k</span> <span class="o">=</span> <span class="n">layer_vars</span><span class="p">[</span><span class="s2">&quot;layvka&quot;</span><span class="p">]</span>
+        <span class="n">chani_k</span> <span class="o">=</span> <span class="n">layer_vars</span><span class="p">[</span><span class="s2">&quot;chani&quot;</span><span class="p">]</span>
+        <span class="n">util2d_shape</span> <span class="o">=</span> <span class="n">get_util2d_shape_for_layer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">)</span>
+
+        <span class="c1"># hk</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading hk layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;hk&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+            <span class="n">hk_k</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;hk&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">hk_k</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">parameter_fill</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="s2">&quot;hk&quot;</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="n">layer</span>
+            <span class="p">)</span>
+
+        <span class="c1"># hani</span>
+        <span class="n">hani_k</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">if</span> <span class="n">chani_k</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading hani layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;hani&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+                <span class="n">hani_k</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f_obj</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">util2d_shape</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="s2">&quot;hani&quot;</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">hani_k</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">parameter_fill</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="s2">&quot;hani&quot;</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="n">layer</span>
+                <span class="p">)</span>
+
+        <span class="c1"># vka</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading vka layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;vk&quot;</span>
+        <span class="k">if</span> <span class="n">layvka_k</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;vani&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;vk&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span> <span class="ow">and</span> <span class="s2">&quot;vani&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+            <span class="n">vka_k</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;vk&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;vani&quot;</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;vani&quot;</span>
+            <span class="n">vka_k</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">parameter_fill</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="n">layer</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hk_k</span><span class="p">,</span> <span class="n">hani_k</span><span class="p">,</span> <span class="n">vka_k</span>
+
+    <span class="k">def</span> <span class="nf">_load_layer_properties</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">f_obj</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">dis</span><span class="p">,</span>
+        <span class="n">ikcflag</span><span class="p">,</span>
+        <span class="n">layvka</span><span class="p">,</span>
+        <span class="n">chani</span><span class="p">,</span>
+        <span class="n">laytyp</span><span class="p">,</span>
+        <span class="n">laywet</span><span class="p">,</span>
+        <span class="n">nplpf</span><span class="p">,</span>
+        <span class="n">ext_unit_dict</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Loads layer properties.&quot;&quot;&quot;</span>
+        <span class="c1"># parameters data</span>
+        <span class="n">par_types</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parm_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">nplpf</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">par_types</span><span class="p">,</span> <span class="n">parm_dict</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f_obj</span><span class="p">,</span> <span class="n">nplpf</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+            <span class="c1"># print parm_dict</span>
+
+        <span class="c1"># non-parameter data</span>
+        <span class="n">transient</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">dis</span><span class="o">.</span><span class="n">steady</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="n">nlay</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="n">hk</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="n">hani</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="n">vka</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="n">sy</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="n">vkcb</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+        <span class="n">wetdry</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nlay</span>
+
+        <span class="c1"># load by layer</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlay</span><span class="p">):</span>
+            <span class="n">util2d_shape</span> <span class="o">=</span> <span class="n">get_util2d_shape_for_layer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ikcflag</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="p">(</span>
+                    <span class="n">hk</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span>
+                    <span class="n">hani</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span>
+                    <span class="n">vka</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span>
+                <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_hy_tran_kv_vcont</span><span class="p">(</span>
+                    <span class="n">f_obj</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;layer&quot;</span><span class="p">:</span> <span class="n">layer</span><span class="p">,</span>
+                        <span class="s2">&quot;layvka&quot;</span><span class="p">:</span> <span class="n">layvka</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span>
+                        <span class="s2">&quot;chani&quot;</span><span class="p">:</span> <span class="n">chani</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span>
+                    <span class="p">},</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">par_types</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="c1"># storage properties</span>
+            <span class="k">if</span> <span class="n">transient</span><span class="p">:</span>
+                <span class="n">ss</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span> <span class="n">sy</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_storage</span><span class="p">(</span>
+                    <span class="n">f_obj</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="p">{</span><span class="s2">&quot;layer&quot;</span><span class="p">:</span> <span class="n">layer</span><span class="p">,</span> <span class="s2">&quot;laytyp&quot;</span><span class="p">:</span> <span class="n">laytyp</span><span class="p">[</span><span class="n">layer</span><span class="p">]},</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">par_types</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="c1"># vkcb</span>
+            <span class="k">if</span> <span class="n">ikcflag</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">dis</span><span class="o">.</span><span class="n">laycbd</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading vkcb layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;vkcb&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+                    <span class="n">vkcb</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">f_obj</span><span class="p">,</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="n">util2d_shape</span><span class="p">,</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                        <span class="s2">&quot;vkcb&quot;</span><span class="p">,</span>
+                        <span class="n">ext_unit_dict</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_</span> <span class="o">=</span> <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">vkcb</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">parameter_fill</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="s2">&quot;vkcb&quot;</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="n">layer</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># wetdry</span>
+            <span class="k">if</span> <span class="n">laywet</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">laytyp</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading wetdry layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">wetdry</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f_obj</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">util2d_shape</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="s2">&quot;wetdry&quot;</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hk</span><span class="p">,</span> <span class="n">hani</span><span class="p">,</span> <span class="n">vka</span><span class="p">,</span> <span class="n">ss</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">vkcb</span><span class="p">,</span> <span class="n">wetdry</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_storage</span><span class="p">(</span>
+        <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">layer_vars</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">par_types_parm_dict</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads ss, sy file entries.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f_obj : open file object.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        layer_vars : dict. Key/value pairs must be:</span>
+<span class="sd">            &quot;layer&quot;: layer number k (base 0),</span>
+<span class="sd">            &quot;laytyp&quot;: laytyp for layer k</span>
+<span class="sd">        ext_unit_dict : external unit dictionary</span>
+<span class="sd">        par_types_parm_dict : tuple of (par_types, parm_dict)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ss_k : Numpy array of ss values for layer k (or 0)</span>
+<span class="sd">        sy_k : Numpy array of sy values for layer k (or 0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">par_types</span><span class="p">,</span> <span class="n">parm_dict</span> <span class="o">=</span> <span class="n">par_types_parm_dict</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">layer_vars</span><span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">]</span>
+        <span class="n">laytyp_k</span> <span class="o">=</span> <span class="n">layer_vars</span><span class="p">[</span><span class="s2">&quot;laytyp&quot;</span><span class="p">]</span>
+        <span class="n">util2d_shape</span> <span class="o">=</span> <span class="n">get_util2d_shape_for_layer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">)</span>
+
+        <span class="c1"># ss</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading ss layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;ss&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+            <span class="n">ss_k</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f_obj</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;ss&quot;</span><span class="p">,</span> <span class="n">ext_unit_dict</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">ss_k</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">parameter_fill</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="s2">&quot;ss&quot;</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="n">layer</span>
+            <span class="p">)</span>
+
+        <span class="c1"># sy</span>
+        <span class="n">sy_k</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="k">if</span> <span class="n">laytyp_k</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   loading sy layer </span><span class="si">{</span><span class="n">layer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;sy&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">par_types</span><span class="p">:</span>
+                <span class="n">sy_k</span> <span class="o">=</span> <span class="n">Util2d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">f_obj</span><span class="p">,</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">util2d_shape</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="s2">&quot;sy&quot;</span><span class="p">,</span>
+                    <span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_obj</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">sy_k</span> <span class="o">=</span> <span class="n">mfpar</span><span class="o">.</span><span class="n">parameter_fill</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span> <span class="n">util2d_shape</span><span class="p">,</span> <span class="s2">&quot;sy&quot;</span><span class="p">,</span> <span class="n">parm_dict</span><span class="p">,</span> <span class="n">findlayer</span><span class="o">=</span><span class="n">layer</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ss_k</span><span class="p">,</span> <span class="n">sy_k</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

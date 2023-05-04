@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.datautil &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.datautil</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.datautil</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="clean_filename"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.clean_filename">[docs]</a><span class="k">def</span> <span class="nf">clean_filename</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">file_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">quote_list</span>
+        <span class="ow">and</span> <span class="n">file_name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">quote_list</span>
+    <span class="p">):</span>
+        <span class="c1"># quoted string</span>
+        <span class="c1"># keep entire string and remove the quotes</span>
+        <span class="n">f_name</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">f_name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">file_name</span></div>
+
+
+<div class="viewcode-block" id="clean_name"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.clean_name">[docs]</a><span class="k">def</span> <span class="nf">clean_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="c1"># remove bad characters</span>
+    <span class="n">clean_string</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="n">clean_string</span> <span class="o">=</span> <span class="n">clean_string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="c1"># remove anything after a parenthesis</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">clean_string</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">clean_string</span> <span class="o">=</span> <span class="n">clean_string</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">index</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">clean_string</span></div>
+
+
+<div class="viewcode-block" id="find_keyword"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.find_keyword">[docs]</a><span class="k">def</span> <span class="nf">find_keyword</span><span class="p">(</span><span class="n">arr_line</span><span class="p">,</span> <span class="n">keyword_dict</span><span class="p">):</span>
+    <span class="c1"># convert to lower case</span>
+    <span class="n">arr_line_lower</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">arr_line</span><span class="p">:</span>
+        <span class="c1"># integers and floats are not keywords</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">DatumUtil</span><span class="o">.</span><span class="n">is_int</span><span class="p">(</span><span class="n">word</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">DatumUtil</span><span class="o">.</span><span class="n">is_float</span><span class="p">(</span><span class="n">word</span><span class="p">):</span>
+            <span class="n">arr_line_lower</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="c1"># look for constants in order of most words to least words</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">num_words</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr_line_lower</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">arr_line_lower</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">num_words</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keyword_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">key</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="max_tuple_abs_size"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.max_tuple_abs_size">[docs]</a><span class="k">def</span> <span class="nf">max_tuple_abs_size</span><span class="p">(</span><span class="n">some_tuple</span><span class="p">):</span>
+    <span class="n">max_size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">some_tuple</span><span class="p">:</span>
+        <span class="n">item_abs</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">item_abs</span> <span class="o">&gt;</span> <span class="n">max_size</span><span class="p">:</span>
+            <span class="n">max_size</span> <span class="o">=</span> <span class="n">item_abs</span>
+    <span class="k">return</span> <span class="n">max_size</span></div>
+
+
+<div class="viewcode-block" id="DatumUtil"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.DatumUtil">[docs]</a><span class="k">class</span> <span class="nc">DatumUtil</span><span class="p">:</span>
+<div class="viewcode-block" id="DatumUtil.is_int"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.DatumUtil.is_int">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_int</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="DatumUtil.is_float"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.DatumUtil.is_float">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_float</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">float</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="DatumUtil.is_basic_type"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.DatumUtil.is_basic_type">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_basic_type</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="PyListUtil"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil">[docs]</a><span class="k">class</span> <span class="nc">PyListUtil</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class contains miscellaneous methods to work with and compare python lists</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : string</span>
+<span class="sd">        file path to read/write to</span>
+<span class="sd">    max_error : float</span>
+<span class="sd">        maximum acceptable error when doing a compare of floating point numbers</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    is_iterable : (obj : unknown) : boolean</span>
+<span class="sd">        determines if obj is iterable</span>
+<span class="sd">    is_empty_list : (current_list : list) : boolean</span>
+<span class="sd">        determines if an n-dimensional list is empty</span>
+<span class="sd">    con_convert : (data : string, data_type : type that has conversion</span>
+<span class="sd">                   operation) : boolean</span>
+<span class="sd">        returns true if data can be converted into data_type</span>
+<span class="sd">    max_multi_dim_list_size : (current_list : list) : boolean</span>
+<span class="sd">        determines the max number of items in a multi-dimensional list</span>
+<span class="sd">        &#39;current_list&#39;</span>
+<span class="sd">    first_item : (current_list : list) : variable</span>
+<span class="sd">        returns the first item in the list &#39;current_list&#39;</span>
+<span class="sd">    next_item : (current_list : list) : variable</span>
+<span class="sd">        returns the next item in the list &#39;current_list&#39;</span>
+<span class="sd">    array_comp : (first_array : list, second_array : list) : boolean</span>
+<span class="sd">        compares two lists, returns true if they are identical (with max_error)</span>
+<span class="sd">    spilt_data_line : (line : string) : list</span>
+<span class="sd">        splits a string apart (using split) and then cleans up the results</span>
+<span class="sd">        dealing with various MODFLOW input file releated delimiters.  returns</span>
+<span class="sd">        the delimiter type used.</span>
+<span class="sd">    clean_numeric : (text : string) : string</span>
+<span class="sd">        returns a cleaned up version of &#39;text&#39; with only numeric characters</span>
+<span class="sd">    save_array_diff : (first_array : list, second_array : list,</span>
+<span class="sd">                       first_array_name : string, second_array_name : string)</span>
+<span class="sd">        saves lists &#39;first_array&#39; and &#39;second_array&#39; to files first_array_name</span>
+<span class="sd">        and second_array_name and then saves the difference of the two</span>
+<span class="sd">        arrays to &#39;debug_array_diff.txt&#39;</span>
+<span class="sd">    save_array(filename : string, multi_array : list)</span>
+<span class="sd">        saves &#39;multi_array&#39; to the file &#39;filename&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">numeric_chars</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;2&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;3&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;4&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;5&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;6&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;7&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;8&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;9&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;.&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;-&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">quote_list</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">}</span>
+    <span class="n">delimiter_list</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;,&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="n">delimiter_used</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">line_num</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">consistent_delim</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_error</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_error</span> <span class="o">=</span> <span class="n">max_error</span>
+        <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PyListUtil.has_one_item"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.has_one_item">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">has_one_item</span><span class="p">(</span><span class="n">current_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">current_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_list</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PyListUtil.is_iterable"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.is_iterable">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_iterable</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PyListUtil.is_empty_list"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.is_empty_list">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_empty_list</span><span class="p">(</span><span class="n">current_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="ow">not</span> <span class="n">current_list</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">current_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="c1"># still in a list of lists, recurse</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">is_empty_list</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PyListUtil.max_multi_dim_list_size"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.max_multi_dim_list_size">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">max_multi_dim_list_size</span><span class="p">(</span><span class="n">current_list</span><span class="p">):</span>
+        <span class="n">max_length</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">current_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_list</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_length</span><span class="p">:</span>
+                <span class="n">max_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">max_length</span></div>
+
+<div class="viewcode-block" id="PyListUtil.first_item"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.first_item">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">first_item</span><span class="p">(</span><span class="n">current_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">current_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">current_list</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">current_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="c1"># still in a list of lists, recurse</span>
+                <span class="k">return</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">first_item</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">item</span></div>
+
+<div class="viewcode-block" id="PyListUtil.next_item"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.next_item">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">next_item</span><span class="p">(</span>
+        <span class="n">current_list</span><span class="p">,</span> <span class="n">new_list</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nesting_change</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_of_list</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="c1"># returns the next item in a nested list along with other information:</span>
+        <span class="c1"># (&lt;next item&gt;, &lt;end of list&gt;, &lt;entering new list&gt;,</span>
+        <span class="c1">#  &lt;change in nesting level&gt;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">current_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="p">):</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="n">end_of_list</span><span class="p">,</span> <span class="n">new_list</span><span class="p">,</span> <span class="n">nesting_change</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_size</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">current_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+                    <span class="n">current_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+                <span class="p">):</span>
+                    <span class="c1"># still in a list of lists, recurse</span>
+                    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">next_item</span><span class="p">(</span>
+                        <span class="n">item</span><span class="p">,</span>
+                        <span class="n">list_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">nesting_change</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">list_size</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_list</span><span class="p">),</span>
+                    <span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">item</span>
+                    <span class="n">nesting_change</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">nesting_change</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="p">(</span>
+                        <span class="n">item</span><span class="p">,</span>
+                        <span class="n">list_size</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_list</span><span class="p">),</span>
+                        <span class="n">list_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">nesting_change</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">nesting_change</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">list_size</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="PyListUtil.next_list"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.next_list">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">next_list</span><span class="p">(</span><span class="n">current_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">current_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="p">):</span>
+            <span class="k">yield</span> <span class="n">current_list</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">current_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">next_list</span><span class="p">(</span><span class="n">lst</span><span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">lst</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">lst</span></div>
+
+<div class="viewcode-block" id="PyListUtil.array_comp"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.array_comp">[docs]</a>    <span class="k">def</span> <span class="nf">array_comp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first_array</span><span class="p">,</span> <span class="n">second_array</span><span class="p">):</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">first_array</span> <span class="o">-</span> <span class="n">second_array</span>
+        <span class="nb">max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">max</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PyListUtil.riv_array_comp"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.riv_array_comp">[docs]</a>    <span class="k">def</span> <span class="nf">riv_array_comp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first_array</span><span class="p">,</span> <span class="n">second_array</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">line_first</span><span class="p">,</span> <span class="n">line_second</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">first_array</span><span class="p">,</span> <span class="n">second_array</span><span class="p">):</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">line_first</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">line_second</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_error</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PyListUtil.reset_delimiter_used"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.reset_delimiter_used">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">reset_delimiter_used</span><span class="p">():</span>
+        <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_used</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">PyListUtil</span><span class="o">.</span><span class="n">line_num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">PyListUtil</span><span class="o">.</span><span class="n">consistent_delim</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PyListUtil.split_data_line"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.split_data_line">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">split_data_line</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">external_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">delimiter_conf_length</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">PyListUtil</span><span class="o">.</span><span class="n">line_num</span> <span class="o">&gt;</span> <span class="n">delimiter_conf_length</span>
+            <span class="ow">and</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">consistent_delim</span>
+        <span class="p">):</span>
+            <span class="c1"># consistent delimiter has been found.  continue using that</span>
+            <span class="c1"># delimiter without doing further checks</span>
+            <span class="k">if</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_used</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">comment_split</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">clean_line</span> <span class="o">=</span> <span class="n">comment_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">comment_split</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">clean_line</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">comment_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_used</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comment_split</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">clean_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+                    <span class="n">clean_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comment_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># compare against the default split option without comments split</span>
+            <span class="n">comment_split</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># first try standard split preserving quotes</span>
+            <span class="n">clean_line</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">comment_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">posix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comment_split</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">clean_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+                <span class="n">clean_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comment_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="c1"># try different delimiters and use the one the breaks the data</span>
+            <span class="c1"># apart the most</span>
+            <span class="n">max_split_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">clean_line</span><span class="p">)</span>
+            <span class="n">max_split_type</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">max_split_list</span> <span class="o">=</span> <span class="n">clean_line</span>
+            <span class="k">for</span> <span class="n">delimiter</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_list</span><span class="p">:</span>
+                <span class="n">comment_split</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+                <span class="n">alt_split</span> <span class="o">=</span> <span class="n">comment_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">delimiter</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comment_split</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">alt_split</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+                    <span class="n">alt_split</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comment_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="n">alt_split_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_split</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">alt_split_len</span> <span class="o">&gt;</span> <span class="n">max_split_size</span><span class="p">:</span>
+                    <span class="n">max_split_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_split</span><span class="p">)</span>
+                    <span class="n">max_split_type</span> <span class="o">=</span> <span class="n">delimiter</span>
+                    <span class="n">max_split_list</span> <span class="o">=</span> <span class="n">alt_split</span>
+                <span class="k">elif</span> <span class="n">alt_split_len</span> <span class="o">==</span> <span class="n">max_split_size</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">max_split_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_list</span>
+                        <span class="ow">or</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_list</span><span class="p">[</span><span class="n">delimiter</span><span class="p">]</span>
+                        <span class="o">&lt;</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_list</span><span class="p">[</span><span class="n">max_split_type</span><span class="p">]</span>
+                    <span class="p">):</span>
+                        <span class="n">max_split_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_split</span><span class="p">)</span>
+                        <span class="n">max_split_type</span> <span class="o">=</span> <span class="n">delimiter</span>
+                        <span class="n">max_split_list</span> <span class="o">=</span> <span class="n">alt_split</span>
+
+            <span class="k">if</span> <span class="n">max_split_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_split_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">clean_line</span> <span class="o">=</span> <span class="n">max_split_list</span>
+                <span class="k">if</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">line_num</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_used</span> <span class="o">=</span> <span class="n">max_split_type</span>
+                <span class="k">elif</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_used</span> <span class="o">!=</span> <span class="n">max_split_type</span><span class="p">:</span>
+                    <span class="n">PyListUtil</span><span class="o">.</span><span class="n">consistent_delim</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">max_split_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">PyListUtil</span><span class="o">.</span><span class="n">line_num</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">arr_fixed_line</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># loop through line to fix quotes and delimiters</span>
+        <span class="n">len_cl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">clean_line</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">len_cl</span><span class="p">:</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">clean_line</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">item</span> <span class="ow">and</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">delimiter_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span> <span class="ow">and</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">quote_list</span><span class="p">:</span>
+                    <span class="c1"># starts with a quote, handle quoted text</span>
+                    <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">quote_list</span><span class="p">:</span>
+                        <span class="c1"># if quoted on both ends, remove quotes</span>
+                        <span class="n">arr_fixed_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">arr_fixed_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                        <span class="c1"># loop until trailing quote found</span>
+                        <span class="k">while</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">len_cl</span><span class="p">:</span>
+                            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">len_cl</span><span class="p">:</span>
+                                <span class="n">item</span> <span class="o">=</span> <span class="n">clean_line</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                                <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">quote_list</span><span class="p">:</span>
+                                    <span class="n">arr_fixed_line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">item</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                                    <span class="k">break</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">arr_fixed_line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># no quote, just append</span>
+                    <span class="n">arr_fixed_line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">arr_fixed_line</span></div>
+
+<div class="viewcode-block" id="PyListUtil.clean_numeric"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.clean_numeric">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">clean_numeric</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># remove all non-numeric text from leading and trailing positions</span>
+            <span class="c1"># of text</span>
+            <span class="k">if</span> <span class="n">text</span><span class="p">:</span>
+                <span class="k">while</span> <span class="n">text</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">numeric_chars</span>
+                    <span class="ow">or</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">numeric_chars</span>
+                <span class="p">):</span>
+                    <span class="k">if</span> <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">numeric_chars</span><span class="p">:</span>
+                        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                    <span class="k">if</span> <span class="n">text</span> <span class="ow">and</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">numeric_chars</span><span class="p">:</span>
+                        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">text</span></div>
+
+<div class="viewcode-block" id="PyListUtil.save_array_diff"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.save_array_diff">[docs]</a>    <span class="k">def</span> <span class="nf">save_array_diff</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">first_array</span><span class="p">,</span> <span class="n">second_array</span><span class="p">,</span> <span class="n">first_array_name</span><span class="p">,</span> <span class="n">second_array_name</span>
+    <span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="n">first_array</span> <span class="o">-</span> <span class="n">second_array</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_array</span><span class="p">(</span><span class="n">first_array_name</span><span class="p">,</span> <span class="n">first_array</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_array</span><span class="p">(</span><span class="n">second_array_name</span><span class="p">,</span> <span class="n">second_array</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_array</span><span class="p">(</span><span class="s2">&quot;debug_array_diff.txt&quot;</span><span class="p">,</span> <span class="n">diff</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;An error occurred while outputting array differences.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="c1"># Saves an array with up to three dimensions</span>
+<div class="viewcode-block" id="PyListUtil.save_array"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PyListUtil.save_array">[docs]</a>    <span class="k">def</span> <span class="nf">save_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">multi_array</span><span class="p">):</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+            <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">multi_array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">multi_array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">for</span> <span class="nb">slice</span> <span class="ow">in</span> <span class="n">multi_array</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">second_slice</span> <span class="ow">in</span> <span class="nb">slice</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">third_slice</span> <span class="ow">in</span> <span class="n">second_slice</span><span class="p">:</span>
+                            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">third_slice</span><span class="p">:</span>
+                                <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">item</span><span class="si">:</span><span class="s2">10.3e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">multi_array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">for</span> <span class="nb">slice</span> <span class="ow">in</span> <span class="n">multi_array</span><span class="p">:</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%10.3e</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">multi_array</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%10.3e</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MultiList"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList">[docs]</a><span class="k">class</span> <span class="nc">MultiList</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for storing objects in an n-dimensional list which can be iterated</span>
+<span class="sd">    through as a single list.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mdlist : list</span>
+<span class="sd">        multi-dimensional list to initialize the multi-list.  either mdlist</span>
+<span class="sd">        or both shape and callback must be specified</span>
+<span class="sd">    shape : tuple</span>
+<span class="sd">        shape of the multi-list</span>
+<span class="sd">    callback : method</span>
+<span class="sd">        callback method that takes a location in the multi-list (tuple) and</span>
+<span class="sd">        returns an object to be stored at that location in the multi-list</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    increment_dimension : (dimension, callback)</span>
+<span class="sd">        increments the size of one of the two dimensions of the multi-list</span>
+<span class="sd">    build_list : (callback)</span>
+<span class="sd">        builds a multi-list of shape self.list_shape, constructing objects</span>
+<span class="sd">        for the list using the supplied callback method</span>
+<span class="sd">    first_item : () : object</span>
+<span class="sd">        gets the first entry in the multi-list</span>
+<span class="sd">    get_total_size : () : int</span>
+<span class="sd">        returns the total number of entries in the multi-list</span>
+<span class="sd">    in_shape : (indexes) : boolean</span>
+<span class="sd">        returns whether a tuple of indexes are valid indexes for the shape of</span>
+<span class="sd">        the multi-list</span>
+<span class="sd">    inc_shape_idx : (indexes) : tuple</span>
+<span class="sd">        given a tuple of indexes pointing to an entry in the multi-list,</span>
+<span class="sd">        returns a tuple of indexes pointing to the next entry in the multi-list</span>
+<span class="sd">    first_index : () : tuple</span>
+<span class="sd">        returns a tuple of indexes pointing to the first entry in the</span>
+<span class="sd">        multi-list</span>
+<span class="sd">    indexes : (start_indexes=None, end_indexes=None) : iter(tuple)</span>
+<span class="sd">        returns an iterator that iterates from the location in the</span>
+<span class="sd">        multi-list defined by start_indexes to the location in the</span>
+<span class="sd">        multi-list defined by end_indexes</span>
+<span class="sd">    elements : () : iter(object)</span>
+<span class="sd">        returns an iterator that iterates over each object stored in the</span>
+<span class="sd">        multi-list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mdlist</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mdlist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span> <span class="o">=</span> <span class="n">mdlist</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span> <span class="o">=</span> <span class="n">MultiList</span><span class="o">.</span><span class="n">_calc_shape</span><span class="p">(</span><span class="n">mdlist</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span> <span class="o">=</span> <span class="n">shape</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">build_list</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;MultiList requires either a mdlist or a shape &quot;</span>
+                <span class="s2">&quot;at initialization.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">item_ptr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
+                <span class="n">item_ptr</span> <span class="o">=</span> <span class="n">item_ptr</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">item_ptr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_calc_shape</span><span class="p">(</span><span class="n">current_list</span><span class="p">):</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">current_list</span><span class="p">))</span>
+            <span class="n">sub_list</span> <span class="o">=</span> <span class="n">current_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sub_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">shape</span> <span class="o">+=</span> <span class="n">MultiList</span><span class="o">.</span><span class="n">_calc_shape</span><span class="p">(</span><span class="n">sub_list</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_list</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MultiList.increment_dimension"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.increment_dimension">[docs]</a>    <span class="k">def</span> <span class="nf">increment_dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="c1"># ONLY SUPPORTS 1 OR 2 DIMENSIONAL MULTI-LISTS</span>
+        <span class="c1"># TODO: REWRITE TO SUPPORT N-DIMENSIONAL MULTI-LISTS</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;Increment_dimension currently only supports 1 &quot;</span>
+                <span class="s2">&quot;or 2 dimensional multi-lists&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">callback</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dimension</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">new_row_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+                <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">callback</span><span class="p">((</span><span class="n">new_row_idx</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">dimension</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">new_col_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">callback</span><span class="p">((</span><span class="n">index</span><span class="p">,</span> <span class="n">new_col_idx</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s1">&#39;For two dimensional lists &quot;dimension&quot; must &#39;</span> <span class="s2">&quot;be 1 or 2.&quot;</span>
+                <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiList.build_list"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.build_list">[docs]</a>    <span class="k">def</span> <span class="nf">build_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="n">entry_points</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">())]</span>
+        <span class="n">shape_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">)</span>
+        <span class="c1"># loop through each dimension</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">shape_size</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">):</span>
+            <span class="n">new_entry_points</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># loop through locations to add to the list</span>
+            <span class="k">for</span> <span class="n">entry_point</span> <span class="ow">in</span> <span class="n">entry_points</span><span class="p">:</span>
+                <span class="c1"># loop through the size of current dimension</span>
+                <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape_size</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">shape_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="c1"># this is a multi-dimensional multi-list, build out</span>
+                        <span class="c1"># first dimension</span>
+                        <span class="n">entry_point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+                        <span class="k">if</span> <span class="n">entry_point</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">new_location</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">entry_point</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">new_location</span> <span class="o">=</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">entry_point</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">val</span><span class="p">)</span>
+                        <span class="n">new_entry_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">entry_point</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_location</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">entry_point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">callback</span><span class="p">(</span><span class="n">entry_point</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">entry_points</span> <span class="o">=</span> <span class="n">new_entry_points</span></div>
+
+<div class="viewcode-block" id="MultiList.first_item"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.first_item">[docs]</a>    <span class="k">def</span> <span class="nf">first_item</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">first_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiList.get_total_size"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.get_total_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">shape_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">item</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shape_size</span> <span class="o">*=</span> <span class="n">item</span>
+        <span class="k">return</span> <span class="n">shape_size</span></div>
+
+<div class="viewcode-block" id="MultiList.in_shape"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.in_shape">[docs]</a>    <span class="k">def</span> <span class="nf">in_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indexes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="n">item</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="MultiList.inc_shape_idx"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.inc_shape_idx">[docs]</a>    <span class="k">def</span> <span class="nf">inc_shape_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indexes</span><span class="p">):</span>
+        <span class="n">new_indexes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">incremented</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="n">item</span><span class="p">:</span>
+                <span class="n">new_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">incremented</span><span class="p">:</span>
+                <span class="n">new_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">incremented</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">new_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">incremented</span><span class="p">:</span>
+            <span class="n">new_indexes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_indexes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiList.first_index"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.first_index">[docs]</a>    <span class="k">def</span> <span class="nf">first_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">first_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">:</span>
+            <span class="n">first_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">first_index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiList.nth_index"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.nth_index">[docs]</a>    <span class="k">def</span> <span class="nf">nth_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">aii</span> <span class="o">=</span> <span class="n">ArrayIndexIter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">index_num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">index_num</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">aii</span><span class="p">)</span>
+            <span class="n">index_num</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">index</span></div>
+
+<div class="viewcode-block" id="MultiList.indexes"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.indexes">[docs]</a>    <span class="k">def</span> <span class="nf">indexes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">aii</span> <span class="o">=</span> <span class="n">ArrayIndexIter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_shape</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">start_indexes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">aii</span><span class="o">.</span><span class="n">current_location</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">start_indexes</span><span class="p">)</span>
+            <span class="n">aii</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">aii</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">end_indexes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">aii</span><span class="o">.</span><span class="n">end_location</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">end_indexes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">aii</span></div>
+
+<div class="viewcode-block" id="MultiList.elements"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiList.elements">[docs]</a>    <span class="k">def</span> <span class="nf">elements</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MultiListIter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_dim_list</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ArrayIndexIter"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.ArrayIndexIter">[docs]</a><span class="k">class</span> <span class="nc">ArrayIndexIter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_shape</span><span class="p">,</span> <span class="n">index_as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_shape</span> <span class="o">=</span> <span class="n">array_shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_location</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_item</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_as_tuple</span> <span class="o">=</span> <span class="n">index_as_tuple</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">array_shape</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_location</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_item</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">first_item</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span>
+                <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_location</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_as_tuple</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">location</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_location</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_as_tuple</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_location</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">raise</span> <span class="ne">StopIteration</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MultiListIter"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.MultiListIter">[docs]</a><span class="k">class</span> <span class="nc">MultiListIter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multi_list</span><span class="p">,</span> <span class="n">detailed_info</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">iter_leaf_lists</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multi_list</span> <span class="o">=</span> <span class="n">multi_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detailed_info</span> <span class="o">=</span> <span class="n">detailed_info</span>
+        <span class="k">if</span> <span class="n">iter_leaf_lists</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">val_iter</span> <span class="o">=</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">next_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">val_iter</span> <span class="o">=</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">next_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">next_val</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_iter</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">detailed_info</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">next_val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">next_val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ConstIter"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.ConstIter">[docs]</a><span class="k">class</span> <span class="nc">ConstIter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="FileIter"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.FileIter">[docs]</a><span class="k">class</span> <span class="nc">FileIter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eof</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eof</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_next_line</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eof</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_current_data</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_next_line</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data_index</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eof</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">StopIteration</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_data_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="FileIter.close"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.FileIter.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_next_line</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eof</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">data_line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data_line</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eof</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_data</span> <span class="o">=</span> <span class="n">PyListUtil</span><span class="o">.</span><span class="n">split_data_line</span><span class="p">(</span><span class="n">data_line</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NameIter"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.NameIter">[docs]</a><span class="k">class</span> <span class="nc">NameIter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">first_not_numbered</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter_num</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_not_numbered</span> <span class="o">=</span> <span class="n">first_not_numbered</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter_num</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_num</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_not_numbered</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iter_num</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="PathIter"><a class="viewcode-back" href="../../../source/flopy.utils.datautil.html#flopy.utils.datautil.PathIter">[docs]</a><span class="k">class</span> <span class="nc">PathIter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">first_not_numbered</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_iter</span> <span class="o">=</span> <span class="n">NameIter</span><span class="p">(</span><span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">first_not_numbered</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_iter</span><span class="p">),)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

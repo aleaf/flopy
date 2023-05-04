@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.datafile &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.datafile</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.datafile</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module to read MODFLOW output files.  The module contains shared</span>
+<span class="sd">abstract classes that should not be directly accessed.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="Header"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.Header">[docs]</a><span class="k">class</span> <span class="nc">Header</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The header class is an abstract base class to create headers for MODFLOW files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;single&quot;</span><span class="p">):</span>
+        <span class="n">floattype</span> <span class="o">=</span> <span class="s2">&quot;f4&quot;</span>
+        <span class="k">if</span> <span class="n">precision</span> <span class="o">==</span> <span class="s2">&quot;double&quot;</span><span class="p">:</span>
+            <span class="n">floattype</span> <span class="o">=</span> <span class="s2">&quot;f8&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_types</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;head&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;drawdown&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ucn&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;vardis&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;vardisv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;vardisu&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">filetype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filetype</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="n">filetype</span> <span class="o">=</span> <span class="n">filetype</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">=</span> <span class="n">filetype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_types</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">==</span> <span class="s2">&quot;head&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;pertim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;a16&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ncol&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;nrow&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ilay&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">==</span> <span class="s2">&quot;drawdown&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;pertim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;a16&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ncol&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;nrow&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ilay&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">==</span> <span class="s2">&quot;ucn&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span><span class="s2">&quot;ntrans&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;a16&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ncol&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;nrow&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ilay&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">==</span> <span class="s2">&quot;vardis&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;pertim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;a16&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ncol&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;nrow&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ilay&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">==</span> <span class="s2">&quot;vardisv&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;pertim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;a16&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ncpl&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;ilay&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;m3&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_type</span> <span class="o">==</span> <span class="s2">&quot;vardisu&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span><span class="s2">&quot;kstp&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;kper&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;pertim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">floattype</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;a16&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;m2&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;m3&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Specified </span><span class="si">{}</span><span class="s2"> type is not available. &quot;</span>
+                <span class="s2">&quot;Available types are:&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header_type</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header_types</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Header.get_dtype"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.Header.get_dtype">[docs]</a>    <span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the dtype</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span></div>
+
+<div class="viewcode-block" id="Header.get_names"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.Header.get_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the dtype names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span></div>
+
+<div class="viewcode-block" id="Header.get_values"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.Header.get_values">[docs]</a>    <span class="k">def</span> <span class="nf">get_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the header values</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="LayerFile"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile">[docs]</a><span class="k">class</span> <span class="nc">LayerFile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The LayerFile class is the abstract base class from which specific derived</span>
+<span class="sd">    classes are formed.  LayerFile This class should not be instantiated</span>
+<span class="sd">    directly.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span> <span class="n">precision</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..discretization.structuredgrid</span> <span class="kn">import</span> <span class="n">StructuredGrid</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">precision</span> <span class="o">=</span> <span class="n">precision</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+        <span class="c1"># Get filesize to ensure this is not an empty file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">totalbytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># reset to beginning</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">totalbytes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;datafile error: file is empty: </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kstpkper</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iposarray</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">precision</span> <span class="o">==</span> <span class="s2">&quot;single&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">realtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="k">elif</span> <span class="n">precision</span> <span class="o">==</span> <span class="s2">&quot;double&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">realtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown precision specified: </span><span class="si">{</span><span class="n">precision</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dis</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;model&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">modelgrid</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">dis</span>
+        <span class="k">if</span> <span class="s2">&quot;dis&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dis</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dis&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">modelgrid</span>
+        <span class="k">if</span> <span class="s2">&quot;modelgrid&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;modelgrid&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LayerFile error: unrecognized kwargs: </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># read through the file and build the pointer index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_index</span><span class="p">()</span>
+
+        <span class="c1"># now that we read the data and know nrow and ncol,</span>
+        <span class="c1"># we can make a generic mg if needed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mg</span> <span class="o">=</span> <span class="n">StructuredGrid</span><span class="p">(</span>
+                <span class="n">delc</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,)),</span>
+                <span class="n">delr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">nlay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span>
+                <span class="n">xoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">yoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">angrot</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="LayerFile.to_shapefile"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.to_shapefile">[docs]</a>    <span class="k">def</span> <span class="nf">to_shapefile</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span>
+        <span class="n">kstpkper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">totim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mflay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">attrib_name</span><span class="o">=</span><span class="s2">&quot;lf_data&quot;</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Export model output data to a shapefile at a specific location</span>
+<span class="sd">         in LayerFile instance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str or PathLike</span>
+<span class="sd">            Shapefile path to write</span>
+<span class="sd">        kstpkper : tuple of ints</span>
+<span class="sd">            A tuple containing the time step and stress period (kstp, kper).</span>
+<span class="sd">            These are zero-based kstp and kper values.</span>
+<span class="sd">        totim : float</span>
+<span class="sd">            The simulation time.</span>
+<span class="sd">        mflay : integer</span>
+<span class="sd">           MODFLOW zero-based layer number to return.  If None, then layer 1</span>
+<span class="sd">           will be written</span>
+<span class="sd">        attrib_name : str</span>
+<span class="sd">            Base name of attribute columns. (default is &#39;lf_data&#39;)</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Whether to print verbose output</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; hdobj = flopy.utils.HeadFile(&#39;test.hds&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; times = hdobj.get_times()</span>
+<span class="sd">        &gt;&gt;&gt; hdobj.to_shapefile(&#39;test_heads_sp6.shp&#39;, totim=times[-1])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span>
+                <span class="n">kstpkper</span><span class="o">=</span><span class="n">kstpkper</span><span class="p">,</span> <span class="n">totim</span><span class="o">=</span><span class="n">totim</span><span class="p">,</span> <span class="n">mflay</span><span class="o">=</span><span class="n">mflay</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">mflay</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">attrib_dict</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attrib_name</span><span class="si">}{</span><span class="n">mflay</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">plotarray</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">attrib_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">plotarray</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attrib_name</span><span class="si">}{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">attrib_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">plotarray</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="kn">from</span> <span class="nn">..export.shapefile_utils</span> <span class="kn">import</span> <span class="n">write_grid_shapefile</span>
+
+        <span class="n">write_grid_shapefile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="p">,</span> <span class="n">attrib_dict</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerFile.plot"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">kstpkper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">totim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mflay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filename_base</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot 3-D model output data in a specific location</span>
+<span class="sd">        in LayerFile instance</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axes : list of matplotlib.pyplot.axis</span>
+<span class="sd">            List of matplotlib.pyplot.axis that will be used to plot</span>
+<span class="sd">            data for each layer. If axes=None axes will be generated.</span>
+<span class="sd">            (default is None)</span>
+<span class="sd">        kstpkper : tuple of ints</span>
+<span class="sd">            A tuple containing the time step and stress period (kstp, kper).</span>
+<span class="sd">            These are zero-based kstp and kper values.</span>
+<span class="sd">        totim : float</span>
+<span class="sd">            The simulation time.</span>
+<span class="sd">        mflay : int</span>
+<span class="sd">            MODFLOW zero-based layer number to return.  If None, then all</span>
+<span class="sd">            all layers will be included. (default is None)</span>
+<span class="sd">        filename_base : str</span>
+<span class="sd">            Base file name that will be used to automatically generate file</span>
+<span class="sd">            names for output image files. Plots will be exported as image</span>
+<span class="sd">            files if file_name_base is not None. (default is None)</span>
+<span class="sd">        **kwargs : dict</span>
+<span class="sd">            pcolor : bool</span>
+<span class="sd">                Boolean used to determine if matplotlib.pyplot.pcolormesh</span>
+<span class="sd">                plot will be plotted. (default is True)</span>
+<span class="sd">            colorbar : bool</span>
+<span class="sd">                Boolean used to determine if a color bar will be added to</span>
+<span class="sd">                the matplotlib.pyplot.pcolormesh. Only used if pcolor=True.</span>
+<span class="sd">                (default is False)</span>
+<span class="sd">            contour : bool</span>
+<span class="sd">                Boolean used to determine if matplotlib.pyplot.contour</span>
+<span class="sd">                plot will be plotted. (default is False)</span>
+<span class="sd">            clabel : bool</span>
+<span class="sd">                Boolean used to determine if matplotlib.pyplot.clabel</span>
+<span class="sd">                will be plotted. Only used if contour=True. (default is False)</span>
+<span class="sd">            grid : bool</span>
+<span class="sd">                Boolean used to determine if the model grid will be plotted</span>
+<span class="sd">                on the figure. (default is False)</span>
+<span class="sd">            masked_values : list</span>
+<span class="sd">                List of unique values to be excluded from the plot.</span>
+<span class="sd">            file_extension : str</span>
+<span class="sd">                Valid matplotlib.pyplot file extension for savefig(). Only used</span>
+<span class="sd">                if filename_base is not None. (default is &#39;png&#39;)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; hdobj = flopy.utils.HeadFile(&#39;test.hds&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; times = hdobj.get_times()</span>
+<span class="sd">        &gt;&gt;&gt; hdobj.plot(totim=times[-1])</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="s2">&quot;file_extension&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">fext</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;file_extension&quot;</span><span class="p">)</span>
+            <span class="n">fext</span> <span class="o">=</span> <span class="n">fext</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fext</span> <span class="o">=</span> <span class="s2">&quot;png&quot;</span>
+
+        <span class="n">masked_values</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;masked_values&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;bas6&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bas6</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">masked_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bas6</span><span class="o">.</span><span class="n">hnoflo</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;masked_values&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">masked_values</span>
+
+        <span class="n">filenames</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">filename_base</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mflay</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">i0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">mflay</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">:</span>
+                    <span class="n">i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">i0</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span>
+            <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename_base</span><span class="si">}</span><span class="s2">_Layer</span><span class="si">{</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">fext</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="c1"># make sure we have a (lay,row,col) shape plotarray</span>
+        <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span>
+                <span class="n">kstpkper</span><span class="o">=</span><span class="n">kstpkper</span><span class="p">,</span> <span class="n">totim</span><span class="o">=</span><span class="n">totim</span><span class="p">,</span> <span class="n">mflay</span><span class="o">=</span><span class="n">mflay</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+
+        <span class="kn">from</span> <span class="nn">..plot.plotutil</span> <span class="kn">import</span> <span class="n">PlotUtilities</span>
+
+        <span class="k">return</span> <span class="n">PlotUtilities</span><span class="o">.</span><span class="n">_plot_array_helper</span><span class="p">(</span>
+            <span class="n">plotarray</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+            <span class="n">mflay</span><span class="o">=</span><span class="n">mflay</span><span class="p">,</span>
+            <span class="n">modelgrid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mg</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_build_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the recordarray and iposarray, which maps the header information</span>
+<span class="sd">        to the position in the formatted file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s2">&quot;Abstract method _build_index called in LayerFile.  &quot;</span>
+            <span class="s2">&quot;This method needs to be overridden.&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="LayerFile.list_records"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.list_records">[docs]</a>    <span class="k">def</span> <span class="nf">list_records</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Print a list of all of the records in the file</span>
+<span class="sd">        obj.list_records()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">header</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_data_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">totim</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the three dimensional data array for the</span>
+<span class="sd">        specified kstp and kper value or totim value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">totim</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">keyindices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">totim</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keyindices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;totim value (</span><span class="si">{</span><span class="n">totim</span><span class="si">}</span><span class="s2">) not found in file...&quot;</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Data not found...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># initialize head with nan and then fill it</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">keyindices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">nrow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;nrow&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">ncol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;ncol&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">realtype</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">keyindices</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iposarray</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">ilay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;ilay&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Byte position in file: </span><span class="si">{</span><span class="n">ipos</span><span class="si">}</span><span class="s2"> for layer </span><span class="si">{</span><span class="n">ilay</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ipos</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;nrow&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;ncol&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">shp</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">ilay</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_data</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="LayerFile.get_times"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.get_times">[docs]</a>    <span class="k">def</span> <span class="nf">get_times</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique times in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : list of floats</span>
+<span class="sd">            List contains unique simulation times (totim) in binary file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span></div>
+
+<div class="viewcode-block" id="LayerFile.get_kstpkper"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.get_kstpkper">[docs]</a>    <span class="k">def</span> <span class="nf">get_kstpkper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique stress periods and time steps in the file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : list of (kstp, kper) tuples</span>
+<span class="sd">            List of unique kstp, kper combinations in binary file.  kstp and</span>
+<span class="sd">            kper values are presently zero-based.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kstpkper</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kstpkper</span><span class="p">:</span>
+            <span class="n">kstpkper</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">kstp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">kper</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">kstpkper</span></div>
+
+<div class="viewcode-block" id="LayerFile.get_data"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kstpkper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">totim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mflay</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get data from the file for the specified conditions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        idx : int</span>
+<span class="sd">            The zero-based record number.  The first record is record 0.</span>
+<span class="sd">        kstpkper : tuple of ints</span>
+<span class="sd">            A tuple containing the time step and stress period (kstp, kper).</span>
+<span class="sd">            These are zero-based kstp and kper values.</span>
+<span class="sd">        totim : float</span>
+<span class="sd">            The simulation time.</span>
+<span class="sd">        mflay : integer</span>
+<span class="sd">           MODFLOW zero-based layer number to return.  If None, then all</span>
+<span class="sd">           all layers will be included. (Default is None.)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : numpy array</span>
+<span class="sd">            Array has size (nlay, nrow, ncol) if mflay is None or it has size</span>
+<span class="sd">            (nrow, ncol) if mlay is specified.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        if both kstpkper and totim are None, will return the last entry</span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># One-based kstp and kper for pulling out of recarray</span>
+        <span class="k">if</span> <span class="n">kstpkper</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kstp1</span> <span class="o">=</span> <span class="n">kstpkper</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">kper1</span> <span class="o">=</span> <span class="n">kstpkper</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;kstp&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">kstp1</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;kper&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">kper1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;get_data() error: kstpkper not found:</span><span class="si">{</span><span class="n">kstpkper</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">totim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="n">totim</span>
+        <span class="k">elif</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordarray</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">totim1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_array</span><span class="p">(</span><span class="n">totim1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mflay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="n">mflay</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span></div>
+
+<div class="viewcode-block" id="LayerFile.get_alldata"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.get_alldata">[docs]</a>    <span class="k">def</span> <span class="nf">get_alldata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mflay</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nodata</span><span class="o">=-</span><span class="mi">9999</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get all of the data from the file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mflay : integer</span>
+<span class="sd">           MODFLOW zero-based layer number to return.  If None, then all</span>
+<span class="sd">           all layers will be included. (Default is None.)</span>
+
+<span class="sd">        nodata : float</span>
+<span class="sd">           The nodata value in the data array.  All array values that have the</span>
+<span class="sd">           nodata value will be assigned np.nan.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : numpy array</span>
+<span class="sd">            Array has size (ntimes, nlay, nrow, ncol) if mflay is None or it</span>
+<span class="sd">            has size (ntimes, nrow, ncol) if mlay is specified.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">totim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">totim</span><span class="o">=</span><span class="n">totim</span><span class="p">,</span> <span class="n">mflay</span><span class="o">=</span><span class="n">mflay</span><span class="p">)</span>
+            <span class="n">rv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rv</span><span class="p">)</span>
+        <span class="n">rv</span><span class="p">[</span><span class="n">rv</span> <span class="o">==</span> <span class="n">nodata</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">return</span> <span class="n">rv</span></div>
+
+    <span class="k">def</span> <span class="nf">_read_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shp</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read data from file</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s2">&quot;Abstract method _read_data called in LayerFile.  &quot;</span>
+            <span class="s2">&quot;This method needs to be overridden.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_build_kijlist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">kijlist</span> <span class="o">=</span> <span class="n">idx</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">kijlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Could not build kijlist from &quot;</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+
+        <span class="c1"># Check to make sure that k, i, j are within range, otherwise</span>
+        <span class="c1"># the seek approach won&#39;t work.  Can&#39;t use k = -1, for example.</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">kijlist</span><span class="p">:</span>
+            <span class="n">fail</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">fail</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">fail</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">fail</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">fail</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;Invalid cell index. Cell </span><span class="si">{}</span><span class="s2"> not within model grid: &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol</span><span class="p">))</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">kijlist</span>
+
+    <span class="k">def</span> <span class="nf">_get_nstation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">kijlist</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">kijlist</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_init_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nstation</span><span class="p">):</span>
+        <span class="c1"># Initialize result array and put times in first column</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">),</span> <span class="n">nstation</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">realtype</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="LayerFile.close"><a class="viewcode-back" href="../../../source/flopy.utils.datafile.html#flopy.utils.datafile.LayerFile.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close the file handle.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

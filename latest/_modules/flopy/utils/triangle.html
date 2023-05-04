@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.triangle &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.triangle</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.triangle</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..mbase</span> <span class="kn">import</span> <span class="n">which</span>
+<span class="kn">from</span> <span class="nn">..utils.cvfdutil</span> <span class="kn">import</span> <span class="n">centroid_of_polygon</span>
+<span class="kn">from</span> <span class="nn">..utils.geospatial_utils</span> <span class="kn">import</span> <span class="n">GeoSpatialUtil</span>
+
+
+<div class="viewcode-block" id="Triangle"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle">[docs]</a><span class="k">class</span> <span class="nc">Triangle</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to work with the triangle program to unstructured triangular grids.</span>
+<span class="sd">    Information on the triangle program can be found at</span>
+<span class="sd">    https://www.cs.cmu.edu/~quake/triangle.html</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model_ws : str</span>
+<span class="sd">        workspace location for creating triangle files (default is &#39;.&#39;)</span>
+<span class="sd">    exe_name : str</span>
+<span class="sd">        path and name of the triangle program. (default is triangle, which</span>
+<span class="sd">        means that the triangle program must be in your path)</span>
+<span class="sd">    maximum_area : float</span>
+<span class="sd">        the maximum area for any triangle.  The default value is None, which</span>
+<span class="sd">        means that the user must specify maximum areas for each region.</span>
+<span class="sd">    angle : float</span>
+<span class="sd">        Triangle will continue to add vertices until no angle is less than</span>
+<span class="sd">        this specified value.  (default is 20 degrees)</span>
+<span class="sd">    nodes : ndarray</span>
+<span class="sd">        Two dimensional array of shape (npoints, 2) with x and y positions</span>
+<span class="sd">        of fixed node locations to include in the resulting triangular mesh.</span>
+<span class="sd">        (default is None)</span>
+<span class="sd">    additional_args : list</span>
+<span class="sd">        list of additional command line switches to pass to triangle</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_ws</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+        <span class="n">exe_name</span><span class="o">=</span><span class="s2">&quot;triangle&quot;</span><span class="p">,</span>
+        <span class="n">maximum_area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">angle</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+        <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">additional_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span> <span class="o">=</span> <span class="n">model_ws</span>
+        <span class="n">exe_name</span> <span class="o">=</span> <span class="n">which</span><span class="p">(</span><span class="n">exe_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exe_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot find triangle binary executable&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exe_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">exe_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="n">angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maximum_area</span> <span class="o">=</span> <span class="n">maximum_area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">additional_args</span> <span class="o">=</span> <span class="n">additional_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_vars</span><span class="p">()</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="Triangle.add_polygon"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.add_polygon">[docs]</a>    <span class="k">def</span> <span class="nf">add_polygon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polygon</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a polygon</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        polygon : list, geojson, shapely.geometry, shapefile.Shape</span>
+<span class="sd">            add polygon method accepts any of these geometries:</span>
+
+<span class="sd">            a list of (x, y) points</span>
+<span class="sd">            geojson Polygon object</span>
+<span class="sd">            shapely Polygon object</span>
+<span class="sd">            shapefile Polygon shape</span>
+<span class="sd">            flopy.utils.geometry.Polygon object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="n">polygon</span> <span class="o">=</span> <span class="p">[</span><span class="n">polygon</span><span class="p">]</span>
+
+        <span class="n">geom</span> <span class="o">=</span> <span class="n">GeoSpatialUtil</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">shapetype</span><span class="o">=</span><span class="s2">&quot;Polygon&quot;</span><span class="p">)</span>
+        <span class="n">polygon</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">points</span>
+        <span class="k">if</span> <span class="n">polygon</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">polygon</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">polygon</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">polygon</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">polygon</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">hole</span> <span class="ow">in</span> <span class="n">polygon</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_hole</span><span class="p">(</span><span class="n">hole</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.add_hole"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.add_hole">[docs]</a>    <span class="k">def</span> <span class="nf">add_hole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hole</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a point that will turn enclosing polygon into a hole</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hole : tuple</span>
+<span class="sd">            (x, y)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_holes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hole</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.add_region"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.add_region">[docs]</a>    <span class="k">def</span> <span class="nf">add_region</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maximum_area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a point that will become a region with a maximum area, if</span>
+<span class="sd">        specified.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        point : tuple</span>
+<span class="sd">            (x, y)</span>
+
+<span class="sd">        attribute : integer or float</span>
+<span class="sd">            integer value assigned to output elements</span>
+
+<span class="sd">        maximum_area : float</span>
+<span class="sd">            maximum area of elements in region</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_regions</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">point</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">maximum_area</span><span class="p">])</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.build"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the triangular mesh</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            If true, print the results of the triangle command to the terminal</span>
+<span class="sd">            (default is False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># provide some protection by removing existing files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+
+        <span class="c1"># write the active domain to a file</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.0.node&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_nodefile</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="c1"># poly file</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.0.poly&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_polyfile</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="c1"># Construct the triangle command</span>
+        <span class="n">cmds</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">exe_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum_area</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-a</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">maximum_area</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-a&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-q</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cmds</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_args</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-A&quot;</span><span class="p">)</span>  <span class="c1"># assign attributes</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-p&quot;</span><span class="p">)</span>  <span class="c1"># triangulate .poly file</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-V&quot;</span><span class="p">)</span>  <span class="c1"># verbose</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-D&quot;</span><span class="p">)</span>  <span class="c1"># delaunay triangles for finite volume</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-e&quot;</span><span class="p">)</span>  <span class="c1"># edge file</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-n&quot;</span><span class="p">)</span>  <span class="c1"># neighbor file</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.0&quot;</span><span class="p">)</span>  <span class="c1"># output file name</span>
+
+        <span class="c1"># run Triangle</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmds</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">)</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="n">buff</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">buff</span><span class="p">)</span>
+
+        <span class="c1"># load the results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_results</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nvert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># create verts and iverts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
+
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.plot"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">layer</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span>
+        <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+        <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;Dark2&quot;</span><span class="p">,</span>
+        <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">masked_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the grid.  This method will plot the grid using the shapefile</span>
+<span class="sd">        that was created as part of the build method.</span>
+
+<span class="sd">        Note that the layer option is not working yet.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.pyplot axis</span>
+<span class="sd">            The plot axis.  If not provided it, plt.gca() will be used.</span>
+<span class="sd">            If there is not a current axis then a new one will be created.</span>
+<span class="sd">        layer : int</span>
+<span class="sd">            Layer number to plot</span>
+<span class="sd">        cmap : string</span>
+<span class="sd">            Name of colormap to use for polygon shading (default is &#39;Dark2&#39;)</span>
+<span class="sd">        edgecolor : string</span>
+<span class="sd">            Color name.  (Default is &#39;scaled&#39; to scale the edge colors.)</span>
+<span class="sd">        facecolor : string</span>
+<span class="sd">            Color name.  (Default is &#39;scaled&#39; to scale the face colors.)</span>
+<span class="sd">        a : numpy.ndarray</span>
+<span class="sd">            Array to plot.</span>
+<span class="sd">        masked_values : iterable of floats, ints</span>
+<span class="sd">            Values to mask.</span>
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            Keyword arguments that are passed to</span>
+<span class="sd">            PatchCollection.set(``**kwargs``).  Some common kwargs would be</span>
+<span class="sd">            &#39;linewidths&#39;, &#39;linestyles&#39;, &#39;alpha&#39;, etc.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..discretization</span> <span class="kn">import</span> <span class="n">VertexGrid</span>
+        <span class="kn">from</span> <span class="nn">..plot</span> <span class="kn">import</span> <span class="n">PlotMapView</span>
+
+        <span class="n">cell2d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cell2d</span><span class="p">()</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_vertices</span><span class="p">()</span>
+        <span class="n">ncpl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cell2d</span><span class="p">)</span>
+
+        <span class="n">modelgrid</span> <span class="o">=</span> <span class="n">VertexGrid</span><span class="p">(</span>
+            <span class="n">vertices</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span> <span class="n">cell2d</span><span class="o">=</span><span class="n">cell2d</span><span class="p">,</span> <span class="n">ncpl</span><span class="o">=</span><span class="n">ncpl</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="n">pmv</span> <span class="o">=</span> <span class="n">PlotMapView</span><span class="p">(</span><span class="n">modelgrid</span><span class="o">=</span><span class="n">modelgrid</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pc</span> <span class="o">=</span> <span class="n">pmv</span><span class="o">.</span><span class="n">plot_grid</span><span class="p">(</span>
+                <span class="n">facecolor</span><span class="o">=</span><span class="n">facecolor</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">edgecolor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pc</span> <span class="o">=</span> <span class="n">pmv</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span>
+                <span class="n">a</span><span class="p">,</span>
+                <span class="n">masked_values</span><span class="o">=</span><span class="n">masked_values</span><span class="p">,</span>
+                <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
+                <span class="n">edgecolor</span><span class="o">=</span><span class="n">edgecolor</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pc</span></div>
+
+<div class="viewcode-block" id="Triangle.get_boundary_marker_array"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_boundary_marker_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_boundary_marker_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an integer array that has boundary markers</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        iedge : ndarray</span>
+<span class="sd">            integer array of size ncpl containing a boundary ids.  The array</span>
+<span class="sd">            contains zeros for cells that do not touch a boundary.  The</span>
+<span class="sd">            boundary ids are the segment numbers for each segment in each</span>
+<span class="sd">            polygon that is added with the add_polygon method.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">iedge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">boundary_markers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edge</span><span class="p">[</span><span class="s2">&quot;boundary_marker&quot;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">ibm</span> <span class="ow">in</span> <span class="n">boundary_markers</span><span class="p">:</span>
+            <span class="n">icells</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_edge_cells</span><span class="p">(</span><span class="n">ibm</span><span class="p">)</span>
+            <span class="n">iedge</span><span class="p">[</span><span class="n">icells</span><span class="p">]</span> <span class="o">=</span> <span class="n">ibm</span>
+        <span class="k">return</span> <span class="n">iedge</span></div>
+
+<div class="viewcode-block" id="Triangle.plot_boundary"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.plot_boundary">[docs]</a>    <span class="k">def</span> <span class="nf">plot_boundary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ibm</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot a line and vertices for the specified boundary marker</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ibm : integer</span>
+<span class="sd">            plot the boundary for this boundary marker</span>
+
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">           axis to add the plot to.  (default is plt.gca())</span>
+
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            dictionary of arguments to pass to ax.plot()</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edge</span><span class="p">[</span><span class="s2">&quot;boundary_marker&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">ibm</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">:</span>
+            <span class="n">iv1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge</span><span class="p">[</span><span class="s2">&quot;endpoint1&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">iv2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge</span><span class="p">[</span><span class="s2">&quot;endpoint2&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="n">iv1</span><span class="p">]</span>
+            <span class="n">x2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="n">iv2</span><span class="p">]</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">][</span><span class="n">iv1</span><span class="p">]</span>
+            <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">][</span><span class="n">iv2</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">],</span> <span class="p">[</span><span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.plot_vertices"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.plot_vertices">[docs]</a>    <span class="k">def</span> <span class="nf">plot_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the mesh vertices</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">           axis to add the plot to.  (default is plt.gca())</span>
+
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            dictionary of arguments to pass to ax.plot()</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.label_vertices"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.label_vertices">[docs]</a>    <span class="k">def</span> <span class="nf">label_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">onebased</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Label the mesh vertices with their vertex numbers</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">           axis to add the plot to.  (default is plt.gca())</span>
+
+<span class="sd">        onebased : bool</span>
+<span class="sd">            Make the labels one-based if True so that they correspond to</span>
+<span class="sd">            what would be written to MODFLOW.</span>
+
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            dictionary of arguments to pass to ax.text()</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">if</span> <span class="n">onebased</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.plot_centroids"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.plot_centroids">[docs]</a>    <span class="k">def</span> <span class="nf">plot_centroids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the cell centroids</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">           axis to add the plot to.  (default is plt.gca())</span>
+
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            dictionary of arguments to pass to ax.plot()</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">xcyc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_xcyc</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xcyc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">xcyc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.label_cells"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.label_cells">[docs]</a>    <span class="k">def</span> <span class="nf">label_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">onebased</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Label the cells with their cell numbers</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">           axis to add the plot to.  (default is plt.gca())</span>
+
+<span class="sd">        onebased : bool</span>
+<span class="sd">            Make the labels one-based if True so that they correspond to</span>
+<span class="sd">            what would be written to MODFLOW.</span>
+
+<span class="sd">        kwargs : dictionary</span>
+<span class="sd">            dictionary of arguments to pass to ax.text()</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">xcyc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_xcyc</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">xcyc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">xcyc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">xcyc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">if</span> <span class="n">onebased</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="Triangle.get_xcyc"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_xcyc">[docs]</a>    <span class="k">def</span> <span class="nf">get_xcyc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a 2-dimensional array of x and y cell center coordinates.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xcyc : ndarray</span>
+<span class="sd">            column 0 contains the x coordinates and column 1 contains the</span>
+<span class="sd">            y coordinates</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ncpl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">)</span>
+        <span class="n">xcyc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">ncpl</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">icell2d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">):</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">iv</span> <span class="ow">in</span> <span class="n">icell2d</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">[</span><span class="n">iv</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">[</span><span class="n">iv</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+            <span class="n">xc</span><span class="p">,</span> <span class="n">yc</span> <span class="o">=</span> <span class="n">centroid_of_polygon</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+            <span class="n">xcyc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">xc</span>
+            <span class="n">xcyc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">yc</span>
+        <span class="k">return</span> <span class="n">xcyc</span></div>
+
+<div class="viewcode-block" id="Triangle.get_cell2d"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_cell2d">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of the information needed for the MODFLOW DISV Package.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cell2d : list (of lists)</span>
+<span class="sd">            innermost list contains cell number, x, y, number of vertices, and</span>
+<span class="sd">            then the vertex numbers comprising the cell.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cell2d</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">xcyc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_xcyc</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">icell2d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">):</span>
+            <span class="n">ic2dr</span> <span class="o">=</span> <span class="n">icell2d</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">cell2d</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="n">xcyc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">xcyc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">icell2d</span><span class="p">)]</span> <span class="o">+</span> <span class="n">ic2dr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cell2d</span></div>
+
+<div class="viewcode-block" id="Triangle.get_vertices"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_vertices">[docs]</a>    <span class="k">def</span> <span class="nf">get_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of vertices in the form needed for the MODFLOW DISV Package.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vertices : list (of lists)</span>
+<span class="sd">            innermost list contains vertex number, x, and y</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">):</span>
+            <span class="n">vertices</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">vertices</span></div>
+
+<div class="viewcode-block" id="Triangle.get_edge_cells"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_edge_cells">[docs]</a>    <span class="k">def</span> <span class="nf">get_edge_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ibm</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of cell numbers that correspond to the specified boundary</span>
+<span class="sd">        marker.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ibm : integer</span>
+<span class="sd">            boundary marker value</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cell_list : list</span>
+<span class="sd">            list of zero-based cell numbers</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create the edge dictionary if it doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_edge_dict</span><span class="p">()</span>
+
+        <span class="c1"># Create a list of cells for boundary marker ibm</span>
+        <span class="n">cell_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">edgedict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">ivlist</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">):</span>
+            <span class="n">itmp</span> <span class="o">=</span> <span class="n">ivlist</span> <span class="o">+</span> <span class="p">[</span><span class="n">ivlist</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ivlist</span><span class="p">)):</span>
+                <span class="n">ie</span> <span class="o">=</span> <span class="p">(</span><span class="n">itmp</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">itmp</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">ie</span> <span class="ow">in</span> <span class="n">edgedict</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">edgedict</span><span class="p">[</span><span class="n">ie</span><span class="p">]</span> <span class="o">==</span> <span class="n">ibm</span><span class="p">:</span>
+                        <span class="n">cell_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cell_list</span></div>
+
+<div class="viewcode-block" id="Triangle.get_cell_edge_length"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_cell_edge_length">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_edge_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ibm</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the length of the edge for cell n that corresponds to</span>
+<span class="sd">        boundary marker ibm</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            cell number.  0 &lt;= n &lt; self.ncpl</span>
+
+<span class="sd">        ibm : integer</span>
+<span class="sd">            boundary marker number</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        length : float</span>
+<span class="sd">            Length of the edge along that boundary marker.  Will</span>
+<span class="sd">            return None if cell n does not touch boundary marker.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">,</span> <span class="s2">&quot;Not a valid cell number&quot;</span>
+
+        <span class="c1"># Create the edge dictionary if it doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_edge_dict</span><span class="p">()</span>
+
+        <span class="n">ivlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">itmp</span> <span class="o">=</span> <span class="n">ivlist</span> <span class="o">+</span> <span class="p">[</span><span class="n">ivlist</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ivlist</span><span class="p">)):</span>
+            <span class="n">iv1</span> <span class="o">=</span> <span class="n">itmp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">iv2</span> <span class="o">=</span> <span class="n">itmp</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">ie</span> <span class="o">=</span> <span class="p">(</span><span class="n">itmp</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">itmp</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">ie</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span><span class="p">[</span><span class="n">ie</span><span class="p">]</span> <span class="o">==</span> <span class="n">ibm</span><span class="p">:</span>
+                    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">[</span><span class="n">iv1</span><span class="p">]</span>
+                    <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">verts</span><span class="p">[</span><span class="n">iv2</span><span class="p">]</span>
+                    <span class="n">d</span> <span class="o">=</span> <span class="p">((</span><span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+                    <span class="k">return</span> <span class="n">d</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+
+<div class="viewcode-block" id="Triangle.get_attribute_array"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.get_attribute_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_attribute_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an array containing the attribute value for each cell.  These</span>
+<span class="sd">        are the attribute values that are passed into the add_region() method.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        attribute_array : ndarray</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="p">[</span><span class="s2">&quot;attribute&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Triangle.clean"><a class="viewcode-back" href="../../../source/flopy.utils.triangle.html#flopy.utils.triangle.Triangle.clean">[docs]</a>    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove the input and output files created by this class and by the</span>
+<span class="sd">        Triangle program</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># remove input files</span>
+        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;poly&quot;</span><span class="p">,</span> <span class="s2">&quot;node&quot;</span><span class="p">]:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">0.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not remove: </span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># remove output files</span>
+        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;poly&quot;</span><span class="p">,</span> <span class="s2">&quot;ele&quot;</span><span class="p">,</span> <span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;neigh&quot;</span><span class="p">,</span> <span class="s2">&quot;edge&quot;</span><span class="p">]:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">1.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not remove: </span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">_initialize_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span> <span class="o">=</span> <span class="s2">&quot;_triangle&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nvert</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_active_domain</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_holes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_regions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_load_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># node file</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;node&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;ivert&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)]</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.1.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">nvert</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Dimensions in node file is not 2&quot;</span>
+            <span class="n">iattribute</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">iattribute</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dt</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;attribute&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+            <span class="n">ibm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">ibm</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dt</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;boundary_marker&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nvert</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+        <span class="c1"># ele file</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;ele&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;icell&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;iv1&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;iv2&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;iv3&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.1.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ncells</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">npt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">npt</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Nodes per triangle in ele file is not 3&quot;</span>
+            <span class="n">iattribute</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">iattribute</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dt</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;attribute&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">ncells</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+        <span class="c1"># edge file</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;edge&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;iedge&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;endpoint1&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;endpoint2&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.1.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">nedges</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">ibm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">ibm</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dt</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;boundary_marker&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nedges</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+        <span class="c1"># neighbor file</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;neigh&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;icell&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;neighbor1&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;neighbor2&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;neighbor3&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_ws</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">.1.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ncells</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">nnpt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">nnpt</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Neighbors per triangle in neigh file is not 3&quot;</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">ncells</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_write_nodefile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">nvert</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">:</span>
+            <span class="n">nvert</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nvert</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nvert</span><span class="si">}</span><span class="s2"> 2 0 0</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">ip</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ip</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">vertex</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">vertex</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">ip</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ip</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">ip</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_write_polyfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="c1"># vertices, write zero to indicate read from node file</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;0 0 0 0</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="c1"># segments</span>
+        <span class="n">nseg</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">:</span>
+            <span class="n">nseg</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nseg</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">bm</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="n">iseg</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ipstart</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">:</span>
+            <span class="n">nseg</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nseg</span><span class="p">):</span>
+                <span class="n">ep1</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="n">ep2</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">ep2</span> <span class="o">&gt;</span> <span class="n">nseg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">ep2</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">ep1</span> <span class="o">+=</span> <span class="n">ipstart</span>
+                <span class="n">ep2</span> <span class="o">+=</span> <span class="n">ipstart</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iseg</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ep1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ep2</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">iseg</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">iseg</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">ipstart</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="c1"># holes</span>
+        <span class="n">nholes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_holes</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nholes</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">hole</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_holes</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">hole</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">hole</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="c1"># regions</span>
+        <span class="n">nregions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_regions</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nregions</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">region</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_regions</span><span class="p">):</span>
+            <span class="n">pt</span> <span class="o">=</span> <span class="n">region</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">attribute</span> <span class="o">=</span> <span class="n">region</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">maxarea</span> <span class="o">=</span> <span class="n">region</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">maxarea</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">maxarea</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">attribute</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">maxarea</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_create_edge_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create the edge dictionary</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">edgedict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">iv1</span><span class="p">,</span> <span class="n">iv2</span><span class="p">,</span> <span class="n">iseg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">iseg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">edgedict</span><span class="p">[(</span><span class="n">iv1</span><span class="p">,</span> <span class="n">iv2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">iseg</span>
+                <span class="n">edgedict</span><span class="p">[(</span><span class="n">iv2</span><span class="p">,</span> <span class="n">iv1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">iseg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edgedict</span> <span class="o">=</span> <span class="n">edgedict</span>
+        <span class="k">return</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

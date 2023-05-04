@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.discretization.unstructuredgrid &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.discretization.unstructuredgrid</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.discretization.unstructuredgrid</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib.path</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span> <span class="nn">..utils.geometry</span> <span class="kn">import</span> <span class="n">is_clockwise</span><span class="p">,</span> <span class="n">transform</span>
+<span class="kn">from</span> <span class="nn">.grid</span> <span class="kn">import</span> <span class="n">CachedData</span><span class="p">,</span> <span class="n">Grid</span>
+
+
+<div class="viewcode-block" id="UnstructuredGrid"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid">[docs]</a><span class="k">class</span> <span class="nc">UnstructuredGrid</span><span class="p">(</span><span class="n">Grid</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for an unstructured model grid</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    vertices : list</span>
+<span class="sd">        list of vertices that make up the grid.  Each vertex consists of three</span>
+<span class="sd">        entries [iv, xv, yv] which are the vertex number, which should be</span>
+<span class="sd">        zero-based, and the x and y vertex coordinates.</span>
+<span class="sd">    iverts : list</span>
+<span class="sd">        list of vertex numbers that comprise each cell.  This list must be of</span>
+<span class="sd">        size nodes, if the grid_varies_by_nodes argument is true, or it must</span>
+<span class="sd">        be of size ncpl[0] if the same 2d spatial grid is used for each layer.</span>
+<span class="sd">    xcenters : list or ndarray</span>
+<span class="sd">        list of x center coordinates for all cells in the grid if the grid</span>
+<span class="sd">        varies by layer or for all cells in a layer if the same grid is used</span>
+<span class="sd">        for all layers</span>
+<span class="sd">    ycenters : list or ndarray</span>
+<span class="sd">        list of y center coordinates for all cells in the grid if the grid</span>
+<span class="sd">        varies by layer or for all cells in a layer if the same grid is used</span>
+<span class="sd">        for all layers</span>
+<span class="sd">    top : list or ndarray</span>
+<span class="sd">        top elevations for all cells in the grid.</span>
+<span class="sd">    botm : list or ndarray</span>
+<span class="sd">        bottom elevations for all cells in the grid.</span>
+<span class="sd">    idomain : int or ndarray</span>
+<span class="sd">        ibound/idomain value for each cell</span>
+<span class="sd">    lenuni : int or ndarray</span>
+<span class="sd">        model length units</span>
+<span class="sd">    ncpl : ndarray</span>
+<span class="sd">        one dimensional array of size nlay with the number of cells in each</span>
+<span class="sd">        layer.  This can also be passed in as a tuple or list as long as it</span>
+<span class="sd">        can be set using ncpl = np.array(ncpl, dtype=int).  The sum of ncpl</span>
+<span class="sd">        must be equal to the number of cells in the grid.  ncpl is optional</span>
+<span class="sd">        and if it is not passed in, then it is is set using</span>
+<span class="sd">        ncpl = np.array([len(iverts)], dtype=int), which means that all</span>
+<span class="sd">        cells in the grid are contained in a single plottable layer.</span>
+<span class="sd">        If the model grid defined in verts and iverts applies for all model</span>
+<span class="sd">        layers, then the length of iverts can be equal to ncpl[0] and there</span>
+<span class="sd">        is no need to repeat all of the vertex information for cells in layers</span>
+<span class="sd">    crs : pyproj.CRS, optional if `prjfile` is specified</span>
+<span class="sd">        Coordinate reference system (CRS) for the model grid</span>
+<span class="sd">        (must be projected; geographic CRS are not supported).</span>
+<span class="sd">        The value can be anything accepted by</span>
+<span class="sd">        :meth:`pyproj.CRS.from_user_input() &lt;pyproj.crs.CRS.from_user_input&gt;`,</span>
+<span class="sd">        such as an authority string (eg &quot;EPSG:26916&quot;) or a WKT string.</span>
+<span class="sd">    prjfile : str or pathlike, optional if `crs` is specified</span>
+<span class="sd">        ESRI-style projection file with well-known text defining the CRS</span>
+<span class="sd">        for the model grid (must be projected; geographic CRS are not supported).</span>
+<span class="sd">        beneath the top layer.</span>
+<span class="sd">    xoff : float</span>
+<span class="sd">        x coordinate of the origin point (lower left corner of model grid)</span>
+<span class="sd">        in the spatial reference coordinate system</span>
+<span class="sd">    yoff : float</span>
+<span class="sd">        y coordinate of the origin point (lower left corner of model grid)</span>
+<span class="sd">        in the spatial reference coordinate system</span>
+<span class="sd">    angrot : float</span>
+<span class="sd">        rotation angle of model grid, as it is rotated around the origin point</span>
+<span class="sd">    iac : list or ndarray</span>
+<span class="sd">        optional number of connections per node array</span>
+<span class="sd">    ja : list or ndarray</span>
+<span class="sd">        optional jagged connection array</span>
+
+<span class="sd">    Properties</span>
+<span class="sd">    ----------</span>
+<span class="sd">    vertices</span>
+<span class="sd">        returns list of vertices that make up the grid</span>
+<span class="sd">    cell2d</span>
+<span class="sd">        returns list of cells and their vertices</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    get_cell_vertices(cellid)</span>
+<span class="sd">        returns vertices for a single cell at cellid.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This class handles spatial representation of unstructured grids.  It is</span>
+<span class="sd">    based on the concept of being able to support multiple model layers that</span>
+<span class="sd">    may have a different number of cells in each layer.  The array ncpl is of</span>
+<span class="sd">    size nlay and and its sum must equal nodes.  If the length of iverts is</span>
+<span class="sd">    equal to ncpl[0] and the number of cells per layer is the same for each</span>
+<span class="sd">    layer, then it is assumed that the grid does not vary by layer.  In this</span>
+<span class="sd">    case, the xcenters and ycenters arrays must also be of size ncpl[0].</span>
+<span class="sd">    This makes it possible to efficiently store spatial grid information</span>
+<span class="sd">    for multiple layers.</span>
+
+<span class="sd">    If the spatial grid is different for each model layer, then the</span>
+<span class="sd">    grid_varies_by_layer flag will automatically be set to false, and iverts</span>
+<span class="sd">    must be of size nodes. The arrays for xcenters and ycenters must also</span>
+<span class="sd">    be of size nodes.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">vertices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">iverts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">xcenters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ycenters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">top</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">botm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">idomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">lenuni</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ncpl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">crs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">epsg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">proj4</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prjfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">xoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">yoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">angrot</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">iac</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ja</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s2">&quot;unstructured&quot;</span><span class="p">,</span>
+            <span class="n">top</span><span class="p">,</span>
+            <span class="n">botm</span><span class="p">,</span>
+            <span class="n">idomain</span><span class="p">,</span>
+            <span class="n">lenuni</span><span class="p">,</span>
+            <span class="n">crs</span><span class="p">,</span>
+            <span class="n">epsg</span><span class="p">,</span>
+            <span class="n">proj4</span><span class="p">,</span>
+            <span class="n">prj</span><span class="p">,</span>
+            <span class="n">prjfile</span><span class="p">,</span>
+            <span class="n">xoff</span><span class="p">,</span>
+            <span class="n">yoff</span><span class="p">,</span>
+            <span class="n">angrot</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># if any of these are None, then the grid is not valid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="o">=</span> <span class="n">vertices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iverts</span> <span class="o">=</span> <span class="n">iverts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xc</span> <span class="o">=</span> <span class="n">xcenters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_yc</span> <span class="o">=</span> <span class="n">ycenters</span>
+
+        <span class="c1"># if either of these are None, then the grid is not complete</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_top</span> <span class="o">=</span> <span class="n">top</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_botm</span> <span class="o">=</span> <span class="n">botm</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ncpl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">ncpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># ensure ncpl is a 1d integer array</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_ncpl</span><span class="p">(</span><span class="n">ncpl</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ncpl is not specified, but if the grid is valid, then it is</span>
+            <span class="c1"># assumed to be of size len(iverts)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_ncpl</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iverts</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">iverts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;Length of iverts must equal grid nodes &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">iverts</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">iverts</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">,</span> <span class="n">msg</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Length of iverts must equal ncpl (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">iverts</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">cpl</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">iverts</span><span class="p">)</span> <span class="k">for</span> <span class="n">cpl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">]),</span> <span class="n">msg</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iac</span> <span class="o">=</span> <span class="n">iac</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ja</span> <span class="o">=</span> <span class="n">ja</span>
+
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="UnstructuredGrid.set_ncpl"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.set_ncpl">[docs]</a>    <span class="k">def</span> <span class="nf">set_ncpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ncpl</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ncpl</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ncpl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ncpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ncpl</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;ncpl must be a list, tuple or ndarray&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">ncpl</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;ncpl must be 1d&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ncpl</span> <span class="o">=</span> <span class="n">ncpl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_require_cache_updates</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">iv</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iverts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iv</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iv</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iv</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iv</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">iv</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">is_complete</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nlay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grid_varies_by_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">gvbl</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iverts</span><span class="p">):</span>
+                <span class="n">gvbl</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">gvbl</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">gvbl</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nnodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nvert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">iverts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iverts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="p">[</span><span class="n">ivt</span> <span class="k">for</span> <span class="n">ivt</span> <span class="ow">in</span> <span class="n">t</span> <span class="k">if</span> <span class="n">ivt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iverts</span>
+            <span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">verts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">verts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">t</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span>
+                <span class="n">verts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">verts</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xoffset</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">yoffset</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">angrot_radians</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">iac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iac</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ja</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ja</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ncpl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ncpl</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">,)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">xvertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xvertices</span><span class="p">)</span>
+        <span class="n">yvertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yvertices</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xvertices</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xvertices</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yvertices</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yvertices</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">grid_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a series of grid line vertices for drawing</span>
+<span class="sd">        a model grid line collection.  If the grid varies by layer, then</span>
+<span class="sd">        return a dictionary with keys equal to layers and values equal to</span>
+<span class="sd">        grid lines.  Otherwise, just return the grid lines</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: grid lines or dictionary of lines by layer</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">xgrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xvertices</span>
+        <span class="n">ygrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvertices</span>
+
+        <span class="n">grdlines</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+            <span class="n">grdlines</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">icell</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">ilay</span><span class="p">,</span> <span class="n">numcells</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">):</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numcells</span><span class="p">):</span>
+                    <span class="n">verts</span> <span class="o">=</span> <span class="n">xgrid</span><span class="p">[</span><span class="n">icell</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">verts</span><span class="p">)):</span>
+                        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">[</span>
+                                <span class="p">(</span><span class="n">xgrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">ygrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span>
+                                <span class="p">(</span><span class="n">xgrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span><span class="p">],</span> <span class="n">ygrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span><span class="p">]),</span>
+                            <span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="n">icell</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">grdlines</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span> <span class="o">=</span> <span class="n">lines</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">grdlines</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">icell</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">verts</span> <span class="o">=</span> <span class="n">xgrid</span><span class="p">[</span><span class="n">icell</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">verts</span><span class="p">)):</span>
+                    <span class="n">grdlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="p">(</span><span class="n">xgrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">ygrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span>
+                            <span class="p">(</span><span class="n">xgrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span><span class="p">],</span> <span class="n">ygrid</span><span class="p">[</span><span class="n">icell</span><span class="p">][</span><span class="n">ix</span><span class="p">]),</span>
+                        <span class="p">]</span>
+                    <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">grdlines</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xyzcellcenters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get cell centers and set to grid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache_index</span> <span class="o">=</span> <span class="s2">&quot;cellcenters&quot;</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">cache_index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">out_of_date</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_build_grid_geometry_info</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">data_nocopy</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xyzvertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get model grid verticies</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of dimension ncpl by nvertices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache_index</span> <span class="o">=</span> <span class="s2">&quot;xyzgrid&quot;</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">cache_index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">out_of_date</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_build_grid_geometry_info</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">data_nocopy</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cross_section_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get vertices for cross-sectional plotting</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            xvertices, yvertices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xv</span><span class="p">,</span> <span class="n">yv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xv</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">xv</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span>
+            <span class="n">yv</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">return</span> <span class="n">xv</span><span class="p">,</span> <span class="n">yv</span>
+
+<div class="viewcode-block" id="UnstructuredGrid.neighbors"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.neighbors">[docs]</a>    <span class="k">def</span> <span class="nf">neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get a list of nearest neighbors</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        node : int</span>
+<span class="sd">            node number</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list of nearest neighbors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iac</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="n">idx0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iac</span><span class="p">[:</span><span class="n">node</span><span class="p">])</span>
+        <span class="n">idx1</span> <span class="o">=</span> <span class="n">idx0</span> <span class="o">+</span> <span class="n">nrec</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ja</span><span class="p">[</span><span class="n">idx0</span><span class="p">:</span><span class="n">idx1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.cross_section_lay_ncpl_ncb"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.cross_section_lay_ncpl_ncb">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_lay_ncpl_ncb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ncb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get PlotCrossSection compatible layers, ncpl, and ncb</span>
+<span class="sd">        variables</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ncb : int</span>
+<span class="sd">            number of confining beds</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple : (int, int, int) layers, ncpl, ncb</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">,</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.cross_section_nodeskip"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.cross_section_nodeskip">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_nodeskip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">xypts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a nodeskip list for PlotCrossSection. This is a correction</span>
+<span class="sd">        for UnstructuredGridPlotting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nlay : int</span>
+<span class="sd">            nlay is nlay + ncb</span>
+<span class="sd">        xypts : dict</span>
+<span class="sd">            dictionary of node number and xyvertices of a cross-section</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list : n-dimensional list of nodes to not plot for each layer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">nodeskip</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ncpl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">:</span>
+            <span class="n">end</span> <span class="o">+=</span> <span class="n">ncpl</span>
+            <span class="n">layskip</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">nn</span><span class="p">,</span> <span class="n">verts</span> <span class="ow">in</span> <span class="n">xypts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">strt</span> <span class="o">&lt;=</span> <span class="n">nn</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">layskip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="p">)</span>
+
+            <span class="n">strt</span> <span class="o">+=</span> <span class="n">ncpl</span>
+            <span class="n">nodeskip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layskip</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">nodeskip</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.cross_section_adjust_indicies"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.cross_section_adjust_indicies">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_adjust_indicies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">cbcnt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get adjusted indicies by layer and confining bed</span>
+<span class="sd">        for PlotCrossSection plotting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        k : int</span>
+<span class="sd">            zero based model layer</span>
+<span class="sd">        cbcnt : int</span>
+<span class="sd">            confining bed counter</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple: (int, int, int) (adjusted layer, nodeskip layer, node</span>
+<span class="sd">            adjustment value based on number of confining beds and the layer)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.cross_section_set_contour_arrays"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.cross_section_set_contour_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">cross_section_set_contour_arrays</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">,</span> <span class="n">head</span><span class="p">,</span> <span class="n">elev</span><span class="p">,</span> <span class="n">projpts</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to set countour array centers for rare instances where</span>
+<span class="sd">        matplotlib contouring is prefered over trimesh plotting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        plotarray : np.ndarray</span>
+<span class="sd">            array of data for contouring</span>
+<span class="sd">        xcenters : np.ndarray</span>
+<span class="sd">            xcenters array</span>
+<span class="sd">        head : np.ndarray</span>
+<span class="sd">            head array to adjust cell centers location</span>
+<span class="sd">        elev : np.ndarray</span>
+<span class="sd">            cell elevation array</span>
+<span class="sd">        projpts : dict</span>
+<span class="sd">            dictionary of projected cross sectional vertices</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple: (np.ndarray, np.ndarray, np.ndarray, bool)</span>
+<span class="sd">            plotarray, xcenter array, ycenter array, and a boolean flag</span>
+<span class="sd">            for contouring</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zcenters</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">)</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">head</span><span class="p">,</span> <span class="n">head</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="n">elev</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">)</span>
+
+            <span class="n">elev</span> <span class="o">=</span> <span class="n">elev</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ev</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">elev</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">zc</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">ev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">head</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">ev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="n">head</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">projpts</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">zc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">projpts</span><span class="p">)]</span>
+                <span class="n">zcenters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zc</span><span class="p">)</span>
+
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">plotarray</span><span class="p">,</span> <span class="n">plotarray</span><span class="p">))</span>
+            <span class="n">xcenters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">xcenters</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">))</span>
+            <span class="n">zcenters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zcenters</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">plotarray</span><span class="p">,</span> <span class="n">xcenters</span><span class="p">,</span> <span class="n">zcenters</span><span class="p">,</span> <span class="kc">True</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">map_polygons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property to get Matplotlib polygon objects for the modelgrid</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            list or dict of matplotlib.collections.Polygon</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">matplotlib.path</span> <span class="kn">import</span> <span class="n">Path</span>
+
+        <span class="n">cache_index</span> <span class="o">=</span> <span class="s2">&quot;xyzgrid&quot;</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">cache_index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index</span><span class="p">]</span><span class="o">.</span><span class="n">out_of_date</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">ilay</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">lay_break</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">lay_break</span><span class="p">:</span>
+                        <span class="n">ilay</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="k">if</span> <span class="n">ilay</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_vertices</span><span class="p">(</span><span class="n">nn</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">[</span><span class="n">ilay</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_vertices</span><span class="p">(</span><span class="n">nn</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_polygons</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UnstructuredGrid.intersect"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.intersect">[docs]</a>    <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">local</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">forgive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the CELL2D number of a point with coordinates x and y</span>
+
+<span class="sd">        When the point is on the edge of two cells, the cell with the lowest</span>
+<span class="sd">        CELL2D number is returned.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float</span>
+<span class="sd">            The x-coordinate of the requested point</span>
+<span class="sd">        y : float</span>
+<span class="sd">            The y-coordinate of the requested point</span>
+<span class="sd">        z : float, None</span>
+<span class="sd">            optional, z-coordiante of the requested point</span>
+<span class="sd">        local: bool (optional)</span>
+<span class="sd">            If True, x and y are in local coordinates (defaults to False)</span>
+<span class="sd">        forgive: bool (optional)</span>
+<span class="sd">            Forgive x,y arguments that fall outside the model grid and</span>
+<span class="sd">            return NaNs instead (defaults to False - will throw exception)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        icell2d : int</span>
+<span class="sd">            The CELL2D number</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="n">frame_info</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getframeinfo</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">currentframe</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_intersect</span><span class="p">(</span><span class="n">frame_info</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame_info</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">local</span><span class="p">:</span>
+            <span class="c1"># transform x and y to real-world coordinates</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_coords</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">xv</span><span class="p">,</span> <span class="n">yv</span><span class="p">,</span> <span class="n">zv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyzvertices</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">icell2d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpl</span><span class="p">):</span>
+            <span class="n">xa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xv</span><span class="p">[</span><span class="n">icell2d</span><span class="p">])</span>
+            <span class="n">ya</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">yv</span><span class="p">[</span><span class="n">icell2d</span><span class="p">])</span>
+            <span class="c1"># x and y at least have to be within the bounding box of the cell</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">xa</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">xa</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">ya</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="n">ya</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="n">is_clockwise</span><span class="p">(</span><span class="n">xa</span><span class="p">,</span> <span class="n">ya</span><span class="p">):</span>
+                    <span class="n">radius</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e-9</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">radius</span> <span class="o">=</span> <span class="mf">1e-9</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">xa</span><span class="p">,</span> <span class="n">ya</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
+                <span class="c1"># use a small radius, so that the edge of the cell is included</span>
+                <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">contains_point</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">icell2d</span>
+
+                    <span class="k">for</span> <span class="n">lay</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlay</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">lay</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+                            <span class="n">icell2d</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="n">lay</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">zv</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">icell2d</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">z</span> <span class="o">&gt;=</span> <span class="n">zv</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">icell2d</span><span class="p">]:</span>
+                            <span class="k">return</span> <span class="n">icell2d</span>
+
+        <span class="k">if</span> <span class="n">forgive</span><span class="p">:</span>
+            <span class="n">icell2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">return</span> <span class="n">icell2d</span>
+
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;point given is outside of the model area&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">top_botm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">new_top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_top</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">new_botm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_botm</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">new_top</span><span class="p">,</span> <span class="n">new_botm</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_cell_vertices"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_cell_vertices">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cellid</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to get a set of cell vertices for a single cell</span>
+<span class="sd">            used in the Shapefile export utilities</span>
+<span class="sd">        :param cellid: (int) cellid number</span>
+<span class="sd">        Returns</span>
+<span class="sd">        ------- list of x,y cell vertices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">cell_vert</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xvertices</span><span class="p">[</span><span class="n">cellid</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvertices</span><span class="p">[</span><span class="n">cellid</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copy_cache</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">cell_vert</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.plot"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the grid lines.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kwargs : ax, colors.  The remaining kwargs are passed into the</span>
+<span class="sd">            the LineCollection constructor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lc : matplotlib.collections.LineCollection</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..plot</span> <span class="kn">import</span> <span class="n">PlotMapView</span>
+
+        <span class="n">layer</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="s2">&quot;layer&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;layer&quot;</span><span class="p">)</span>
+        <span class="n">mm</span> <span class="o">=</span> <span class="n">PlotMapView</span><span class="p">(</span><span class="n">modelgrid</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">layer</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mm</span><span class="o">.</span><span class="n">plot_grid</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_build_grid_geometry_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cache_index_cc</span> <span class="o">=</span> <span class="s2">&quot;cellcenters&quot;</span>
+        <span class="n">cache_index_vert</span> <span class="o">=</span> <span class="s2">&quot;xyzgrid&quot;</span>
+
+        <span class="n">vertexdict</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">}</span>
+        <span class="n">xcenters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xc</span>
+        <span class="n">ycenters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yc</span>
+        <span class="n">xvertices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">yvertices</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># build xy vertex and cell center info</span>
+        <span class="k">for</span> <span class="n">iverts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iverts</span><span class="p">:</span>
+            <span class="n">xcellvert</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ycellvert</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">iverts</span><span class="p">:</span>
+                <span class="n">xcellvert</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertexdict</span><span class="p">[</span><span class="n">ix</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">ycellvert</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertexdict</span><span class="p">[</span><span class="n">ix</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">xvertices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xcellvert</span><span class="p">)</span>
+            <span class="n">yvertices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ycellvert</span><span class="p">)</span>
+
+        <span class="n">zvertices</span><span class="p">,</span> <span class="n">zcenters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zcoords</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_ref_coordinates</span><span class="p">:</span>
+            <span class="c1"># transform x and y</span>
+            <span class="n">xcenters</span><span class="p">,</span> <span class="n">ycenters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_coords</span><span class="p">(</span><span class="n">xcenters</span><span class="p">,</span> <span class="n">ycenters</span><span class="p">)</span>
+            <span class="n">xvertxform</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">yvertxform</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># vertices are a list within a list</span>
+            <span class="k">for</span> <span class="n">xcellvertices</span><span class="p">,</span> <span class="n">ycellvertices</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xvertices</span><span class="p">,</span> <span class="n">yvertices</span><span class="p">):</span>
+                <span class="n">xcellvertices</span><span class="p">,</span> <span class="n">ycellvertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_coords</span><span class="p">(</span>
+                    <span class="n">xcellvertices</span><span class="p">,</span> <span class="n">ycellvertices</span>
+                <span class="p">)</span>
+                <span class="n">xvertxform</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xcellvertices</span><span class="p">)</span>
+                <span class="n">yvertxform</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ycellvertices</span><span class="p">)</span>
+            <span class="n">xvertices</span> <span class="o">=</span> <span class="n">xvertxform</span>
+            <span class="n">yvertices</span> <span class="o">=</span> <span class="n">yvertxform</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index_cc</span><span class="p">]</span> <span class="o">=</span> <span class="n">CachedData</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">xcenters</span><span class="p">,</span> <span class="n">ycenters</span><span class="p">,</span> <span class="n">zcenters</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">[</span><span class="n">cache_index_vert</span><span class="p">]</span> <span class="o">=</span> <span class="n">CachedData</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">xvertices</span><span class="p">,</span> <span class="n">yvertices</span><span class="p">,</span> <span class="n">zvertices</span><span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_layer_node_range"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_layer_node_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_layer_node_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="n">node_layer_range</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">node_layer_range</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span> <span class="n">node_layer_range</span><span class="p">[</span><span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_xvertices_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_xvertices_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_xvertices_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="n">xgrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xvertices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+            <span class="n">istart</span><span class="p">,</span> <span class="n">istop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_layer_node_range</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="n">xgrid</span> <span class="o">=</span> <span class="n">xgrid</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">xgrid</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_yvertices_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_yvertices_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_yvertices_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="n">ygrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yvertices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+            <span class="n">istart</span><span class="p">,</span> <span class="n">istop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_layer_node_range</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="n">ygrid</span> <span class="o">=</span> <span class="n">ygrid</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ygrid</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_xcellcenters_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_xcellcenters_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_xcellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="n">xcenters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xcellcenters</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+            <span class="n">istart</span><span class="p">,</span> <span class="n">istop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_layer_node_range</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="n">xcenters</span> <span class="o">=</span> <span class="n">xcenters</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">xcenters</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_ycellcenters_for_layer"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_ycellcenters_for_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_ycellcenters_for_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="n">ycenters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ycellcenters</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_varies_by_layer</span><span class="p">:</span>
+            <span class="n">istart</span><span class="p">,</span> <span class="n">istop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_layer_node_range</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="n">ycenters</span> <span class="o">=</span> <span class="n">ycenters</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ycenters</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_number_plottable_layers"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_number_plottable_layers">[docs]</a>    <span class="k">def</span> <span class="nf">get_number_plottable_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate and return the number of 2d plottable arrays that can be</span>
+<span class="sd">        obtained from the array passed (a)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        a : ndarray</span>
+<span class="sd">            array to check for plottable layers</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nplottable : int</span>
+<span class="sd">            number of plottable layers</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nplottable</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">:</span>
+            <span class="n">nplottable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlay</span>
+        <span class="k">return</span> <span class="n">nplottable</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_plottable_layer_array"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_plottable_layer_array">[docs]</a>    <span class="k">def</span> <span class="nf">get_plottable_layer_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="n">layer</span><span class="p">]:</span>
+            <span class="c1"># array is already the size to be plotted</span>
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># reshape the array into size nodes and then reset range to</span>
+            <span class="c1"># the part of the array for this layer</span>
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">,))</span>
+            <span class="n">istart</span><span class="p">,</span> <span class="n">istop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_layer_node_range</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="n">plotarray</span> <span class="o">=</span> <span class="n">plotarray</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">istop</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">plotarray</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">plotarray</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.get_plottable_layer_shape"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.get_plottable_layer_shape">[docs]</a>    <span class="k">def</span> <span class="nf">get_plottable_layer_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine the shape that is required in order to plot in 2d for</span>
+<span class="sd">        this grid.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        layer : int</span>
+<span class="sd">            Has no effect unless grid changes by layer</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        shape : tuple</span>
+<span class="sd">            required shape of array to plot for a layer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shp</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nnodes</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">shp</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncpl</span><span class="p">[</span><span class="n">layer</span><span class="p">],)</span>
+        <span class="k">return</span> <span class="n">shp</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.ncpl_from_ihc"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.ncpl_from_ihc">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ncpl_from_ihc</span><span class="p">(</span><span class="n">ihc</span><span class="p">,</span> <span class="n">iac</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use the ihc and iac arrays to calculate the number of cells per layer</span>
+<span class="sd">        array (ncpl) assuming that the plottable layer number is stored in</span>
+<span class="sd">        the diagonal position of the ihc array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ihc : ndarray</span>
+<span class="sd">            horizontal indicator array.  If the plottable layer number is</span>
+<span class="sd">            stored in the diagonal position, then this will be used to create</span>
+<span class="sd">            the returned ncpl array.  plottable layer numbers must increase</span>
+<span class="sd">            monotonically and be consecutive with node number</span>
+<span class="sd">        iac : ndarray</span>
+<span class="sd">            array of size nodes that has the number of connections for a cell,</span>
+<span class="sd">            plus one for the cell itself</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncpl : ndarray</span>
+<span class="sd">            number of cells per plottable layer</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..utils.gridgen</span> <span class="kn">import</span> <span class="n">get_ia_from_iac</span>
+
+        <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">ia</span> <span class="o">=</span> <span class="n">get_ia_from_iac</span><span class="p">(</span><span class="n">iac</span><span class="p">)</span>
+
+        <span class="c1"># look through the diagonal position of the ihc array, which is</span>
+        <span class="c1"># assumed to represent the plottable zero-based layer number</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="n">ihc</span><span class="p">[</span><span class="n">ia</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+
+        <span class="c1"># use np.unique to find the unique layer numbers and the occurrence</span>
+        <span class="c1"># of each layer number</span>
+        <span class="n">unique_layers</span><span class="p">,</span> <span class="n">ncpl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># make sure unique layers numbers are monotonically increasing</span>
+        <span class="c1"># and are consecutive integers</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">unique_layers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="p">:</span>
+            <span class="n">ncpl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">ncpl</span></div>
+
+    <span class="c1"># Importing</span>
+
+<div class="viewcode-block" id="UnstructuredGrid.from_argus_export"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.from_argus_export">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_argus_export</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">nlay</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new UnstructuredGrid from an Argus One Trimesh file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file_path : Path-like</span>
+<span class="sd">            Path to trimesh file</span>
+
+<span class="sd">        nlay : int</span>
+<span class="sd">            Number of layers to create</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            An UnstructuredGrid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">..utils.geometry</span> <span class="kn">import</span> <span class="n">get_polygon_centroid</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ncells</span><span class="p">,</span> <span class="n">nverts</span> <span class="o">=</span> <span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">ncells</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ncells</span><span class="p">)</span>
+            <span class="n">nverts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nverts</span><span class="p">)</span>
+            <span class="n">verts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nverts</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">xc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">ncells</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">yc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">ncells</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+            <span class="c1"># read the vertices</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">ivert</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nverts</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">c</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+                <span class="n">verts</span><span class="p">[</span><span class="n">ivert</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">iv</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">verts</span><span class="p">[</span><span class="n">ivert</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="n">verts</span><span class="p">[</span><span class="n">ivert</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+
+            <span class="c1"># read the cell information and create iverts, xc, and yc</span>
+            <span class="n">iverts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">icell</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncells</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">ll</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">ivlist</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="n">ll</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">]:</span>
+                    <span class="n">ivlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ic</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ivlist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">ivlist</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">ivlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ivlist</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">iverts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ivlist</span><span class="p">)</span>
+                <span class="n">xc</span><span class="p">[</span><span class="n">icell</span><span class="p">],</span> <span class="n">yc</span><span class="p">[</span><span class="n">icell</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_polygon_centroid</span><span class="p">(</span><span class="n">verts</span><span class="p">[</span><span class="n">ivlist</span><span class="p">,</span> <span class="mi">1</span><span class="p">:])</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">verts</span><span class="p">,</span> <span class="n">iverts</span><span class="p">,</span> <span class="n">xc</span><span class="p">,</span> <span class="n">yc</span><span class="p">,</span> <span class="n">ncpl</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nlay</span> <span class="o">*</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">iverts</span><span class="p">)]))</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.from_binary_grid_file"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.from_binary_grid_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_binary_grid_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiate a UnstructuredGrid model grid from a MODFLOW 6 binary</span>
+<span class="sd">        grid (*.grb) file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file_path : str</span>
+<span class="sd">            file path for the MODFLOW 6 binary grid file</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            Write information to standard output.  Default is False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        return : UnstructuredGrid</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..mf6.utils.binarygrid_util</span> <span class="kn">import</span> <span class="n">MfGrdFile</span>
+
+        <span class="n">grb_obj</span> <span class="o">=</span> <span class="n">MfGrdFile</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">!=</span> <span class="s2">&quot;DISU&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Binary grid file (</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="si">}</span><span class="s2">) &quot;</span>
+                <span class="s2">&quot;is not a vertex (DISU) grid.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">iverts</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">iverts</span>
+        <span class="k">if</span> <span class="n">iverts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">verts</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">verts</span>
+            <span class="n">vertc</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">cellcenters</span>
+            <span class="n">xc</span><span class="p">,</span> <span class="n">yc</span> <span class="o">=</span> <span class="n">vertc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">vertc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">idomain</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">idomain</span>
+            <span class="n">xorigin</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">xorigin</span>
+            <span class="n">yorigin</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">yorigin</span>
+            <span class="n">angrot</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">angrot</span>
+
+            <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">grb_obj</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
+            <span class="n">botm</span> <span class="o">=</span> <span class="n">grb_obj</span><span class="o">.</span><span class="n">bot</span>
+
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">vertices</span><span class="o">=</span><span class="n">verts</span><span class="p">,</span>
+                <span class="n">iverts</span><span class="o">=</span><span class="n">iverts</span><span class="p">,</span>
+                <span class="n">xcenters</span><span class="o">=</span><span class="n">xc</span><span class="p">,</span>
+                <span class="n">ycenters</span><span class="o">=</span><span class="n">yc</span><span class="p">,</span>
+                <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span>
+                <span class="n">botm</span><span class="o">=</span><span class="n">botm</span><span class="p">,</span>
+                <span class="n">idomain</span><span class="o">=</span><span class="n">idomain</span><span class="p">,</span>
+                <span class="n">xoff</span><span class="o">=</span><span class="n">xorigin</span><span class="p">,</span>
+                <span class="n">yoff</span><span class="o">=</span><span class="n">yorigin</span><span class="p">,</span>
+                <span class="n">angrot</span><span class="o">=</span><span class="n">angrot</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="si">}</span><span class="s2"> binary grid file &quot;</span>
+                <span class="s2">&quot;does not include vertex data&quot;</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="UnstructuredGrid.from_gridspec"><a class="viewcode-back" href="../../../source/flopy.discretization.unstructuredgrid.html#flopy.discretization.unstructuredgrid.UnstructuredGrid.from_gridspec">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_gridspec</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an UnstructuredGrid from a grid specification file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file_path : str or PathLike</span>
+<span class="sd">            Path to the grid specification file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            An UnstructuredGrid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">split_line</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+            <span class="n">header</span> <span class="o">=</span> <span class="n">split_line</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">header</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;UNSTRUCTURED&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">header</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;UNSTRUCTURED&quot;</span><span class="p">,</span> <span class="s2">&quot;GWF&quot;</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid GSF file, no header&quot;</span><span class="p">)</span>
+
+            <span class="n">nnodes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">split_line</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">verts_declared</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">split_line</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="n">vertices</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">zverts</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">verts_declared</span><span class="p">):</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">split_line</span><span class="p">()</span>
+                <span class="n">vertices</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)])</span>
+                <span class="n">zverts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">))</span>
+
+            <span class="n">iverts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">xcenters</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ycenters</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">top</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">bot</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nnodes</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">split_line</span><span class="p">()</span>
+
+                <span class="n">xc</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">yc</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">lay</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+                <span class="c1"># make sure number of vertices provided and declared are equal</span>
+                <span class="n">verts_declared</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                <span class="n">verts_provided</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">-</span> <span class="mi">6</span>
+                <span class="k">if</span> <span class="n">verts_declared</span> <span class="o">!=</span> <span class="n">verts_provided</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Cell </span><span class="si">{</span><span class="n">nn</span><span class="si">}</span><span class="s2"> declares </span><span class="si">{</span><span class="n">verts_declared</span><span class="si">}</span><span class="s2"> vertices but provides </span><span class="si">{</span><span class="n">verts_provided</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="n">verts</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">vert</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">vert</span> <span class="ow">in</span> <span class="n">line</span><span class="p">[</span><span class="mi">6</span> <span class="p">:</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">verts_declared</span><span class="p">]</span>
+                <span class="p">]</span>
+                <span class="n">elevs</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">zverts</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">verts_declared</span><span class="p">)</span>
+                <span class="p">]</span>
+
+                <span class="n">xcenters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xc</span><span class="p">)</span>
+                <span class="n">ycenters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yc</span><span class="p">)</span>
+                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lay</span><span class="p">)</span>
+                <span class="n">iverts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">verts</span><span class="p">)</span>
+                <span class="n">top</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">elevs</span><span class="p">))</span>
+                <span class="n">bot</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">elevs</span><span class="p">))</span>
+
+            <span class="n">_</span><span class="p">,</span> <span class="n">ncpl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">vertices</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span>
+                <span class="n">iverts</span><span class="o">=</span><span class="n">iverts</span><span class="p">,</span>
+                <span class="n">xcenters</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xcenters</span><span class="p">),</span>
+                <span class="n">ycenters</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ycenters</span><span class="p">),</span>
+                <span class="n">ncpl</span><span class="o">=</span><span class="n">ncpl</span><span class="p">,</span>
+                <span class="n">top</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">top</span><span class="p">),</span>
+                <span class="n">botm</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bot</span><span class="p">),</span>
+            <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

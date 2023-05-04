@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mfhfb &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mfhfb</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mfhfb</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mfhfb module.  Contains the ModflowHfb class. Note that the user can access</span>
+<span class="sd">the ModflowHfb class as `flopy.modflow.ModflowHfb`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/hfb6.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">stack_arrays</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">line_parse</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+<span class="kn">from</span> <span class="nn">.mfparbc</span> <span class="kn">import</span> <span class="n">ModflowParBc</span> <span class="k">as</span> <span class="n">mfparbc</span>
+
+
+<div class="viewcode-block" id="ModflowHfb"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhfb.html#flopy.modflow.mfhfb.ModflowHfb">[docs]</a><span class="k">class</span> <span class="nc">ModflowHfb</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW HFB6 - Horizontal Flow Barrier Package</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type: class:`flopy.modflow.mf.Modflow` or</span>
+<span class="sd">        `flopy.mfusg.MfUsg`) to which this package will be added.</span>
+<span class="sd">    nphfb : int</span>
+<span class="sd">        Number of horizontal-flow barrier parameters. Note that for an HFB</span>
+<span class="sd">        parameter to have an effect in the simulation, it must be defined</span>
+<span class="sd">        and made active using NACTHFB to have an effect in the simulation</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    mxfb : int</span>
+<span class="sd">        Maximum number of horizontal-flow barrier barriers that will be</span>
+<span class="sd">        defined using parameters (default is 0).</span>
+<span class="sd">    nhfbnp: int</span>
+<span class="sd">        Number of horizontal-flow barriers not defined by parameters. This</span>
+<span class="sd">        is calculated automatically by FloPy based on the information in</span>
+<span class="sd">        layer_row_column_data (default is 0).</span>
+<span class="sd">    hfb_data : list of records</span>
+
+<span class="sd">        In its most general form, this is a list of horizontal-flow</span>
+<span class="sd">        barrier records. A barrier is conceptualized as being located on</span>
+<span class="sd">        the boundary between two adjacent finite difference cells in the</span>
+<span class="sd">        same layer. The innermost list is the layer, row1, column1, row2,</span>
+<span class="sd">        column2, and hydrologic characteristics for a single hfb between</span>
+<span class="sd">        the cells. The hydraulic characteristic is the barrier hydraulic</span>
+<span class="sd">        conductivity divided by the width of the horizontal-flow barrier.</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">        For a structured model, this gives the form of::</span>
+<span class="sd">            hfb_data = [</span>
+<span class="sd">                        [lay, row1, col1, row2, col2, hydchr],</span>
+<span class="sd">                        [lay, row1, col1, row2, col2, hydchr],</span>
+<span class="sd">                        [lay, row1, col1, row2, col2, hydchr],</span>
+<span class="sd">                       ].</span>
+<span class="sd">        Or for unstructured (mfusg) models::</span>
+<span class="sd">            hfb_data = [</span>
+<span class="sd">                        [node1, node2, hydchr],</span>
+<span class="sd">                        [node1, node2, hydchr],</span>
+<span class="sd">                        [node1, node2, hydchr],</span>
+<span class="sd">                       ].</span>
+<span class="sd">    nacthfb : int</span>
+<span class="sd">        The number of active horizontal-flow barrier parameters</span>
+<span class="sd">        (default is 0).</span>
+<span class="sd">    no_print : boolean</span>
+<span class="sd">        When True or 1, a list of horizontal flow barriers will not be</span>
+<span class="sd">        written to the Listing File (default is False)</span>
+<span class="sd">    options : list of strings</span>
+<span class="sd">        Package options (default is None).</span>
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;hfb&#39;).</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package. If filenames=None the package name</span>
+<span class="sd">        will be created using the model name and package extension. If a</span>
+<span class="sd">        single string is passed the package will be set to the string.</span>
+<span class="sd">        Default is None.</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are supported in Flopy only when reading in existing models.</span>
+<span class="sd">    Parameter values are converted to native values in Flopy and the</span>
+<span class="sd">    connection to &quot;parameters&quot; is thus nonexistent.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; hfb_data = [[0, 10, 4, 10, 5, 0.01],[1, 10, 4, 10, 5, 0.01]]</span>
+<span class="sd">    &gt;&gt;&gt; hfb = flopy.modflow.ModflowHfb(m, hfb_data=hfb_data)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nphfb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">mxfb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">nhfbnp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">hfb_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">nacthfb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">no_print</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;hfb&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowHfb</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;hfb6.html&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nphfb</span> <span class="o">=</span> <span class="n">nphfb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mxfb</span> <span class="o">=</span> <span class="n">mxfb</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nacthfb</span> <span class="o">=</span> <span class="n">nacthfb</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_print</span> <span class="o">=</span> <span class="n">no_print</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_print</span><span class="p">:</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;NOPRINT&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+
+        <span class="n">aux_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">it</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;aux&quot;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">[</span><span class="n">it</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">aux_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="n">it</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">hfb_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Failed to specify hfb_data.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nhfbnp</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hfb_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hfb_data</span> <span class="o">=</span> <span class="n">ModflowHfb</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nhfbnp</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">ibnd</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hfb_data</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hfb_data</span><span class="p">[</span><span class="n">ibnd</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cell pairs that have horizontal flow barriers</span>
+<span class="sd">         (developed for MT3DMS SSM package).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            maximum number of hfb cells</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nhfbnp</span>
+
+<div class="viewcode-block" id="ModflowHfb.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhfb.html#flopy.modflow.mfhfb.ModflowHfb.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">structured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">structured</span>
+        <span class="n">f_hfb</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nphfb</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">mxfb</span><span class="si">:</span><span class="s2">10d</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">nhfbnp</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">option</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hfb_data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+                <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:10d}{:10d}{:10d}{:13.6g}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{:10d}{:10d}{:13.6g}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="p">)</span>
+        <span class="n">f_hfb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nacthfb</span><span class="si">:</span><span class="s2">10d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f_hfb</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowHfb.get_empty"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhfb.html#flopy.modflow.mfhfb.ModflowHfb.get_empty">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty</span><span class="p">(</span><span class="n">ncells</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">aux_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an empty recarray that corresponds to hfb dtype and has</span>
+<span class="sd">        been extended to include aux variables and associated</span>
+<span class="sd">        aux names.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowHfb</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">aux_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">Package</span><span class="o">.</span><span class="n">add_to_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">aux_names</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">ncells</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mf">1.0e10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowHfb.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhfb.html#flopy.modflow.mfhfb.ModflowHfb.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the default dtype for hfb data</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;irow1&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;icol1&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;irow2&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;icol2&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;hydchr&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;node1&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;node2&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;hydchr&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">dtype</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_sfac_columns</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;hydchr&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ModflowHfb.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mfhfb.html#flopy.modflow.mfhfb.ModflowHfb.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type: class:`flopy.modflow.mf.Modflow`)</span>
+<span class="sd">            to which this package will be added.</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hfb : ModflowHfb object</span>
+<span class="sd">            ModflowHfb object (of type :class:`flopy.modflow.mfbas.ModflowHfb`)</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; hfb = flopy.modflow.ModflowHfb.load(&#39;test.hfb&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading hfb6 package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">structured</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="c1"># dataset 1</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">nphfb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">mxfb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nhfbnp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="c1"># check for no-print suppressor</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">aux_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">it</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">while</span> <span class="n">it</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+                <span class="n">toption</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">it</span><span class="p">]</span>
+                <span class="c1"># print it, t[it]</span>
+                <span class="k">if</span> <span class="n">toption</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;noprint&quot;</span><span class="p">:</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">toption</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="s2">&quot;aux&quot;</span> <span class="ow">in</span> <span class="n">toption</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">it</span> <span class="p">:</span> <span class="n">it</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]))</span>
+                    <span class="n">aux_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">it</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                    <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># data set 2 and 3</span>
+        <span class="k">if</span> <span class="n">nphfb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">ModflowHfb</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">)</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="n">pak_parms</span> <span class="o">=</span> <span class="n">mfparbc</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">nphfb</span><span class="p">,</span>
+                <span class="n">dt</span><span class="p">,</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="n">ext_unit_dict</span><span class="o">=</span><span class="n">ext_unit_dict</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># data set 4</span>
+        <span class="n">bnd_output</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">nhfbnp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">specified</span> <span class="o">=</span> <span class="n">ModflowHfb</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span><span class="n">nhfbnp</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ibnd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nhfbnp</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="s2">&quot;open/close&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s2">&quot;load() method does not support &#39;open/close&#39;&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">specified</span><span class="p">[</span><span class="n">ibnd</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">specified</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)])</span>
+
+            <span class="c1"># convert indices to zero-based</span>
+            <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;irow1&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;icol1&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;irow2&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;icol2&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;node1&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">specified</span><span class="p">[</span><span class="s2">&quot;node2&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="n">bnd_output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">specified</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nphfb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">partype</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;hydchr&quot;</span><span class="p">]</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">nacthfb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">iparm</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nacthfb</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">pname</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">iname</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span>
+                <span class="n">par_dict</span><span class="p">,</span> <span class="n">current_dict</span> <span class="o">=</span> <span class="n">pak_parms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pname</span><span class="p">)</span>
+                <span class="n">data_dict</span> <span class="o">=</span> <span class="n">current_dict</span><span class="p">[</span><span class="n">iname</span><span class="p">]</span>
+                <span class="n">par_current</span> <span class="o">=</span> <span class="n">ModflowHfb</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+                    <span class="n">par_dict</span><span class="p">[</span><span class="s2">&quot;nlst&quot;</span><span class="p">],</span> <span class="n">structured</span><span class="o">=</span><span class="n">structured</span>
+                <span class="p">)</span>
+
+                <span class="c1">#</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">pval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">parval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">par_dict</span><span class="p">[</span><span class="s2">&quot;parval&quot;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">parval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">mfpar</span><span class="o">.</span><span class="n">pval</span><span class="o">.</span><span class="n">pval_dict</span><span class="p">[</span><span class="n">pname</span><span class="p">])</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">parval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">par_dict</span><span class="p">[</span><span class="s2">&quot;parval&quot;</span><span class="p">])</span>
+
+                <span class="c1"># fill current parameter data (par_current)</span>
+                <span class="k">for</span> <span class="n">ibnd</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data_dict</span><span class="p">):</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="n">ibnd</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">t</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">par_current</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)]</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># convert indices to zero-based</span>
+                <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;irow1&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;icol1&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;irow2&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;icol2&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;node1&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="s2">&quot;node2&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+                <span class="k">for</span> <span class="n">ptype</span> <span class="ow">in</span> <span class="n">partype</span><span class="p">:</span>
+                    <span class="n">par_current</span><span class="p">[</span><span class="n">ptype</span><span class="p">]</span> <span class="o">*=</span> <span class="n">parval</span>
+
+                <span class="k">if</span> <span class="n">bnd_output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">bnd_output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">par_current</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">bnd_output</span> <span class="o">=</span> <span class="n">stack_arrays</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">bnd_output</span><span class="p">,</span> <span class="n">par_current</span><span class="p">),</span>
+                        <span class="n">asrecarray</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">usemask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># set package unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowHfb</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nphfb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">mxfb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">nhfbnp</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">bnd_output</span><span class="p">),</span>
+            <span class="n">hfb_data</span><span class="o">=</span><span class="n">bnd_output</span><span class="p">,</span>
+            <span class="n">nacthfb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;HFB6&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">29</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

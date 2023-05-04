@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.mf6.mfbase &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.mf6.mfbase</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.mf6.mfbase</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Base classes for Modflow 6 &quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">copyfile</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+
+<span class="c1"># internal handled exceptions</span>
+<div class="viewcode-block" id="MFInvalidTransientBlockHeaderException"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFInvalidTransientBlockHeaderException">[docs]</a><span class="k">class</span> <span class="nc">MFInvalidTransientBlockHeaderException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception occurs when parsing a transient block header</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ReadAsArraysException"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.ReadAsArraysException">[docs]</a><span class="k">class</span> <span class="nc">ReadAsArraysException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception occurs when loading ReadAsArrays package as non-ReadAsArrays</span>
+<span class="sd">    package.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="c1"># external exceptions for users</span>
+<div class="viewcode-block" id="FlopyException"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.FlopyException">[docs]</a><span class="k">class</span> <span class="nc">FlopyException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    General FloPy exception</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">error</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StructException"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.StructException">[docs]</a><span class="k">class</span> <span class="nc">StructException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception with the package file structure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">error</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MFDataException"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFDataException">[docs]</a><span class="k">class</span> <span class="nc">MFDataException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception with MODFLOW data.  Exception includes detailed error</span>
+<span class="sd">    information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">current_process</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">data_element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">method_caught_in</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">org_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">org_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">org_traceback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">debug</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mfdata_except</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">mfdata_except</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">mfdata_except</span><span class="p">,</span> <span class="n">MFDataException</span>
+        <span class="p">):</span>
+            <span class="c1"># copy constructor - copying values from original exception</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">package</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_process</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">current_process</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_element</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">data_element</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">messages</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">messages</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">debug</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_caught_in</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">method_caught_in</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_type</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">org_type</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_value</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">org_value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_traceback</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">org_traceback</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_tb_string</span> <span class="o">=</span> <span class="n">mfdata_except</span><span class="o">.</span><span class="n">org_tb_string</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">mfdata_except</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">mfdata_except</span><span class="p">,</span> <span class="n">StructException</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mfdata_except</span><span class="p">,</span> <span class="n">FlopyException</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mfdata_except</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_process</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_element</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_caught_in</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_type</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_value</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_traceback</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_tb_string</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># override/assign any values that are not none</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="k">if</span> <span class="n">package</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">package</span>
+        <span class="k">if</span> <span class="n">current_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_process</span> <span class="o">=</span> <span class="n">current_process</span>
+        <span class="k">if</span> <span class="n">data_element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_element</span> <span class="o">=</span> <span class="n">data_element</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="k">if</span> <span class="n">method_caught_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_caught_in</span> <span class="o">=</span> <span class="n">method_caught_in</span>
+        <span class="k">if</span> <span class="n">org_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_type</span> <span class="o">=</span> <span class="n">org_type</span>
+        <span class="k">if</span> <span class="n">org_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_value</span> <span class="o">=</span> <span class="n">org_value</span>
+        <span class="k">if</span> <span class="n">org_traceback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_traceback</span> <span class="o">=</span> <span class="n">org_traceback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">org_tb_string</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exception</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">org_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">org_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">org_traceback</span>
+        <span class="p">)</span>
+        <span class="c1"># build error string</span>
+        <span class="n">error_message</span> <span class="o">=</span> <span class="s2">&quot;An error occurred in &quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_element</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">error_message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;data element &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data_element</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">error_message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;model &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+        <span class="n">error_message</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;package &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="si">}</span><span class="s1">&quot;. The error occurred while &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_process</span><span class="si">}</span><span class="s1"> in the &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">method_caught_in</span><span class="si">}</span><span class="s1">&quot; method.&#39;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">messages</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">error_message</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Additional Information:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">error_message</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">) </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">messages</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VerbosityLevel"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.VerbosityLevel">[docs]</a><span class="k">class</span> <span class="nc">VerbosityLevel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determines how much information FloPy writes to the console&quot;&quot;&quot;</span>
+
+    <span class="n">quiet</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">normal</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+<div class="viewcode-block" id="PackageContainerType"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainerType">[docs]</a><span class="k">class</span> <span class="nc">PackageContainerType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determines whether a package container is a simulation, model, or</span>
+<span class="sd">    package.&quot;&quot;&quot;</span>
+
+    <span class="n">simulation</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">package</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+<div class="viewcode-block" id="ExtFileAction"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.ExtFileAction">[docs]</a><span class="k">class</span> <span class="nc">ExtFileAction</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines what to do with external files when the simulation or model&#39;s</span>
+<span class="sd">    path change.&quot;&quot;&quot;</span>
+
+    <span class="n">copy_all</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">copy_none</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">copy_relative_paths</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+<div class="viewcode-block" id="MFFilePath"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFilePath">[docs]</a><span class="k">class</span> <span class="nc">MFFilePath</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class that stores a single file path along with the associated model</span>
+<span class="sd">    name.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">file_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="p">{</span><span class="n">model_name</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+<div class="viewcode-block" id="MFFilePath.isabs"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFilePath.isabs">[docs]</a>    <span class="k">def</span> <span class="nf">isabs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MFFileMgmt"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt">[docs]</a><span class="k">class</span> <span class="nc">MFFileMgmt</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class containing MODFLOW path data</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    path : str or PathLike</span>
+<span class="sd">        Path on disk to the simulation</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    model_relative_path : dict</span>
+<span class="sd">        Dictionary of relative paths to each model folder</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span> <span class="n">mfsim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span> <span class="o">=</span> <span class="n">mfsim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sim_path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_sim_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># keys:fully pathed filenames, vals:FilePath instances</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">existing_file_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># keys:filenames,vals:instance name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_relative_path</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_sim_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_model_relative_path</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="MFFileMgmt.copy_files"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.copy_files">[docs]</a>    <span class="k">def</span> <span class="nf">copy_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">copy_relative_only</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Copy files external to updated path.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">            copy_relative_only : bool</span>
+<span class="sd">                Only copy files with relative paths.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_files_copied</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_sim_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">mffile_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">existing_file_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="c1"># resolve previous simulation path.  if mf6 changes</span>
+                <span class="c1"># so that paths are relative to the model folder, then</span>
+                <span class="c1"># this call should have &quot;model_name&quot; instead of &quot;None&quot;</span>
+                <span class="n">path_old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_path</span><span class="p">(</span><span class="n">mffile_path</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path_old</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="n">mffile_path</span><span class="o">.</span><span class="n">isabs</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">copy_relative_only</span>
+                <span class="p">):</span>
+                    <span class="c1"># change &quot;None&quot; to &quot;model_name&quot; as above if mf6</span>
+                    <span class="c1"># supports model relative paths</span>
+                    <span class="n">path_new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_path</span><span class="p">(</span><span class="n">mffile_path</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">path_old</span> <span class="o">!=</span> <span class="n">path_new</span><span class="p">:</span>
+                        <span class="n">new_folders</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path_new</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">new_folders</span><span class="p">):</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">new_folders</span><span class="p">)</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">copyfile</span><span class="p">(</span><span class="n">path_old</span><span class="p">,</span> <span class="n">path_new</span><span class="p">)</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">type_</span><span class="p">,</span> <span class="n">value_</span><span class="p">,</span> <span class="n">traceback_</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                            <span class="k">raise</span> <span class="n">MFDataException</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_model</span><span class="p">(),</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_package</span><span class="p">(),</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">,</span>
+                                <span class="s2">&quot;appending data&quot;</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                                <span class="n">type_</span><span class="p">,</span>
+                                <span class="n">value_</span><span class="p">,</span>
+                                <span class="n">traceback_</span><span class="p">,</span>
+                                <span class="kc">None</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_data</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                            <span class="p">)</span>
+
+                        <span class="n">num_files_copied</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">num_files_copied</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.get_updated_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.get_updated_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_updated_path</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">external_file_path</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">ext_file_action</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For internal FloPy use, not intended for end user.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">external_file_path</span></div>
+
+    <span class="k">def</span> <span class="nf">_build_relative_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+        <span class="n">old_abs_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_path</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">current_abs_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_path</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">old_abs_path</span><span class="p">,</span> <span class="n">current_abs_path</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MFFileMgmt.strip_model_relative_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.strip_model_relative_path">[docs]</a>    <span class="k">def</span> <span class="nf">strip_model_relative_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Strip out the model relative path part of `path`.  For internal</span>
+<span class="sd">        FloPy use, not intended for end user.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_relative_path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">path</span>
+
+        <span class="n">model_rel_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_relative_path</span><span class="p">[</span><span class="n">model_name</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">model_rel_path</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="n">model_rel_path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">model_rel_path</span><span class="p">))</span>
+            <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_rel_path</span><span class="p">)</span> <span class="o">==</span> <span class="n">os</span><span class="o">.</span><span class="n">curdir</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">path</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">model_rel_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not strip model relative path from </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">ret_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">ret_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.unique_file_name"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.unique_file_name">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">unique_file_name</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">lookup</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a unique file name.  For internal FloPy use, not intended</span>
+<span class="sd">        for end user.&quot;&quot;&quot;</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">MFFileMgmt</span><span class="o">.</span><span class="n">_build_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">num</span><span class="p">)</span> <span class="ow">in</span> <span class="n">lookup</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">MFFileMgmt</span><span class="o">.</span><span class="n">_build_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">num</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_build_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
+        <span class="n">file</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ext</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">num</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">num</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<div class="viewcode-block" id="MFFileMgmt.set_last_accessed_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.set_last_accessed_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_last_accessed_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the last accessed simulation path to the current simulation</span>
+<span class="sd">        path.  For internal FloPy use, not intended for end user.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_sim_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_last_accessed_model_path</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.set_last_accessed_model_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.set_last_accessed_model_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_last_accessed_model_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the last accessed model path to the current model path.</span>
+<span class="sd">        For internal FloPy use, not intended for end user.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_relative_path</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_model_relative_path</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">item</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.get_model_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.get_model_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">last_loaded_path</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the model working path for the model `key`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            Model name whose path flopy will retrieve</span>
+<span class="sd">        last_loaded_path : bool</span>
+<span class="sd">            Get the last path loaded by FloPy which may not be the most</span>
+<span class="sd">            recent path.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            model path : str</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">last_loaded_path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_sim_path</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_model_relative_path</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_relative_path</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_sim_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_relative_path</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_path</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.get_sim_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.get_sim_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_sim_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_loaded_path</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the simulation path.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">last_loaded_path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_loaded_sim_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_path</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.add_ext_file"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.add_ext_file">[docs]</a>    <span class="k">def</span> <span class="nf">add_ext_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an external file to the path list.  For internal FloPy use, not</span>
+<span class="sd">        intended for end user.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">existing_file_dict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">existing_file_dict</span><span class="p">[</span><span class="n">file_path</span><span class="p">]</span><span class="o">.</span><span class="n">model_name</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">existing_file_dict</span><span class="p">[</span><span class="n">file_path</span><span class="p">]</span><span class="o">.</span><span class="n">model_name</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_file_path</span> <span class="o">=</span> <span class="n">MFFilePath</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">model_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">existing_file_dict</span><span class="p">[</span><span class="n">file_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_file_path</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.set_sim_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.set_sim_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_sim_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">],</span> <span class="n">internal_use</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the file path to the simulation files.  Internal use only,</span>
+<span class="sd">        call MFSimulation&#39;s set_sim_path method instead.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or PathLike</span>
+<span class="sd">            Path to simulation folder</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        self.simulation_data.mfdata.set_sim_path(&#39;path/to/workspace&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">internal_use</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;WARNING: MFFileMgt&#39;s set_sim_path has been deprecated.  &quot;</span>
+                <span class="s2">&quot;Please use MFSimulation&#39;s set_sim_path in the future.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">set_sim_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                <span class="k">return</span>
+        <span class="c1"># expand tildes and ensure _sim_path is absolute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sim_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MFFileMgmt.resolve_path"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.MFFileMgmt.resolve_path">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_path</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">last_loaded_path</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">move_abs_paths</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve a simulation or model path.  For internal FloPy use, not</span>
+<span class="sd">        intended for end user.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">MFFilePath</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c1"># remove quote characters from file path</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+            <span class="c1"># path is an absolute path</span>
+            <span class="k">if</span> <span class="n">move_abs_paths</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sim_path</span><span class="p">(</span><span class="n">last_loaded_path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">file_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># path is a relative path</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_sim_path</span><span class="p">(</span><span class="n">last_loaded_path</span><span class="p">),</span> <span class="n">file_path</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PackageContainer"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer">[docs]</a><span class="k">class</span> <span class="nc">PackageContainer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for any class containing packages.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    simulation_data : SimulationData</span>
+<span class="sd">        The simulation&#39;s SimulationData object</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name of the package container object</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    package_type_dict : dictionary</span>
+<span class="sd">        Dictionary of packages by package type</span>
+<span class="sd">    package_name_dict : dictionary</span>
+<span class="sd">        Dictionary of packages by package name</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">modflow_packages</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">packages_by_abbr</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">modflow_models</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">models_by_type</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulation_data</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s2">&quot;PackageContainer&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_data</span> <span class="o">=</span> <span class="n">simulation_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packagelist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_filename_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">package_key_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;package_key_dict has been deprecated, use &quot;</span>
+            <span class="s2">&quot;package_type_dict instead&quot;</span><span class="p">,</span>
+            <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span>
+
+<div class="viewcode-block" id="PackageContainer.package_list"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer.package_list">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">package_list</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Static method that returns the list of available packages.</span>
+<span class="sd">        For internal FloPy use only, not intended for end users.</span>
+
+<span class="sd">        Returns a list of MFPackage subclasses</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># all packages except &quot;group&quot; classes</span>
+        <span class="n">package_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">abbr</span><span class="p">,</span> <span class="n">package</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">PackageContainer</span><span class="o">.</span><span class="n">packages_by_abbr</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="c1"># don&#39;t store packages &quot;group&quot; classes</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">abbr</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;packages&quot;</span><span class="p">):</span>
+                <span class="n">package_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">package_list</span></div>
+
+<div class="viewcode-block" id="PackageContainer.package_factory"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer.package_factory">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">package_factory</span><span class="p">(</span><span class="n">package_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Static method that returns the appropriate package type object based</span>
+<span class="sd">        on the package_type and model_type strings.  For internal FloPy use</span>
+<span class="sd">        only, not intended for end users.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">            package_type : str</span>
+<span class="sd">                Type of package to create</span>
+<span class="sd">            model_type : str</span>
+<span class="sd">                Type of model that package is a part of</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            package : MFPackage subclass</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">package_abbr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model_type</span><span class="si">}{</span><span class="n">package_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">factory</span> <span class="o">=</span> <span class="n">PackageContainer</span><span class="o">.</span><span class="n">packages_by_abbr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">package_abbr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">factory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">package_utl_abbr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;utl</span><span class="si">{</span><span class="n">package_type</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">factory</span> <span class="o">=</span> <span class="n">PackageContainer</span><span class="o">.</span><span class="n">packages_by_abbr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">package_utl_abbr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">factory</span></div>
+
+<div class="viewcode-block" id="PackageContainer.model_factory"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer.model_factory">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">model_factory</span><span class="p">(</span><span class="n">model_type</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Static method that returns the appropriate model type object based</span>
+<span class="sd">        on the model_type string. For internal FloPy use only, not intended</span>
+<span class="sd">        for end users.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">            model_type : str</span>
+<span class="sd">                Type of model that package is a part of</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            model : MFModel subclass</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">PackageContainer</span><span class="o">.</span><span class="n">models_by_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_type</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PackageContainer.get_module_val"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer.get_module_val">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_module_val</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">attrb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Static method that returns a python class module value.  For</span>
+<span class="sd">        internal FloPy use only, not intended for end users.&quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+        <span class="c1"># verify this is a class</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">value</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">attrb</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">package_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the package name dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">package_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of package names.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="c1"># put in packages list and update lookup dictionaries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packagelist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">package</span><span class="o">.</span><span class="n">package_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">package</span>
+        <span class="k">if</span> <span class="n">package</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_filename_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">package</span>
+        <span class="k">if</span> <span class="n">package</span><span class="o">.</span><span class="n">package_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_remove_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packagelist</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">package</span><span class="o">.</span><span class="n">package_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">package</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span>
+        <span class="p">):</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">package</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">package</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_filename_dict</span>
+        <span class="p">):</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_filename_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="n">package_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="n">package_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">package</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">package_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+        <span class="c1"># collect keys of items to be removed from main dictionary</span>
+        <span class="n">items_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">:</span>
+            <span class="n">is_subkey</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">for</span> <span class="n">pitem</span><span class="p">,</span> <span class="n">ditem</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">pitem</span> <span class="o">!=</span> <span class="n">ditem</span><span class="p">:</span>
+                    <span class="n">is_subkey</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">is_subkey</span><span class="p">:</span>
+                <span class="n">items_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="c1"># remove items from main dictionary</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">items_to_remove</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation_data</span><span class="o">.</span><span class="n">mfdata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_rename_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package</span><span class="p">,</span> <span class="n">new_name</span><span class="p">):</span>
+        <span class="c1"># fix package_name_dict key</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">package</span><span class="o">.</span><span class="n">package_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">package</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span>
+        <span class="p">):</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="p">[</span><span class="n">new_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">package</span>
+        <span class="c1"># get keys to fix in main dictionary</span>
+        <span class="n">main_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation_data</span><span class="o">.</span><span class="n">mfdata</span>
+        <span class="n">items_to_fix</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">main_dict</span><span class="p">:</span>
+            <span class="n">is_subkey</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">for</span> <span class="n">pitem</span><span class="p">,</span> <span class="n">ditem</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">pitem</span> <span class="o">!=</span> <span class="n">ditem</span><span class="p">:</span>
+                    <span class="n">is_subkey</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">is_subkey</span><span class="p">:</span>
+                <span class="n">items_to_fix</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="c1"># fix keys in main dictionary</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">items_to_fix</span><span class="p">:</span>
+            <span class="n">new_key</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">package</span><span class="o">.</span><span class="n">path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">new_name</span><span class="p">,)</span> <span class="o">+</span> <span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:]</span>
+            <span class="p">)</span>
+            <span class="n">main_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">main_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PackageContainer.get_package"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer.get_package">[docs]</a>    <span class="k">def</span> <span class="nf">get_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds a package by package name, package key, package type, or partial</span>
+<span class="sd">        package name. returns either a single package, a list of packages,</span>
+<span class="sd">        or None.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the package, &#39;RIV&#39;, &#39;LPF&#39;, etc.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pp : Package object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packagelist</span><span class="p">[:]</span>
+
+        <span class="c1"># search for full package name</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_name_dict</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+        <span class="c1"># search for package type</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_type_dict</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+        <span class="c1"># search for file name</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_filename_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_filename_dict</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+        <span class="c1"># search for partial and case-insensitive package name</span>
+        <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packagelist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pp</span><span class="o">.</span><span class="n">package_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># get first package of the type requested</span>
+                <span class="n">package_name</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">package_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+                    <span class="n">package_name</span> <span class="o">=</span> <span class="n">package_name</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">package_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="k">return</span> <span class="n">pp</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="PackageContainer.register_package"><a class="viewcode-back" href="../../../source/flopy.mf6.mfbase.html#flopy.mf6.mfbase.PackageContainer.register_package">[docs]</a>    <span class="k">def</span> <span class="nf">register_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Base method for registering a package.  Should be overridden.&quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">package_name</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_load_only_dict</span><span class="p">(</span><span class="n">load_only</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">load_only</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_only</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">load_only</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_only</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">FlopyException</span><span class="p">(</span>
+                <span class="s2">&quot;load_only must be iterable or None. &quot;</span>
+                <span class="s1">&#39;load_only value of &quot;</span><span class="si">{}</span><span class="s1">&quot; is &#39;</span>
+                <span class="s2">&quot;invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">load_only</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">load_only_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">load_only</span><span class="p">:</span>
+            <span class="n">load_only_dict</span><span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">load_only_dict</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_in_pkg_list</span><span class="p">(</span><span class="n">pkg_list</span><span class="p">,</span> <span class="n">pkg_type</span><span class="p">,</span> <span class="n">pkg_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pkg_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pkg_type</span> <span class="o">=</span> <span class="n">pkg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">pkg_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pkg_name</span> <span class="o">=</span> <span class="n">pkg_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">pkg_type</span> <span class="ow">in</span> <span class="n">pkg_list</span> <span class="ow">or</span> <span class="n">pkg_name</span> <span class="ow">in</span> <span class="n">pkg_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># split to make cases like &quot;gwf6-gwf6&quot; easier to process</span>
+        <span class="n">pkg_type</span> <span class="o">=</span> <span class="n">pkg_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># if there is a number on the end of the package try</span>
+            <span class="c1"># excluding it</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">pkg_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">pkg_list</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pkg_type</span><span class="p">):</span>
+                    <span class="n">matches</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">for</span> <span class="n">key_item</span><span class="p">,</span> <span class="n">pkg_item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pkg_type</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">pkg_item</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">key_item</span> <span class="ow">and</span> <span class="n">pkg_item</span> <span class="o">!=</span> <span class="n">key_item</span><span class="p">:</span>
+                            <span class="n">matches</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.modflow.mffhb &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.modflow.mffhb</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.modflow.mffhb</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mffhb module.  Contains the ModflowFhb class. Note that the user can access</span>
+<span class="sd">the ModflowFhb class as `flopy.modflow.ModflowFhb`.</span>
+
+<span class="sd">Additional information for this MODFLOW package can be found at the `Online</span>
+<span class="sd">MODFLOW Guide</span>
+<span class="sd">&lt;https://water.usgs.gov/ogw/modflow/MODFLOW-2005-Guide/fhb.html&gt;`_.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..pakbase</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">read1d</span>
+<span class="kn">from</span> <span class="nn">..utils.recarray_utils</span> <span class="kn">import</span> <span class="n">create_empty_recarray</span>
+
+
+<div class="viewcode-block" id="ModflowFhb"><a class="viewcode-back" href="../../../source/flopy.modflow.mffhb.html#flopy.modflow.mffhb.ModflowFhb">[docs]</a><span class="k">class</span> <span class="nc">ModflowFhb</span><span class="p">(</span><span class="n">Package</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW Flow and Head Boundary Package Class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model object</span>
+<span class="sd">        The model object (of type :class:`flopy.modflow.mf.ModflowFhb`) to</span>
+<span class="sd">        which this package will be added.</span>
+<span class="sd">    nbdtim : int</span>
+<span class="sd">        The number of times at which flow and head will be specified for all</span>
+<span class="sd">        selected cells. (default is 1)</span>
+<span class="sd">    nflw : int</span>
+<span class="sd">        Number of cells at which flows will be specified. (default is 0)</span>
+<span class="sd">    nhed: int</span>
+<span class="sd">        Number of cells at which heads will be specified. (default is 0)</span>
+<span class="sd">    ifhbss : int</span>
+<span class="sd">        FHB steady-state option flag. If the simulation includes any</span>
+<span class="sd">        transient-state stress periods, the flag is read but not used; in</span>
+<span class="sd">        this case, specified-flow, specified-head, and auxiliary-variable</span>
+<span class="sd">        values will be interpolated for steady-state stress periods in the</span>
+<span class="sd">        same way that values are interpolated for transient stress periods.</span>
+<span class="sd">        If the simulation includes only steady-state stress periods, the flag</span>
+<span class="sd">        controls how flow, head, and auxiliary-variable values will be</span>
+<span class="sd">        computed for each steady-state solution. (default is 0)</span>
+<span class="sd">    ipakcb : int</span>
+<span class="sd">        A flag that is used to determine if cell-by-cell budget data should be</span>
+<span class="sd">        saved. If ipakcb is non-zero cell-by-cell budget data will be saved.</span>
+<span class="sd">        (default is None).</span>
+<span class="sd">    nfhbx1 : int</span>
+<span class="sd">        Number of auxiliary variables whose values will be computed for each</span>
+<span class="sd">        time step for each specified-flow cell. Auxiliary variables are</span>
+<span class="sd">        currently not supported. (default is 0)</span>
+<span class="sd">    nfhbx2 : int</span>
+<span class="sd">        Number of auxiliary variables whose values will be computed for each</span>
+<span class="sd">        time step for each specified-head cell. Auxiliary variables are</span>
+<span class="sd">        currently not supported. (default is 0)</span>
+<span class="sd">    ifhbpt : int</span>
+<span class="sd">        Flag for printing values of data list. Applies to datasets 4b, 5b, 6b,</span>
+<span class="sd">        7b, and 8b. If ifhbpt &gt; 0, datasets read at the beginning of the</span>
+<span class="sd">        simulation will be printed. Otherwise, the datasets will not be</span>
+<span class="sd">        printed. (default is 0).</span>
+<span class="sd">    bdtimecnstm : float</span>
+<span class="sd">        A constant multiplier for data list bdtime. (default is 1.0)</span>
+<span class="sd">    bdtime : float or list of floats</span>
+<span class="sd">        Simulation time at which values of specified flow and (or) values of</span>
+<span class="sd">        specified head will be read. nbdtim values are required.</span>
+<span class="sd">        (default is 0.0)</span>
+<span class="sd">    cnstm5 : float</span>
+<span class="sd">        A constant multiplier for data list flwrat. (default is 1.0)</span>
+<span class="sd">    ds5 : list or numpy array or recarray</span>
+<span class="sd">        Each FHB flwrat cell (dataset 5) is defined through definition of</span>
+<span class="sd">        layer(int), row(int), column(int), iaux(int), flwrat[nbdtime](float).</span>
+<span class="sd">        There should be nflw entries. (default is None)</span>
+<span class="sd">        The simplest form is a list of lists with the FHB flow boundaries.</span>
+<span class="sd">        This gives the form of::</span>
+
+<span class="sd">            ds5 =</span>
+<span class="sd">            [</span>
+<span class="sd">                [lay, row, col, iaux, flwrat1, flwra2, ..., flwrat(nbdtime)],</span>
+<span class="sd">                [lay, row, col, iaux, flwrat1, flwra2, ..., flwrat(nbdtime)],</span>
+<span class="sd">                [lay, row, col, iaux, flwrat1, flwra2, ..., flwrat(nbdtime)],</span>
+<span class="sd">                [lay, row, col, iaux, flwrat1, flwra2, ..., flwrat(nbdtime)]</span>
+<span class="sd">            ]</span>
+
+<span class="sd">    cnstm7 : float</span>
+<span class="sd">        A constant multiplier for data list sbhedt. (default is 1.0)</span>
+<span class="sd">    ds7 : list or numpy array or recarray</span>
+<span class="sd">        Each FHB sbhed cell (dataset 7) is defined through definition of</span>
+<span class="sd">        layer(int), row(int), column(int), iaux(int), sbhed[nbdtime](float).</span>
+<span class="sd">        There should be nhed entries. (default is None)</span>
+<span class="sd">        The simplest form is a list of lists with the FHB flow boundaries.</span>
+<span class="sd">        This gives the form of::</span>
+
+<span class="sd">            ds7 =</span>
+<span class="sd">            [</span>
+<span class="sd">                [lay, row, col, iaux, sbhed1, sbhed2, ..., sbhed(nbdtime)],</span>
+<span class="sd">                [lay, row, col, iaux, sbhed1, sbhed2, ..., sbhed(nbdtime)],</span>
+<span class="sd">                [lay, row, col, iaux, sbhed1, sbhed2, ..., sbhed(nbdtime)],</span>
+<span class="sd">                [lay, row, col, iaux, sbhed1, sbhed2, ..., sbhed(nbdtime)]</span>
+<span class="sd">            ]</span>
+
+<span class="sd">    extension : string</span>
+<span class="sd">        Filename extension (default is &#39;fhb&#39;)</span>
+<span class="sd">    unitnumber : int</span>
+<span class="sd">        File unit number (default is None).</span>
+<span class="sd">    filenames : str or list of str</span>
+<span class="sd">        Filenames to use for the package and the output files. If</span>
+<span class="sd">        filenames=None the package name will be created using the model name</span>
+<span class="sd">        and package extension and the cbc output name will be created using</span>
+<span class="sd">        the model name and .cbc extension (for example, modflowtest.cbc),</span>
+<span class="sd">        if ipakcbc is a number greater than zero. If a single string is passed</span>
+<span class="sd">        the package will be set to the string and cbc output names will be</span>
+<span class="sd">        created using the model name and .cbc extension, if ipakcbc is a</span>
+<span class="sd">        number greater than zero. To define the names for all package files</span>
+<span class="sd">        (input and output) the length of the list of strings should be 2.</span>
+<span class="sd">        Default is None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Parameters are not supported in FloPy.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import flopy</span>
+<span class="sd">    &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">    &gt;&gt;&gt; fhb = flopy.modflow.ModflowFhb(m)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">nbdtim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">nflw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">nhed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ifhbss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ipakcb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">nfhbx1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">nfhbx2</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ifhbpt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">bdtimecnstm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">bdtime</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">],</span>
+        <span class="n">cnstm5</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">ds5</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cnstm7</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">ds7</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;fhb&quot;</span><span class="p">,</span>
+        <span class="n">unitnumber</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">filenames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># set default unit number of one is not specified</span>
+        <span class="k">if</span> <span class="n">unitnumber</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span> <span class="o">=</span> <span class="n">ModflowFhb</span><span class="o">.</span><span class="n">_defaultunit</span><span class="p">()</span>
+
+        <span class="c1"># set filenames</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_filenames</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># update external file information with cbc output, if necessary</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span>
+                <span class="n">ipakcb</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipakcb</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># call base package constructor</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ftype</span><span class="p">(),</span>
+            <span class="n">unit_number</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_heading</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;fhb.html&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span> <span class="o">=</span> <span class="n">nbdtim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nflw</span> <span class="o">=</span> <span class="n">nflw</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nhed</span> <span class="o">=</span> <span class="n">nhed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ifhbss</span> <span class="o">=</span> <span class="n">ifhbss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span> <span class="o">=</span> <span class="n">ipakcb</span>
+        <span class="k">if</span> <span class="n">nfhbx1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nfhbx1</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nfhbx1</span> <span class="o">=</span> <span class="n">nfhbx1</span>
+        <span class="k">if</span> <span class="n">nfhbx2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nfhbx2</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nfhbx2</span> <span class="o">=</span> <span class="n">nfhbx2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ifhbpt</span> <span class="o">=</span> <span class="n">ifhbpt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bdtimecnstm</span> <span class="o">=</span> <span class="n">bdtimecnstm</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bdtime</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">bdtime</span> <span class="o">=</span> <span class="p">[</span><span class="n">bdtime</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bdtime</span> <span class="o">=</span> <span class="n">bdtime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cnstm5</span> <span class="o">=</span> <span class="n">cnstm5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cnstm7</span> <span class="o">=</span> <span class="n">cnstm7</span>
+
+        <span class="c1"># check the type of dataset 5</span>
+        <span class="k">if</span> <span class="n">ds5</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowFhb</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span>
+                <span class="n">nbdtim</span><span class="o">=</span><span class="n">nbdtim</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">structured</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds5</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;dataset 5 must be a list of lists or a numpy array&quot;</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds5</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">ds5</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds5</span><span class="p">)</span>
+            <span class="c1"># convert numpy array to a recarray</span>
+            <span class="k">if</span> <span class="n">ds5</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
+                <span class="n">ds5</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">records</span><span class="o">.</span><span class="n">fromarrays</span><span class="p">(</span><span class="n">ds5</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># assign dataset 5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds5</span> <span class="o">=</span> <span class="n">ds5</span>
+
+        <span class="c1"># check the type of dataset 7</span>
+        <span class="k">if</span> <span class="n">ds7</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowFhb</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span>
+                <span class="n">nbdtim</span><span class="o">=</span><span class="n">nbdtim</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">structured</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds7</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;dataset 7 must be a list of lists or a numpy array&quot;</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds7</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">ds7</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds7</span><span class="p">)</span>
+            <span class="c1"># convert numpy array to a recarray</span>
+            <span class="k">if</span> <span class="n">ds7</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
+                <span class="n">ds7</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">records</span><span class="o">.</span><span class="n">fromarrays</span><span class="p">(</span><span class="n">ds7</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># assign dataset 7</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds7</span> <span class="o">=</span> <span class="n">ds7</span>
+
+        <span class="c1"># perform some simple verification</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bdtime</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;bdtime has </span><span class="si">{}</span><span class="s2"> entries but requires &quot;</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> entries.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bdtime</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nflw</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds5</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;dataset 5 is not specified but nflw &gt; 0 (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nflw</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds5</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nflw</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;dataset 5 has </span><span class="si">{}</span><span class="s2"> rows but requires &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> rows.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds5</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nflw</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">nc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">nc</span> <span class="o">+=</span> <span class="mi">4</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nc</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds5</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nc</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;dataset 5 has </span><span class="si">{}</span><span class="s2"> columns but requires &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> columns.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds5</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">),</span> <span class="n">nc</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nhed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds7</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;dataset 7 is not specified but nhed &gt; 0 (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nhed</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds7</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nhed</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;dataset 7 has </span><span class="si">{}</span><span class="s2"> rows but requires &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> rows.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds7</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nhed</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">nc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">nc</span> <span class="o">+=</span> <span class="mi">4</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nc</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds7</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nc</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;dataset 7 has </span><span class="si">{}</span><span class="s2"> columns but requires &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> columns.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds7</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">),</span> <span class="n">nc</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_package</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModflowFhb.get_empty"><a class="viewcode-back" href="../../../source/flopy.modflow.mffhb.html#flopy.modflow.mffhb.ModflowFhb.get_empty">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_empty</span><span class="p">(</span><span class="n">ncells</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nbdtim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># get an empty recarray that corresponds to dtype</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">ModflowFhb</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(</span>
+            <span class="n">nbdtim</span><span class="o">=</span><span class="n">nbdtim</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="n">structured</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">head</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">create_empty_recarray</span><span class="p">(</span><span class="n">ncells</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mf">1.0e10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowFhb.get_default_dtype"><a class="viewcode-back" href="../../../source/flopy.modflow.mffhb.html#flopy.modflow.mffhb.ModflowFhb.get_default_dtype">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_default_dtype</span><span class="p">(</span><span class="n">nbdtim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">structured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+        <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;iaux&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbdtim</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">head</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sbhed</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;flwrat</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_ncells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Maximum number of cells that have fhb (developed for MT3DMS</span>
+<span class="sd">        SSM package).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ncells: int</span>
+<span class="sd">            maximum number of fhb cells</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nflw</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nhed</span>
+
+<div class="viewcode-block" id="ModflowFhb.write_file"><a class="viewcode-back" href="../../../source/flopy.modflow.mffhb.html#flopy.modflow.mffhb.ModflowFhb.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the package file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">nlay</span><span class="p">,</span> <span class="n">nper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">nrow_ncol_nlay_nper</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="c1"># f.write(&#39;{0:s}\n&#39;.format(self.heading))</span>
+
+        <span class="c1"># Data set 1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nflw</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nhed</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ifhbss</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ipakcb</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nfhbx1</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nfhbx2</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 2 - flow auxiliary names</span>
+
+        <span class="c1"># Dataset 3 - head auxiliary names</span>
+
+        <span class="c1"># Dataset 4a IFHBUN CNSTM IFHBPT</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bdtimecnstm</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ifhbpt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 4b</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbdtim</span><span class="p">):</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bdtime</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Dataset 5 and 6</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nflw</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Dataset 5a IFHBUN CNSTM IFHBPT</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cnstm5</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ifhbpt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Dataset 5b</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nflw</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds5</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds5</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;node&quot;</span><span class="p">]:</span>
+                        <span class="n">v</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Dataset 6a and 6b - flow auxiliary data</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nfhbx1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Dataset 7</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nhed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Dataset 7a IFHBUN CNSTM IFHBPT</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_number</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cnstm7</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ifhbpt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Dataset 7b IFHBUN CNSTM IFHBPT</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nhed</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds7</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds7</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;node&quot;</span><span class="p">]:</span>
+                        <span class="n">v</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Dataset 8a and 8b - head auxiliary data</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nfhbx2</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModflowFhb.load"><a class="viewcode-back" href="../../../source/flopy.modflow.mffhb.html#flopy.modflow.mffhb.ModflowFhb.load">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">nper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ext_unit_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an existing package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : filename or file handle</span>
+<span class="sd">            File to load.</span>
+<span class="sd">        model : model object</span>
+<span class="sd">            The model object (of type :class:`flopy.modflow.mf.Modflow`) to</span>
+<span class="sd">            which this package will be added.</span>
+<span class="sd">        nper : int</span>
+<span class="sd">            The number of stress periods.  If nper is None, then nper will be</span>
+<span class="sd">            obtained from the model object. (default is None).</span>
+<span class="sd">        ext_unit_dict : dictionary, optional</span>
+<span class="sd">            If the arrays in the file are specified using EXTERNAL,</span>
+<span class="sd">            or older style array control records, then `f` should be a file</span>
+<span class="sd">            handle.  In this case ext_unit_dict is required, which can be</span>
+<span class="sd">            constructed using the function</span>
+<span class="sd">            :class:`flopy.utils.mfreadnam.parsenamefile`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fhb : ModflowFhb object</span>
+<span class="sd">            ModflowFhb object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; m = flopy.modflow.Modflow()</span>
+<span class="sd">        &gt;&gt;&gt; fhb = flopy.modflow.ModflowFhb.load(&#39;test.fhb&#39;, m)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb package file...&quot;</span><span class="p">)</span>
+
+        <span class="n">openfile</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># determine package unit number</span>
+        <span class="n">iufhb</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iufhb</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowFhb</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Dataset 0 -- header</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># dataset 1</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 1&quot;</span><span class="p">)</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">nbdtim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">nflw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nhed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">ifhbss</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">ipakcb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">nfhbx1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">nfhbx2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+
+        <span class="n">ifhbpt</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Dataset 2</span>
+        <span class="n">flow_aux</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">nfhbx1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 2&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset 2 will not be preserved in the created fhb object.&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfhbx1</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">varnam</span> <span class="o">=</span> <span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">varnam</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">16</span><span class="p">:</span>
+                    <span class="n">varnam</span> <span class="o">=</span> <span class="n">varnam</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">16</span><span class="p">]</span>
+                <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">flow_aux</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">varnam</span><span class="p">,</span> <span class="n">weight</span><span class="p">])</span>
+
+        <span class="c1"># Dataset 3</span>
+        <span class="n">head_aux</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">nfhbx2</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 3&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset 3 will not be preserved in the created fhb object.&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfhbx2</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">varnam</span> <span class="o">=</span> <span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">varnam</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">16</span><span class="p">:</span>
+                    <span class="n">varnam</span> <span class="o">=</span> <span class="n">varnam</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">16</span><span class="p">]</span>
+                <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">head_aux</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">varnam</span><span class="p">,</span> <span class="n">weight</span><span class="p">])</span>
+
+        <span class="c1"># Dataset 4a IFHBUN CNSTM IFHBPT</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 4a&quot;</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">ifhbun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">ifhbun</span> <span class="o">!=</span> <span class="n">iufhb</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;fhb dataset 4a must be in the fhb file (unit=</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                <span class="s2">&quot;fhb data is specified in unit=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iufhb</span><span class="p">,</span> <span class="n">ifhbun</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">bdtimecnstm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ifhbpt</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ifhbpt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+        <span class="c1"># Dataset 4b</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 4b&quot;</span><span class="p">)</span>
+
+        <span class="n">bdtime</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbdtim</span><span class="p">,)))</span>
+
+        <span class="c1"># Dataset 5 and 6</span>
+        <span class="n">cnstm5</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ds5</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ds6</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">nflw</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 5a&quot;</span><span class="p">)</span>
+            <span class="c1"># Dataset 5a IFHBUN CNSTM IFHBPT</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ifhbun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">ifhbun</span> <span class="o">!=</span> <span class="n">iufhb</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;fhb dataset 5a must be in the fhb file (unit=</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                    <span class="s2">&quot;fhb data is specified in unit=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iufhb</span><span class="p">,</span> <span class="n">ifhbun</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">cnstm5</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">ifhbpt</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ifhbpt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 5b&quot;</span><span class="p">)</span>
+
+            <span class="n">ds5</span> <span class="o">=</span> <span class="n">ModflowFhb</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+                <span class="n">ncells</span><span class="o">=</span><span class="n">nflw</span><span class="p">,</span>
+                <span class="n">nbdtim</span><span class="o">=</span><span class="n">nbdtim</span><span class="p">,</span>
+                <span class="n">head</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">structured</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nflw</span><span class="p">):</span>
+                <span class="n">tds5</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbdtim</span> <span class="o">+</span> <span class="mi">4</span><span class="p">,)))</span>
+                <span class="n">ds5</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tds5</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">ds5</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">ds5</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">ds5</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ds5</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="c1"># Dataset 6</span>
+            <span class="k">if</span> <span class="n">nfhbx1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cnstm6</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">ds6</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">flow_aux</span><span class="p">:</span>
+                    <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="nb">object</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">naux</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfhbx1</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;loading fhb dataset 6a - aux </span><span class="si">{</span><span class="n">naux</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;dataset 6a will not be preserved in &quot;</span>
+                        <span class="s2">&quot;the created fhb object.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="c1"># Dataset 6a IFHBUN CNSTM IFHBPT</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">ifhbun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">ifhbun</span> <span class="o">!=</span> <span class="n">iufhb</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;fhb dataset 6a must be in the fhb file (unit=</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                            <span class="s2">&quot;fhb data is specified in &quot;</span>
+                            <span class="s2">&quot;unit=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iufhb</span><span class="p">,</span> <span class="n">ifhbun</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="n">cnstm6</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">ifhbpt</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ifhbpt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;loading fhb dataset 6b - aux </span><span class="si">{</span><span class="n">naux</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;dataset 6b will not be preserved in &quot;</span>
+                        <span class="s2">&quot;the created fhb object.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">current</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">(</span><span class="n">nflw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nflw</span><span class="p">):</span>
+                        <span class="n">ds6b</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbdtim</span><span class="p">,)))</span>
+                        <span class="n">current</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ds6b</span><span class="p">),)</span>
+                    <span class="n">ds6</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+        <span class="c1"># Dataset 7</span>
+        <span class="n">cnstm7</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ds7</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">nhed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 7a&quot;</span><span class="p">)</span>
+            <span class="c1"># Dataset 7a IFHBUN CNSTM IFHBPT</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ifhbun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">ifhbun</span> <span class="o">!=</span> <span class="n">iufhb</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;fhb dataset 7a must be in the fhb file (unit=</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                    <span class="s2">&quot;fhb data is specified in unit=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iufhb</span><span class="p">,</span> <span class="n">ifhbun</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">cnstm7</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">ifhbpt</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ifhbpt</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading fhb dataset 7b&quot;</span><span class="p">)</span>
+
+            <span class="n">ds7</span> <span class="o">=</span> <span class="n">ModflowFhb</span><span class="o">.</span><span class="n">get_empty</span><span class="p">(</span>
+                <span class="n">ncells</span><span class="o">=</span><span class="n">nhed</span><span class="p">,</span>
+                <span class="n">nbdtim</span><span class="o">=</span><span class="n">nbdtim</span><span class="p">,</span>
+                <span class="n">head</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">structured</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nhed</span><span class="p">):</span>
+                <span class="n">tds7</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nbdtim</span> <span class="o">+</span> <span class="mi">4</span><span class="p">,)))</span>
+                <span class="n">ds7</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tds7</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">structured</span><span class="p">:</span>
+                <span class="n">ds7</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">ds7</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">ds7</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ds7</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="c1"># Dataset 8</span>
+            <span class="k">if</span> <span class="n">nfhbx2</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cnstm8</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">ds8</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">head_aux</span><span class="p">:</span>
+                    <span class="n">dtype</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="nb">object</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">naux</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfhbx1</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;loading fhb dataset 8a - aux </span><span class="si">{</span><span class="n">naux</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;dataset 8a will not be preserved in &quot;</span>
+                        <span class="s2">&quot;the created fhb object.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="c1"># Dataset 6a IFHBUN CNSTM IFHBPT</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">ifhbun</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">ifhbun</span> <span class="o">!=</span> <span class="n">iufhb</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;fhb dataset 8a must be in the fhb file (unit=</span><span class="si">{}</span><span class="s2">) &quot;</span>
+                            <span class="s2">&quot;fhb data is specified in &quot;</span>
+                            <span class="s2">&quot;unit=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iufhb</span><span class="p">,</span> <span class="n">ifhbun</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="n">cnstm8</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">ifhbpt6</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="n">ifhbpt</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ifhbpt</span><span class="p">,</span> <span class="n">ifhbpt6</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;loading fhb dataset 8b - aux </span><span class="si">{</span><span class="n">naux</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;dataset 8b will not be preserved in &quot;</span>
+                        <span class="s2">&quot;the created fhb object.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">current</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">(</span><span class="n">nflw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nhed</span><span class="p">):</span>
+                        <span class="n">ds8b</span> <span class="o">=</span> <span class="n">read1d</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbdtim</span><span class="p">,)))</span>
+                        <span class="n">current</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ds8b</span><span class="p">),)</span>
+                    <span class="n">ds8</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">openfile</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># determine specified unit number</span>
+        <span class="n">unitnumber</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext_unit_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unitnumber</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="n">ModflowFhb</span><span class="o">.</span><span class="n">_ftype</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ipakcb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">iu</span><span class="p">,</span> <span class="n">filenames</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_ext_dict_attr</span><span class="p">(</span>
+                <span class="n">ext_unit_dict</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">ipakcb</span>
+            <span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">add_pop_key_list</span><span class="p">(</span><span class="n">ipakcb</span><span class="p">)</span>
+
+        <span class="c1"># auxiliary data are not passed to load instantiation</span>
+        <span class="n">nfhbx1</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">nfhbx2</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">fhb</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">nbdtim</span><span class="o">=</span><span class="n">nbdtim</span><span class="p">,</span>
+            <span class="n">nflw</span><span class="o">=</span><span class="n">nflw</span><span class="p">,</span>
+            <span class="n">nhed</span><span class="o">=</span><span class="n">nhed</span><span class="p">,</span>
+            <span class="n">ifhbss</span><span class="o">=</span><span class="n">ifhbss</span><span class="p">,</span>
+            <span class="n">ipakcb</span><span class="o">=</span><span class="n">ipakcb</span><span class="p">,</span>
+            <span class="n">nfhbx1</span><span class="o">=</span><span class="n">nfhbx1</span><span class="p">,</span>
+            <span class="n">nfhbx2</span><span class="o">=</span><span class="n">nfhbx2</span><span class="p">,</span>
+            <span class="n">ifhbpt</span><span class="o">=</span><span class="n">ifhbpt</span><span class="p">,</span>
+            <span class="n">bdtimecnstm</span><span class="o">=</span><span class="n">bdtimecnstm</span><span class="p">,</span>
+            <span class="n">bdtime</span><span class="o">=</span><span class="n">bdtime</span><span class="p">,</span>
+            <span class="n">cnstm5</span><span class="o">=</span><span class="n">cnstm5</span><span class="p">,</span>
+            <span class="n">ds5</span><span class="o">=</span><span class="n">ds5</span><span class="p">,</span>
+            <span class="n">cnstm7</span><span class="o">=</span><span class="n">cnstm7</span><span class="p">,</span>
+            <span class="n">ds7</span><span class="o">=</span><span class="n">ds7</span><span class="p">,</span>
+            <span class="n">unitnumber</span><span class="o">=</span><span class="n">unitnumber</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="o">=</span><span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># return fhb object</span>
+        <span class="k">return</span> <span class="n">fhb</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ftype</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;FHB&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_defaultunit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">40</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

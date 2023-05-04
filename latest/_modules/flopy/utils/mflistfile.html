@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flopy.utils.mflistfile &mdash; FloPy Documentation 3.3.7 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/flopylogo.png"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            FloPy Documentation
+          </a>
+              <div class="version">
+                3.3.7
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">What is FloPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-installation">FloPy Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-resources">FloPy Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#flopy-development-team">FloPy Development Team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html#how-to-cite">How to Cite</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Flopy Code</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">FloPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">flopy.utils.mflistfile</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for flopy.utils.mflistfile</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This is a set of classes for reading budget information out of MODFLOW-style</span>
+<span class="sd">listing files.  Cumulative and incremental budgets are returned as numpy</span>
+<span class="sd">recarrays, which can then be easily plotted.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">import_optional_dependency</span>
+<span class="kn">from</span> <span class="nn">..utils.flopy_io</span> <span class="kn">import</span> <span class="n">get_ts_sp</span>
+<span class="kn">from</span> <span class="nn">..utils.utils_def</span> <span class="kn">import</span> <span class="n">totim_to_datetime</span>
+
+
+<div class="viewcode-block" id="ListBudget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget">[docs]</a><span class="k">class</span> <span class="nc">ListBudget</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MODFLOW family list file handling</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_name : str</span>
+<span class="sd">        the list file name</span>
+<span class="sd">    budgetkey : str</span>
+<span class="sd">        the text string identifying the budget table. (default is None)</span>
+<span class="sd">    timeunit : str</span>
+<span class="sd">        the time unit to return in the recarray. (default is &#39;days&#39;)</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The ListBudget class should not be instantiated directly.  Access is</span>
+<span class="sd">    through derived classes: MfListBudget (MODFLOW), SwtListBudget (SEAWAT)</span>
+<span class="sd">    and SwrListBudget (MODFLOW with the SWR process)</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; incremental, cumulative = mf_list.get_budget()</span>
+<span class="sd">    &gt;&gt;&gt; df_inc, df_cumul = mf_list.get_dataframes(start_datetime=&quot;10-21-2015&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">budgetkey</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeunit</span><span class="o">=</span><span class="s2">&quot;days&quot;</span><span class="p">):</span>
+        <span class="c1"># Set up file reading</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">file_name</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;file_name </span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2"> not found&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;ascii&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tssp_lines</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Assign the budgetkey, which should have been overridden</span>
+        <span class="k">if</span> <span class="n">budgetkey</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_budget_key</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="o">=</span> <span class="n">budgetkey</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">totim</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="n">timeunit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_line_idx</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="k">if</span> <span class="n">timeunit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;SECONDS&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="s2">&quot;S&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="n">timeunit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;MINUTES&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="s2">&quot;M&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_idx</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">timeunit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;HOURS&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="s2">&quot;H&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_idx</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">timeunit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;DAYS&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="s2">&quot;D&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_idx</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">elif</span> <span class="n">timeunit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;YEARS&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="s2">&quot;Y&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_idx</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;need to reset time_idxs attribute to &quot;</span>
+                <span class="s2">&quot;use units other than days and check usage of &quot;</span>
+                <span class="s2">&quot;timedelta&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Fill budget recarrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Close the open file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># return</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ListBudget.set_budget_key"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.set_budget_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_budget_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Must be overridden...&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ListBudget.isvalid"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.isvalid">[docs]</a>    <span class="k">def</span> <span class="nf">isvalid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a boolean indicating if budget data are available in the file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : boolean</span>
+<span class="sd">            Boolean indicating if budget data are available in the file.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&#39;my_model.list&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; valid = mf_list.isvalid()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_record_names"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_record_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_record_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of water budget record names in the file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : list of strings</span>
+<span class="sd">            List of unique text names in the binary file.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&#39;my_model.list&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; names = mf_list.get_record_names()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_times"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_times">[docs]</a>    <span class="k">def</span> <span class="nf">get_times</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique water budget times in the list file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : list of floats</span>
+<span class="sd">            List contains unique water budget simulation times (totim) in list</span>
+<span class="sd">            file.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&#39;my_model.list&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; times = mf_list.get_times()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_tslens"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_tslens">[docs]</a>    <span class="k">def</span> <span class="nf">get_tslens</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique water budget time step lengths in the list file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : list of floats</span>
+<span class="sd">            List contains unique water budget simulation time step lengths</span>
+<span class="sd">            (tslen) in list file.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&#39;my_model.list&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ts_lengths = mf_list.get_tslens()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;tslen&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_kstpkper"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_kstpkper">[docs]</a>    <span class="k">def</span> <span class="nf">get_kstpkper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of unique stress periods and time steps in the list file</span>
+<span class="sd">        water budgets.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out : list of (kstp, kper) tuples</span>
+<span class="sd">            List of unique kstp, kper combinations in list file.  kstp and</span>
+<span class="sd">            kper values are zero-based.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; kstpkper = mf_list.get_kstpkper()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">kstpkper</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;time_step&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;stress_period&quot;</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">kstpkper</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">kstp</span><span class="p">,</span> <span class="n">kper</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">kstpkper</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_incremental"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_incremental">[docs]</a>    <span class="k">def</span> <span class="nf">get_incremental</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a recarray with the incremental water budget items in the list</span>
+<span class="sd">        file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        names : str or list of strings</span>
+<span class="sd">            Selection of column names to return.  If names is not None then</span>
+<span class="sd">            totim, time_step, stress_period, and selection(s) will be returned.</span>
+<span class="sd">            (default is None).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : recarray</span>
+<span class="sd">            Numpy recarray with the water budget items in list file. The</span>
+<span class="sd">            recarray also includes totim, time_step, and stress_period.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; incremental = mf_list.get_incremental()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">names</span><span class="p">]</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;stress_period&quot;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;time_step&quot;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;totim&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="n">names</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_cumulative"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_cumulative">[docs]</a>    <span class="k">def</span> <span class="nf">get_cumulative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a recarray with the cumulative water budget items in the list file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        names : str or list of strings</span>
+<span class="sd">            Selection of column names to return.  If names is not None then</span>
+<span class="sd">            totim, time_step, stress_period, and selection(s) will be returned.</span>
+<span class="sd">            (default is None).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : recarray</span>
+<span class="sd">            Numpy recarray with the water budget items in list file. The</span>
+<span class="sd">            recarray also includes totim, time_step, and stress_period.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; cumulative = mf_list.get_cumulative()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cum</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">names</span><span class="p">]</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;stress_period&quot;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;time_step&quot;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;totim&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">)[</span><span class="n">names</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_model_runtime"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_model_runtime">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_runtime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the elapsed runtime of the model from the list file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        units : str</span>
+<span class="sd">            Units in which to return the runtime. Acceptable values are</span>
+<span class="sd">            &#39;seconds&#39;, &#39;minutes&#39;, &#39;hours&#39; (default is &#39;seconds&#39;)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : float</span>
+<span class="sd">            Floating point value with the runtime in requested units. Returns</span>
+<span class="sd">            NaN if runtime not found in list file</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; budget = mf_list.get_model_runtime(units=&#39;hours&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># reopen the file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;ascii&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;seconds&quot;</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;minutes&quot;</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;hours&quot;</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s1">&#39;&quot;units&quot; input variable must be &quot;minutes&quot;, &quot;hours&quot;, &#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;or &quot;seconds&quot;: </span><span class="si">{</span><span class="n">units</span><span class="si">}</span><span class="s1"> was specified&#39;</span>
+            <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">seekpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seek_to_string</span><span class="p">(</span><span class="s2">&quot;Elapsed run time:&quot;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Elapsed run time not included in list file. Returning NaN&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">seekpoint</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c1"># yank out the floating point values from the Elapsed run time string</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[+-]?[0-9.]+&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)))</span>
+        <span class="c1"># pad an array with zeros and times with</span>
+        <span class="c1"># [days, hours, minutes, seconds]</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))]</span> <span class="o">+</span> <span class="n">times</span><span class="p">)</span>
+        <span class="c1"># convert all to seconds</span>
+        <span class="n">time2sec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">times_sec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">times</span> <span class="o">*</span> <span class="n">time2sec</span><span class="p">)</span>
+        <span class="c1"># return in the requested units</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;seconds&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">times_sec</span>
+        <span class="k">elif</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;minutes&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">times_sec</span> <span class="o">/</span> <span class="mf">60.0</span>
+        <span class="k">elif</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;hours&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">times_sec</span> <span class="o">/</span> <span class="mf">60.0</span> <span class="o">/</span> <span class="mf">60.0</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_budget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_budget">[docs]</a>    <span class="k">def</span> <span class="nf">get_budget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the recarrays with the incremental and cumulative water budget</span>
+<span class="sd">        items in the list file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        names : str or list of strings</span>
+<span class="sd">            Selection of column names to return.  If names is not None then</span>
+<span class="sd">            totim, time_step, stress_period, and selection(s) will be returned.</span>
+<span class="sd">            (default is None).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : recarrays</span>
+<span class="sd">            Numpy recarrays with the water budget items in list file. The</span>
+<span class="sd">            recarray also includes totim, time_step, and stress_period. A</span>
+<span class="sd">            separate recarray is returned for the incremental and cumulative</span>
+<span class="sd">            water budget entries.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; budget = mf_list.get_budget()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cum</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">names</span><span class="p">]</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;stress_period&quot;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;time_step&quot;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;totim&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="n">names</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">[</span><span class="n">names</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">),</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_data"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kstpkper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">totim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">incremental</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get water budget data from the list file for the specified conditions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        idx : int</span>
+<span class="sd">            The zero-based record number.  The first record is record 0.</span>
+<span class="sd">            (default is None).</span>
+<span class="sd">        kstpkper : tuple of ints</span>
+<span class="sd">            A tuple containing the time step and stress period (kstp, kper).</span>
+<span class="sd">            These are zero-based kstp and kper values. (default is None).</span>
+<span class="sd">        totim : float</span>
+<span class="sd">            The simulation time. (default is None).</span>
+<span class="sd">        incremental : bool</span>
+<span class="sd">            Boolean flag used to determine if incremental or cumulative water</span>
+<span class="sd">            budget data for the specified conditions will be returned. If</span>
+<span class="sd">            incremental=True, incremental water budget data will be returned.</span>
+<span class="sd">            If incremental=False, cumulative water budget data will be</span>
+<span class="sd">            returned. (default is False).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        data : numpy recarray</span>
+<span class="sd">            Array has size (number of budget items, 3). Recarray names are</span>
+<span class="sd">            &#39;index&#39;, &#39;value&#39;, &#39;name&#39;.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        if both kstpkper and totim are None, will return the last entry</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import flopy</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = flopy.utils.MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; data = mf_list.get_data(kstpkper=(0,0))</span>
+<span class="sd">        &gt;&gt;&gt; plt.bar(data[&#39;index&#39;], data[&#39;value&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; plt.xticks(data[&#39;index&#39;], data[&#39;name&#39;], rotation=45, size=6)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">ipos</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">kstpkper</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ipos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_kstpkper</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">kstpkper</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;   could not retrieve kstpkper </span><span class="si">{</span><span class="n">kstpkper</span><span class="si">}</span><span class="s2"> from the lst file&quot;</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">totim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ipos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_times</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">totim</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;   could not retrieve totime </span><span class="si">{</span><span class="n">totim</span><span class="si">}</span><span class="s2"> from the lst file&quot;</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="n">idx</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ipos</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">ipos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Could not find specified condition.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  kstpkper = </span><span class="si">{</span><span class="n">kstpkper</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  totim = </span><span class="si">{</span><span class="n">totim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># TODO: return zero-length array, or update docstring return type</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">incremental</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="n">ipos</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">[</span><span class="n">ipos</span><span class="p">]</span>
+
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+            <span class="p">[(</span><span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;|S25&quot;</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="mi">3</span><span class="p">:])),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="mi">3</span><span class="p">:]):</span>
+            <span class="n">mult</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">if</span> <span class="s2">&quot;_OUT&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                <span class="n">mult</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+            <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mult</span> <span class="o">*</span> <span class="n">t</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">return</span> <span class="n">v</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_dataframes"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_dataframes">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataframes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_datetime</span><span class="o">=</span><span class="s2">&quot;1-1-1970&quot;</span><span class="p">,</span> <span class="n">diff</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get pandas dataframes with the incremental and cumulative water budget</span>
+<span class="sd">        items in the list file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        start_datetime : str</span>
+<span class="sd">            If start_datetime is passed as None, the rows are indexed on totim.</span>
+<span class="sd">            Otherwise, a DatetimeIndex is set. (default is 1-1-1970).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : pandas dataframes</span>
+<span class="sd">            Pandas dataframes with the incremental and cumulative water budget</span>
+<span class="sd">            items in list file. A separate pandas dataframe is returned for the</span>
+<span class="sd">            incremental and cumulative water budget entries.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; mf_list = MfListBudget(&quot;my_model.list&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; incrementaldf, cumulativedf = mf_list.get_dataframes()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pd</span> <span class="o">=</span> <span class="n">import_optional_dependency</span><span class="p">(</span>
+            <span class="s2">&quot;pandas&quot;</span><span class="p">,</span>
+            <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;ListBudget.get_dataframes() requires pandas.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isvalid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">totim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_times</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">start_datetime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">totim</span> <span class="o">=</span> <span class="n">totim_to_datetime</span><span class="p">(</span>
+                    <span class="n">totim</span><span class="p">,</span>
+                    <span class="n">start</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">start_datetime</span><span class="p">),</span>
+                    <span class="n">timeunit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>  <span class="c1"># if totim can&#39;t be cast to pd.datetime return in native units</span>
+
+        <span class="n">df_flux</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">totim</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">]</span>
+        <span class="n">df_vol</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">totim</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">diff</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">df_flux</span><span class="p">,</span> <span class="n">df_vol</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">in_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df_flux</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_IN&quot;</span><span class="p">)]</span>
+
+            <span class="n">base_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_IN&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">in_names</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">base_names</span><span class="p">:</span>
+                <span class="n">in_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_IN&quot;</span>
+                <span class="n">out_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_OUT&quot;</span>
+                <span class="n">df_flux</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">df_flux</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">in_name</span><span class="p">]</span> <span class="o">-</span> <span class="n">df_flux</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">out_name</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">df_flux</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">in_name</span><span class="p">)</span>
+                <span class="n">df_flux</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">out_name</span><span class="p">)</span>
+                <span class="n">df_vol</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">df_vol</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">in_name</span><span class="p">]</span> <span class="o">-</span> <span class="n">df_vol</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">out_name</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">df_vol</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">in_name</span><span class="p">)</span>
+                <span class="n">df_vol</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">out_name</span><span class="p">)</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df_flux</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">]</span>
+            <span class="n">df_flux</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols</span>
+            <span class="n">df_vol</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols</span>
+            <span class="n">df_flux</span><span class="o">.</span><span class="n">sort_index</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">df_vol</span><span class="o">.</span><span class="n">sort_index</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">df_flux</span><span class="p">,</span> <span class="n">df_vol</span></div>
+
+<div class="viewcode-block" id="ListBudget.get_reduced_pumping"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.ListBudget.get_reduced_pumping">[docs]</a>    <span class="k">def</span> <span class="nf">get_reduced_pumping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get numpy recarray of reduced pumping data from a list file.</span>
+<span class="sd">        Reduced pumping data most have been written to the list file</span>
+<span class="sd">        during the model run. Works with MfListBudget and MfusgListBudget.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        numpy recarray</span>
+<span class="sd">            A numpy recarray with the reduced pumping data from the list</span>
+<span class="sd">            file.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; objLST = MfListBudget(&quot;my_model.lst&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; raryReducedPpg = objLST.get_reduced_pumping()</span>
+<span class="sd">        &gt;&gt;&gt; dfReducedPpg = pd.DataFrame.from_records(raryReducedPpg)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..utils.observationfile</span> <span class="kn">import</span> <span class="n">get_reduced_pumping</span>
+
+        <span class="c1"># Ensure list file exists</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">strerror</span><span class="p">(</span><span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Eval based on model list type</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">MfListBudget</span><span class="p">):</span>
+            <span class="n">structured</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="c1"># Check if reduced pumping data was set to be written</span>
+            <span class="c1"># to list file</span>
+            <span class="n">check_str</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;WELLS WITH REDUCED PUMPING WILL BE REPORTED &quot;</span>
+                <span class="s2">&quot;TO THE MAIN LISTING FILE&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">check_str_ag</span> <span class="o">=</span> <span class="s2">&quot;AG WELLS WITH REDUCED PUMPING FOR STRESS PERIOD&quot;</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">check_str</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">check_str_ag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;Pumping reductions not written to list file. &quot;</span>
+                    <span class="s1">&#39;Try removing &quot;noprint&quot; keyword from well file.&#39;</span>
+                    <span class="s2">&quot;External pumping reduction files can be read using: &quot;</span>
+                    <span class="s2">&quot;flopy.utils.observationfile.get_pumping_reduction(&lt;file&gt;)&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">MfusgListBudget</span><span class="p">):</span>
+            <span class="n">structured</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="c1"># Check if reduced pumping data was written and if set to</span>
+            <span class="c1"># be written to list file</span>
+            <span class="n">check_str</span> <span class="o">=</span> <span class="s2">&quot;WELL REDUCTION INFO WILL BE WRITTEN TO UNIT:&quot;</span>
+            <span class="n">bool_list_unit</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">pump_reduction_flag</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+                <span class="c1"># Assumes LST unit always first</span>
+                <span class="k">if</span> <span class="s2">&quot;UNIT&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">bool_list_unit</span><span class="p">:</span>
+                    <span class="n">list_unit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">bool_list_unit</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">check_str</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">pump_reduction_flag</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="n">list_unit</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                            <span class="s2">&quot;Pumping reductions not written to list file. &quot;</span>
+                            <span class="s2">&quot;External pumping reduction files can be &quot;</span>
+                            <span class="s2">&quot;read using: flopy.utils.observationfile.&quot;</span>
+                            <span class="s2">&quot;get_pumping_reduction(&lt;file&gt;, structured=False)&quot;</span>
+                        <span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pump_reduction_flag</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Auto pumping reductions not active.&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;get_reduced_pumping() is only implemented for the &quot;</span>
+                <span class="s2">&quot;MfListBudget or MfusgListBudget classes. Please &quot;</span>
+                <span class="s2">&quot;feel free to expand the functionality to other &quot;</span>
+                <span class="s2">&quot;ListBudget classes.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">get_reduced_pumping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">structured</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_build_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxentries</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">maxentries</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_get_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxentries</span><span class="p">):</span>
+        <span class="c1"># --parse through the file looking for matches and parsing ts and sp</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">l_count</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">seekpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tssp_lines</span><span class="p">):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span> <span class="o">=</span> <span class="n">get_ts_sp</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;unable to cast ts,sp on line number&quot;</span><span class="p">,</span>
+                        <span class="n">l_count</span><span class="p">,</span>
+                        <span class="s2">&quot; line: &quot;</span><span class="p">,</span>
+                        <span class="n">line</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="c1"># print(&#39;info found for timestep stress period&#39;,ts,sp)</span>
+
+                <span class="n">idxs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">seekpoint</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">maxentries</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">idxs</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">maxentries</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">idxs</span>
+
+    <span class="k">def</span> <span class="nf">_seek_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        s : str</span>
+<span class="sd">            Seek through the file to the next occurrence of s.  Return the</span>
+<span class="sd">            seek location when found.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        seekpoint : int</span>
+<span class="sd">            Next location of the string</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">seekpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">seekpoint</span>
+
+    <span class="k">def</span> <span class="nf">_set_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;entries already set:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;must call build_index before call set_entries&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">incdict</span><span class="p">,</span> <span class="n">cumdict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sp</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;unable to read budget information from first &quot;</span>
+                <span class="s2">&quot;entry in list file&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entries</span> <span class="o">=</span> <span class="n">incdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">null_entries</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">incdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">cumdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="n">incdict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">cumdict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">null_entries</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span> <span class="o">=</span> <span class="p">[</span><span class="n">null_entries</span><span class="p">,</span> <span class="n">null_entries</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">incdict</span><span class="p">,</span> <span class="n">cumdict</span>
+
+    <span class="k">def</span> <span class="nf">_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxentries</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_index</span><span class="p">(</span><span class="n">maxentries</span><span class="p">)</span>
+        <span class="n">incdict</span><span class="p">,</span> <span class="n">cumdict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_entries</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">incdict</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cumdict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">totim</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tslens</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">seekpoint</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">:</span>
+            <span class="n">tinc</span><span class="p">,</span> <span class="n">tcum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sp</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">seekpoint</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+                <span class="n">incdict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tinc</span><span class="p">[</span><span class="n">entry</span><span class="p">])</span>
+                <span class="n">cumdict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tcum</span><span class="p">[</span><span class="n">entry</span><span class="p">])</span>
+
+            <span class="c1"># Get the time for this record</span>
+            <span class="n">seekpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seek_to_string</span><span class="p">(</span><span class="s2">&quot;TIME SUMMARY AT END&quot;</span><span class="p">)</span>
+            <span class="n">tslen</span><span class="p">,</span> <span class="n">sptim</span><span class="p">,</span> <span class="n">tt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_totim</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">seekpoint</span><span class="p">)</span>
+            <span class="n">totim</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+            <span class="n">tslens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tslen</span><span class="p">)</span>
+
+        <span class="c1"># get kstp and kper</span>
+        <span class="n">idx_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_map</span><span class="p">)</span>
+
+        <span class="c1"># build dtype for recarray</span>
+        <span class="n">dtype_tups</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;totim&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;time_step&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;stress_period&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="n">dtype_tups</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">entry</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype_tups</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;tslen&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype_tups</span><span class="p">)</span>
+
+        <span class="c1"># create recarray</span>
+        <span class="n">nentries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">incdict</span><span class="p">[</span><span class="n">entry</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nentries</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nentries</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># fill each column of the recarray</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="n">incdict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="n">cumdict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span>
+
+        <span class="c1"># file the totim, time_step, and stress_period columns for the</span>
+        <span class="c1"># incremental and cumulative recarrays (zero-based kstp,kper)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">totim</span><span class="p">)[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;tslen&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tslens</span><span class="p">)[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;time_step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx_array</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">[</span><span class="s2">&quot;stress_period&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx_array</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">[</span><span class="s2">&quot;totim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">totim</span><span class="p">)[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">[</span><span class="s2">&quot;time_step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx_array</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cum</span><span class="p">[</span><span class="s2">&quot;stress_period&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx_array</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_get_sp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">seekpoint</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">seekpoint</span><span class="p">)</span>
+        <span class="c1"># --read to the start of the &quot;in&quot; budget information</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;end of file found while seeking budget &quot;</span>
+                    <span class="s2">&quot;information for ts,sp: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span>
+
+            <span class="c1"># --if there are two &#39;=&#39; in this line, then it is a budget line</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;IN&quot;</span>
+        <span class="n">incdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">cumdict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">entrydict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;end of file found while seeking budget &quot;</span>
+                    <span class="s2">&quot;information for ts,sp: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">cumu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_budget_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error parsing budget line in ts,sp&quot;</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span>
+                <span class="k">if</span> <span class="n">flux</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;error casting in flux for&quot;</span><span class="p">,</span>
+                        <span class="n">entry</span><span class="p">,</span>
+                        <span class="s2">&quot; to float in ts,sp&quot;</span><span class="p">,</span>
+                        <span class="n">ts</span><span class="p">,</span>
+                        <span class="n">sp</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span>
+                <span class="k">if</span> <span class="n">cumu</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;error casting in cumu for&quot;</span><span class="p">,</span>
+                        <span class="n">entry</span><span class="p">,</span>
+                        <span class="s2">&quot; to float in ts,sp&quot;</span><span class="p">,</span>
+                        <span class="n">ts</span><span class="p">,</span>
+                        <span class="n">sp</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">null_entries</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">upper</span><span class="p">()):</span>
+                    <span class="k">if</span> <span class="s2">&quot; - &quot;</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="s2">&quot;PERCENT DISCREPANCY&quot;</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">entry</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entrydict</span><span class="p">:</span>
+                        <span class="n">entrydict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">inum</span> <span class="o">=</span> <span class="n">entrydict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span>
+                        <span class="n">entry</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="si">}{</span><span class="n">inum</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">entrydict</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">incdict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">flux</span>
+                <span class="n">cumdict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">cumu</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;OUT:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                    <span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;OUT&quot;</span>
+                    <span class="n">entrydict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;PERCENT DISCREPANCY&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">incdict</span><span class="p">,</span> <span class="n">cumdict</span>
+
+    <span class="k">def</span> <span class="nf">_parse_budget_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+        <span class="c1"># get the budget item name</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="c1"># get the cumulative string</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">line2</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="n">idx</span><span class="p">:]</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="n">line2</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">cu_str</span> <span class="o">=</span> <span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">line2</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">fx_str</span> <span class="o">=</span> <span class="n">line2</span><span class="p">[</span><span class="n">idx</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">flux</span><span class="p">,</span> <span class="n">cumu</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cumu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cu_str</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;NAN&quot;</span> <span class="ow">in</span> <span class="n">cu_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                <span class="n">cumu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">flux</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fx_str</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;NAN&quot;</span> <span class="ow">in</span> <span class="n">fx_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+        <span class="k">return</span> <span class="n">entry</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">cumu</span>
+
+    <span class="k">def</span> <span class="nf">_get_totim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">seekpoint</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">seekpoint</span><span class="p">)</span>
+        <span class="c1"># --read header lines</span>
+        <span class="n">ihead</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">ihead</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;end of file found while seeking budget &quot;</span>
+                    <span class="s2">&quot;information for ts,sp: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="n">ihead</span> <span class="o">==</span> <span class="mi">2</span>
+                <span class="ow">and</span> <span class="s2">&quot;SECONDS     MINUTES      HOURS       DAYS        YEARS&quot;</span>
+                <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span>
+            <span class="p">):</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="s2">&quot;-----------------------------------------------------------&quot;</span>
+                <span class="ow">in</span> <span class="n">line</span>
+            <span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">SwtListBudget</span><span class="p">):</span>
+            <span class="n">translen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_time_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">translen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error parsing translen for ts,sp&quot;</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+        <span class="n">tslen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_time_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tslen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error parsing tslen for ts,sp&quot;</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+        <span class="n">sptim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_time_line</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">sptim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error parsing sptim for ts,sp&quot;</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+        <span class="n">totim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_time_line</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">totim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error parsing totim for ts,sp&quot;</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+        <span class="k">return</span> <span class="n">tslen</span><span class="p">,</span> <span class="n">sptim</span><span class="p">,</span> <span class="n">totim</span>
+
+    <span class="k">def</span> <span class="nf">_parse_time_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;end of file found while parsing time information&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">time_str</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">time_line_idx</span> <span class="p">:]</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">time_str</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_idx</span>
+            <span class="c1"># catch case where itmuni is undefined</span>
+            <span class="c1"># in this case, the table format is different</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">time_str</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">45</span><span class="p">:]</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">time_str</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">tval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error parsing tslen information: &quot;</span><span class="p">,</span> <span class="n">time_str</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">tval</span></div>
+
+
+<div class="viewcode-block" id="SwtListBudget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.SwtListBudget">[docs]</a><span class="k">class</span> <span class="nc">SwtListBudget</span><span class="p">(</span><span class="n">ListBudget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SwtListBudget.set_budget_key"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.SwtListBudget.set_budget_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_budget_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="o">=</span> <span class="s2">&quot;MASS BUDGET FOR ENTIRE MODEL&quot;</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="MfListBudget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.MfListBudget">[docs]</a><span class="k">class</span> <span class="nc">MfListBudget</span><span class="p">(</span><span class="n">ListBudget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MfListBudget.set_budget_key"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.MfListBudget.set_budget_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_budget_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="o">=</span> <span class="s2">&quot;VOLUMETRIC BUDGET FOR ENTIRE MODEL&quot;</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="Mf6ListBudget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.Mf6ListBudget">[docs]</a><span class="k">class</span> <span class="nc">Mf6ListBudget</span><span class="p">(</span><span class="n">ListBudget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Mf6ListBudget.set_budget_key"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.Mf6ListBudget.set_budget_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_budget_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="o">=</span> <span class="s2">&quot;VOLUME BUDGET FOR ENTIRE MODEL&quot;</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="MfusgListBudget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.MfusgListBudget">[docs]</a><span class="k">class</span> <span class="nc">MfusgListBudget</span><span class="p">(</span><span class="n">ListBudget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MfusgListBudget.set_budget_key"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.MfusgListBudget.set_budget_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_budget_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="o">=</span> <span class="s2">&quot;VOLUMETRIC BUDGET FOR ENTIRE MODEL&quot;</span>
+        <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="SwrListBudget"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.SwrListBudget">[docs]</a><span class="k">class</span> <span class="nc">SwrListBudget</span><span class="p">(</span><span class="n">ListBudget</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SwrListBudget.set_budget_key"><a class="viewcode-back" href="../../../source/flopy.utils.mflistfile.html#flopy.utils.mflistfile.SwrListBudget.set_budget_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_budget_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">budgetkey</span> <span class="o">=</span> <span class="s2">&quot;VOLUMETRIC SURFACE WATER BUDGET FOR ENTIRE MODEL&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tssp_lines</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
